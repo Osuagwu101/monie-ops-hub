@@ -1,22 +1,9 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Activity,
-  CheckCircle2,
-  CircleDollarSign,
-  CreditCard,
-  FileText,
-  Plus,
-} from "lucide-react";
+import { Activity, CheckCircle2, CircleDollarSign, CreditCard, FileText, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,

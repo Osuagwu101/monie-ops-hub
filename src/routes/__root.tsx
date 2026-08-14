@@ -84,7 +84,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Moniepoint BRM Operations Portal starter dashboard." },
       { name: "author", content: "Moniepoint BRM Operations" },
       { property: "og:title", content: "Moniepoint BRM Operations Portal" },
-      { property: "og:description", content: "Moniepoint BRM Operations Portal starter dashboard." },
+      {
+        property: "og:description",
+        content: "Moniepoint BRM Operations Portal starter dashboard.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
