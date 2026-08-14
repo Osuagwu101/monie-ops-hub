@@ -57,7 +57,6 @@ function OverviewPage() {
 
   const handleSubmitNote = () => {
     // In a real app, this would send the note to a backend.
-    // eslint-disable-next-line no-console
     console.log("Daily note submitted:", dailyNote);
     setDailyNote("");
     setIsDialogOpen(false);
