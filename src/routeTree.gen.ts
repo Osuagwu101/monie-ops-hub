@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AiLogsRouteImport } from './routes/ai-logs'
+import { Route as DailyTasksRouteImport } from './routes/daily-tasks'
+import { Route as MerchantListRouteImport } from './routes/merchant-list'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiLogsRoute = AiLogsRouteImport.update({
+  id: '/ai-logs',
+  path: '/ai-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyTasksRoute = DailyTasksRouteImport.update({
+  id: '/daily-tasks',
+  path: '/daily-tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantListRoute = MerchantListRouteImport.update({
+  id: '/merchant-list',
+  path: '/merchant-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-logs': typeof AiLogsRoute
+  '/daily-tasks': typeof DailyTasksRoute
+  '/merchant-list': typeof MerchantListRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-logs': typeof AiLogsRoute
+  '/daily-tasks': typeof DailyTasksRoute
+  '/merchant-list': typeof MerchantListRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-logs': typeof AiLogsRoute
+  '/daily-tasks': typeof DailyTasksRoute
+  '/merchant-list': typeof MerchantListRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list'
+  id: '__root__' | '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiLogsRoute: typeof AiLogsRoute
+  DailyTasksRoute: typeof DailyTasksRoute
+  MerchantListRoute: typeof MerchantListRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +78,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai-logs': {
+      id: '/ai-logs'
+      path: '/ai-logs'
+      fullPath: '/ai-logs'
+      preLoaderRoute: typeof AiLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily-tasks': {
+      id: '/daily-tasks'
+      path: '/daily-tasks'
+      fullPath: '/daily-tasks'
+      preLoaderRoute: typeof DailyTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/merchant-list': {
+      id: '/merchant-list'
+      path: '/merchant-list'
+      fullPath: '/merchant-list'
+      preLoaderRoute: typeof MerchantListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiLogsRoute: AiLogsRoute,
+  DailyTasksRoute: DailyTasksRoute,
+  MerchantListRoute: MerchantListRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

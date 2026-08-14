@@ -62,7 +62,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
-                    tooltip={collapsed ? item.title : undefined}
+                    {...(collapsed ? { tooltip: item.title } : {})}
                   >
                     <Link
                       to={item.url}
