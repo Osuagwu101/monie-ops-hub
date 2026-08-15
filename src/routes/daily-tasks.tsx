@@ -2,13 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Clock3, ListTodo, RotateCcw, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DAILY_CALL_TARGET } from "@/domain/models";
 
 export const Route = createFileRoute("/daily-tasks")({
@@ -25,10 +19,7 @@ const taskStates = [
   ["Assigned", "Amina places a priority task into the assistant queue."],
   ["In progress", "The assistant has started the merchant interaction."],
   ["Postponed", "A reason and callback context are required."],
-  [
-    "Completed",
-    "The human interaction is finished; performance is not yet verified.",
-  ],
+  ["Completed", "The human interaction is finished; performance is not yet verified."],
   ["Pending verification", "Tunde is waiting for official report evidence."],
   [
     "Verified / Discrepancy / Deferred / Unverifiable",
