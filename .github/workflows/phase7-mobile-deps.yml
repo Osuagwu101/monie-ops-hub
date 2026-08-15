@@ -1,0 +1,32 @@
+name: Phase 7 Mobile Dependency Lock
+
+on:
+  push:
+    branches: [agent/phase7-mobile-notifications]
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase7-mobile-notifications
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Lock React Native URL polyfill and scripts
+        working-directory: mobile
+        run: |
+          npm install react-native-url-polyfill
+          npm pkg set scripts.typecheck='tsc --noEmit'
+      - name: Remove temporary workflow and commit
+        run: |
+          rm .github/workflows/phase7-mobile-deps.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/package.json mobile/package-lock.json .github/workflows/phase7-mobile-deps.yml
+          git commit -m "Lock Phase 7 mobile runtime dependencies"
+          git push origin HEAD:agent/phase7-mobile-notifications
