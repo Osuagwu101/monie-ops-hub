@@ -1,12 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Bot,
-  ChevronLeft,
-  ChevronRight,
-  LayoutDashboard,
-  ListTodo,
-  Store,
-} from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, ListTodo, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,12 +34,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="flex h-16 items-center justify-between border-b px-4">
-        <div
-          className={cn(
-            "flex items-center gap-2 overflow-hidden",
-            collapsed && "justify-center",
-          )}
-        >
+        <div className={cn("flex items-center gap-2 overflow-hidden", collapsed && "justify-center")}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-sm font-bold">M</span>
           </div>
@@ -97,11 +85,7 @@ export function AppSidebar() {
           className="h-8 w-8"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
     </Sidebar>
