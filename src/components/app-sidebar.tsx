@@ -1,5 +1,14 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, ListTodo, Store } from "lucide-react";
+import {
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  FileStack,
+  LayoutDashboard,
+  ListTodo,
+  Store,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,22 +22,33 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { loadAssistantProfile } from "@/lib/assistant-data";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
-const menuItems = [
-  { title: "Overview", url: "/", icon: LayoutDashboard },
-  { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo },
-  { title: "Merchants", url: "/merchant-list", icon: Store },
-  { title: "Audit & Agents", url: "/ai-logs", icon: Bot },
-];
+const overviewItem = { title: "Overview", url: "/", icon: LayoutDashboard } as const;
+const dailyTasksItem = { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo } as const;
+const merchantsItem = { title: "Merchants", url: "/merchant-list", icon: Store } as const;
+const reportsItem = { title: "Official Reports", url: "/report-imports", icon: FileStack } as const;
+const auditItem = { title: "Audit & Agents", url: "/ai-logs", icon: Bot } as const;
+
+const assistantMenuItems = [overviewItem, dailyTasksItem, merchantsItem, auditItem];
+const directorMenuItems = [overviewItem, dailyTasksItem, merchantsItem, reportsItem, auditItem];
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
+  const { session, user } = useAuth();
   const collapsed = state === "collapsed";
   const currentPath = useRouterState({
     select: (router) => router.location.pathname,
   });
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => loadAssistantProfile(user!.id, session!.access_token),
+    enabled: Boolean(user?.id && session?.access_token),
+  });
 
+  const menuItems = profileQuery.data?.role === "director" ? directorMenuItems : assistantMenuItems;
   const isActive = (path: string) => currentPath === path;
 
   return (

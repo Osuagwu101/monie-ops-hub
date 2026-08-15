@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowRight,
   BadgeCheck,
+  Database,
   Gauge,
   Loader2,
   PhoneCall,
@@ -22,6 +23,7 @@ import {
 } from "@/domain/models";
 import { loadAssistantTasks, localDateKey } from "@/lib/assistant-data";
 import { useAuth } from "@/lib/auth-context";
+import { loadLatestPortfolioPerformance } from "@/lib/report-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,17 +31,12 @@ export const Route = createFileRoute("/")({
       { title: "Overview — Monie Ops Hub" },
       {
         name: "description",
-        content: "Amina's daily BRM operations brief and team operating standards.",
+        content: "Amina's daily BRM operations brief and official portfolio performance.",
       },
     ],
   }),
   component: OverviewPage,
 });
-
-const referenceSnapshot = {
-  reportDate: "13 Aug 2026",
-  terminalActivityRate: 69,
-} as const;
 
 const finalStates = new Set([
   "completed",
@@ -58,29 +55,40 @@ function OverviewPage() {
     queryFn: () => loadAssistantTasks(date, session!.access_token),
     enabled: Boolean(session?.access_token),
   });
+  const performanceQuery = useQuery({
+    queryKey: ["portfolio-performance"],
+    queryFn: () => loadLatestPortfolioPerformance(session!.access_token),
+    enabled: Boolean(session?.access_token),
+  });
 
   const tasks = tasksQuery.data ?? [];
   const completed = tasks.filter((task) => finalStates.has(task.status)).length;
   const taTasks = tasks.filter((task) => task.task_type === "TA").length;
   const unresolved = tasks.filter((task) => !finalStates.has(task.status)).length;
   const nextTask = tasks.find((task) => !finalStates.has(task.status));
-  const companyGap = referenceSnapshot.terminalActivityRate - COMPANY_TARGET_PERCENT;
-  const teamGap = referenceSnapshot.terminalActivityRate - TEAM_STANDARD_PERCENT;
+  const performance = performanceQuery.data;
+  const terminalActivityRate = performance?.terminal_activity_rate ?? null;
+  const companyGap =
+    terminalActivityRate === null ? null : terminalActivityRate - COMPANY_TARGET_PERCENT;
+  const teamGap =
+    terminalActivityRate === null ? null : terminalActivityRate - TEAM_STANDARD_PERCENT;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Phase 2</Badge>
+            <Badge variant="outline">Phase 3</Badge>
             <Badge variant="secondary">Amina morning brief</Badge>
+            {performance && <Badge>Official report · {performance.report_date}</Badge>}
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Operations Command Centre
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Today starts with the work that needs attention now. Human task completion is recorded
-            here; official performance verification remains a separate Tunde-controlled process.
+            Amina keeps the human work focused while the performance cards below come from the
+            latest successfully ingested official Moniepoint report. Human completion and Tunde
+            verification remain separate.
           </p>
         </div>
         <div className="rounded-lg border bg-card px-4 py-3 text-sm shadow-sm">
@@ -106,10 +114,20 @@ function OverviewPage() {
           icon={BadgeCheck}
         />
         <MetricCard
-          title="TA allocation"
-          value={tasks.length ? `${Math.round((taTasks / tasks.length) * 100)}%` : "—"}
-          description={`${taTasks} TA task${taTasks === 1 ? "" : "s"} in today's queue`}
-          icon={Target}
+          title="Official terminal activity"
+          value={
+            performanceQuery.isLoading
+              ? "…"
+              : terminalActivityRate === null
+                ? "—"
+                : `${terminalActivityRate}%`
+          }
+          description={
+            performance
+              ? `${performance.active_assigned_7_plus_days_count ?? 0}/${performance.assigned_7_plus_days_count ?? 0} active terminals assigned for 7+ days`
+              : "No official report imported yet"
+          }
+          icon={Activity}
         />
         <MetricCard
           title="Team standard"
@@ -169,8 +187,8 @@ function OverviewPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
             <p>The assistant records what happened.</p>
-            <p>Tunde records what official data proves.</p>
-            <p>A completed call never self-converts into a Verified performance result.</p>
+            <p>The official report records what Moniepoint measured.</p>
+            <p>Tunde decides the verification state from that official evidence.</p>
           </CardContent>
         </Card>
       </section>
@@ -178,29 +196,57 @@ function OverviewPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" /> Reference performance context
+            <Database className="h-5 w-5 text-primary" /> Official portfolio performance
           </CardTitle>
           <CardDescription>
-            Phase 3 will replace this reference context with automated official report ingestion. It
-            is intentionally not labelled live.
+            These figures are populated only from successfully validated Moniepoint PDF imports. No
+            reference or mock portfolio numbers are used here.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <SnapshotItem label="Reference date" value={referenceSnapshot.reportDate} />
-          <SnapshotItem
-            label="Terminal activity"
-            value={`${referenceSnapshot.terminalActivityRate}%`}
-            detail={`${Math.abs(companyGap)} pts ${companyGap >= 0 ? "above" : "below"} company target`}
-          />
-          <SnapshotItem
-            label="Gap to 77%"
-            value={`${Math.abs(teamGap)} pts`}
-            detail={teamGap >= 0 ? "Team standard reached" : "Internal standard not yet reached"}
-          />
+        <CardContent>
+          {performanceQuery.isLoading ? (
+            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading official
+              performance…
+            </div>
+          ) : performance ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <SnapshotItem label="Report date" value={performance.report_date} />
+              <SnapshotItem
+                label="Terminal activity"
+                value={`${performance.terminal_activity_rate}%`}
+                detail={gapText(companyGap, "company target")}
+              />
+              <SnapshotItem
+                label="Gap to 77%"
+                value={teamGap === null ? "—" : `${Math.abs(teamGap).toFixed(1)} pts`}
+                detail={
+                  teamGap !== null && teamGap >= 0
+                    ? "Team standard reached"
+                    : "Internal standard not yet reached"
+                }
+              />
+              <SnapshotItem
+                label="Rolling targets met"
+                value={`${performance.rolling_target_met_count ?? 0}`}
+                detail={`${performance.parsed_rolling_row_count ?? 0} terminals parsed from the official 7-day section`}
+              />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              No official report has been imported yet. The dashboard will remain empty rather than
+              display fake performance data.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function gapText(gap: number | null, targetLabel: string) {
+  if (gap === null) return "No official comparison available";
+  return `${Math.abs(gap).toFixed(1)} pts ${gap >= 0 ? "above" : "below"} ${targetLabel}`;
 }
 
 function MetricCard({
