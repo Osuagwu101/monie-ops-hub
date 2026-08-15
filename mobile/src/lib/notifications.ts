@@ -45,7 +45,7 @@ export async function configureNotificationExperience() {
     await Notifications.setNotificationChannelAsync("meeting-reminders", {
       name: "Meeting reminders",
       importance: Notifications.AndroidImportance.HIGH,
-      sound: "meeting-bing.wav",
+      sound: "default",
       vibrationPattern: [0, 180, 100, 180],
       enableVibrate: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -53,7 +53,7 @@ export async function configureNotificationExperience() {
     await Notifications.setNotificationChannelAsync("meeting-alarms", {
       name: "Meeting alarms",
       importance: Notifications.AndroidImportance.MAX,
-      sound: "meeting-bing.wav",
+      sound: "default",
       vibrationPattern: [0, 300, 120, 300, 120, 500],
       enableVibrate: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -114,11 +114,14 @@ export async function prepareNotificationReadiness(): Promise<NotificationReadin
 export async function syncLocalMeetingBackups(occurrences: MeetingOccurrence[]) {
   const existing = await readScheduleMap();
   for (const ids of Object.values(existing)) {
-    await Promise.all(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)));
+    await Promise.all(
+      ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)),
+    );
   }
 
   const next = occurrences.find(
-    (occurrence) => occurrence.status === "scheduled" && new Date(occurrence.starts_at).getTime() > Date.now(),
+    (occurrence) =>
+      occurrence.status === "scheduled" && new Date(occurrence.starts_at).getTime() > Date.now(),
   );
   if (!next?.series) {
     await AsyncStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify({}));
@@ -172,7 +175,9 @@ export async function syncLocalMeetingBackups(occurrences: MeetingOccurrence[]) 
 export async function cancelLocalMeetingAlerts(occurrenceId: string) {
   const map = await readScheduleMap();
   const ids = map[occurrenceId] ?? [];
-  await Promise.all(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)));
+  await Promise.all(
+    ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)),
+  );
   delete map[occurrenceId];
   await AsyncStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(map));
   await Notifications.dismissAllNotificationsAsync();
@@ -207,7 +212,7 @@ async function scheduleAt(
     content: {
       title,
       body,
-      sound: "meeting-bing.wav",
+      sound: "default",
       categoryIdentifier: MEETING_CATEGORY,
       interruptionLevel: "timeSensitive",
       data: {
