@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 
+import { OperationsSnapshot } from "./src/components/OperationsSnapshot";
 import {
   acknowledgeJoined,
   loadMyProfile,
@@ -33,6 +34,7 @@ import {
   syncLocalMeetingBackups,
   type NotificationReadiness,
 } from "./src/lib/notifications";
+import { loadOperationsSnapshot, type MobileOperationsSnapshot } from "./src/lib/operations";
 import { mobileCloudConfigured, supabase } from "./src/lib/supabase";
 
 const BLUE = "#0357EE";
@@ -45,6 +47,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<MobileProfile | null>(null);
   const [meetings, setMeetings] = useState<MeetingOccurrence[]>([]);
+  const [operations, setOperations] = useState<MobileOperationsSnapshot | null>(null);
   const [notificationReadiness, setNotificationReadiness] = useState<NotificationReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,11 +63,16 @@ export default function App() {
         setProfile(currentProfile);
         if (!currentProfile || currentProfile.role !== "director" || !currentProfile.is_active) {
           setMeetings([]);
+          setOperations(null);
           return;
         }
 
-        const upcoming = await loadUpcomingMeetings();
+        const [upcoming, operationsData] = await Promise.all([
+          loadUpcomingMeetings(),
+          loadOperationsSnapshot(),
+        ]);
         setMeetings(upcoming);
+        setOperations(operationsData);
 
         const readiness = await prepareNotificationReadiness();
         setNotificationReadiness(readiness);
@@ -114,6 +122,7 @@ export default function App() {
       if (!nextSession) {
         setProfile(null);
         setMeetings([]);
+        setOperations(null);
         setNotificationReadiness(null);
         setLoading(false);
       }
@@ -160,8 +169,8 @@ export default function App() {
           <BrandMark />
           <Text style={styles.centerTitle}>Director account required</Text>
           <Text style={styles.centerBody}>
-            This first Moniepoint BRM mobile release is the Director alert companion. Your account is
-            not currently an active Director profile.
+            This first Moniepoint BRM mobile release is the Director companion. Your account is not
+            currently an active Director profile.
           </Text>
           <PrimaryButton title="Sign out" onPress={() => void supabase.auth.signOut()} />
         </View>
@@ -173,6 +182,7 @@ export default function App() {
     <DirectorHome
       profile={profile}
       meetings={meetings}
+      operations={operations}
       notificationReadiness={notificationReadiness}
       refreshing={refreshing}
       error={error}
@@ -185,6 +195,7 @@ export default function App() {
 function DirectorHome({
   profile,
   meetings,
+  operations,
   notificationReadiness,
   refreshing,
   error,
@@ -193,6 +204,7 @@ function DirectorHome({
 }: {
   profile: MobileProfile;
   meetings: MeetingOccurrence[];
+  operations: MobileOperationsSnapshot | null;
   notificationReadiness: NotificationReadiness | null;
   refreshing: boolean;
   error: string | null;
@@ -239,7 +251,7 @@ function DirectorHome({
         </View>
 
         <Text style={styles.greeting}>Good day, {firstName(profile.full_name)}</Text>
-        <Text style={styles.greetingSub}>Your meeting alerts and acknowledgements stay synced with the web portal.</Text>
+        <Text style={styles.greetingSub}>Your operations and meeting alerts stay synced with the web portal.</Text>
 
         {error ? (
           <View style={[styles.notice, styles.noticeError]}>
@@ -247,6 +259,17 @@ function DirectorHome({
             <Text style={styles.noticeBody}>{error}</Text>
           </View>
         ) : null}
+
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Portal snapshot</Text>
+          <Text style={styles.sectionHint}>Same live backend</Text>
+        </View>
+        <OperationsSnapshot data={operations} />
+
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Meetings</Text>
+          <Text style={styles.sectionHint}>Acknowledgement synced</Text>
+        </View>
 
         {activeMeeting ? (
           <View style={[styles.card, styles.activeCard]}>
