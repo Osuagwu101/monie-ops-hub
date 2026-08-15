@@ -1,0 +1,87 @@
+name: Amina Score Scope Patch
+
+on:
+  push:
+    branches: [agent/amina-management-performance-layer]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/amina-management-performance-layer
+      - name: Scope specialist scores to one assistant
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/migrations/202608150012_amaina_management_performance.sql')
+          text = path.read_text()
+          reps = [
+            (
+              "  subject_user_id uuid references public.profiles(id) on delete cascade,\n",
+              "  subject_user_id uuid references public.profiles(id) on delete cascade,\n  scope_assistant_id uuid not null references public.profiles(id) on delete cascade,\n",
+            ),
+            (
+              "create index performance_scorecards_subject_date_idx\n  on public.performance_scorecards (subject_key, score_date desc, created_at desc);",
+              "create index performance_scorecards_subject_date_idx\n  on public.performance_scorecards (scope_assistant_id, subject_key, score_date desc, created_at desc);",
+            ),
+            (
+              "create policy performance_scorecards_assistant_read on public.performance_scorecards\nfor select to authenticated\nusing (\n  subject_kind <> 'assistant'\n  or subject_user_id = auth.uid()\n);",
+              "create policy performance_scorecards_assistant_read on public.performance_scorecards\nfor select to authenticated\nusing (scope_assistant_id = auth.uid());",
+            ),
+            (
+              "    subject_user_id,\n    team_performance_percent,",
+              "    subject_user_id,\n    scope_assistant_id,\n    team_performance_percent,",
+            ),
+            (
+              "    p_assistant_id,\n    v_team_percent,",
+              "    p_assistant_id,\n    p_assistant_id,\n    v_team_percent,",
+            ),
+            (
+              "  perform public.upsert_agent_performance_scorecard(\n    p_report_id,\n    v_report_date,\n    'emeka',",
+              "  perform public.upsert_agent_performance_scorecard(\n    p_report_id,\n    p_assistant_id,\n    v_report_date,\n    'emeka',",
+            ),
+            (
+              "  perform public.upsert_agent_performance_scorecard(\n    p_report_id,\n    v_report_date,\n    'zainab',",
+              "  perform public.upsert_agent_performance_scorecard(\n    p_report_id,\n    p_assistant_id,\n    v_report_date,\n    'zainab',",
+            ),
+            (
+              "  perform public.upsert_agent_performance_scorecard(\n    p_report_id,\n    v_report_date,\n    'tunde',",
+              "  perform public.upsert_agent_performance_scorecard(\n    p_report_id,\n    p_assistant_id,\n    v_report_date,\n    'tunde',",
+            ),
+            (
+              "create or replace function public.upsert_agent_performance_scorecard(\n  p_report_id uuid,\n  p_score_date date,",
+              "create or replace function public.upsert_agent_performance_scorecard(\n  p_report_id uuid,\n  p_assistant_id uuid,\n  p_score_date date,",
+            ),
+            (
+              "    subject_key,\n    team_performance_percent,",
+              "    subject_key,\n    scope_assistant_id,\n    team_performance_percent,",
+            ),
+            (
+              "    'agent:' || p_agent_kind,\n    p_team_percent,",
+              "    'agent:' || p_agent_kind || ':' || p_assistant_id::text,\n    p_assistant_id,\n    p_team_percent,",
+            ),
+            (
+              "revoke all on function public.upsert_agent_performance_scorecard(uuid, date, text, numeric, numeric, jsonb) from public;",
+              "revoke all on function public.upsert_agent_performance_scorecard(uuid, uuid, date, text, numeric, numeric, jsonb) from public;",
+            ),
+          ]
+          for old, new in reps:
+            count = text.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected one match, got {count}: {old[:90]!r}')
+            text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/amina-score-scope-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/migrations/202608150012_amaina_management_performance.sql .github/workflows/amina-score-scope-patch.yml
+          git commit -m "Scope Amina scorecards to each assistant"
+          git push origin HEAD:agent/amina-management-performance-layer
