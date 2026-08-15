@@ -97,20 +97,36 @@ export function AminaPerformancePanel({
   const config = configQuery.data;
   const streak = useMemo(() => {
     if (!config) return 0;
-    const history = (scorecardsQuery.data ?? []).filter(
-      (scorecard) => scorecard.subject_kind === "assistant",
+
+    const latestByDate = new Map<string, PerformanceScorecardRecord>();
+    for (const scorecard of scorecardsQuery.data ?? []) {
+      if (scorecard.subject_kind !== "assistant" || latestByDate.has(scorecard.score_date))
+        continue;
+      latestByDate.set(scorecard.score_date, scorecard);
+    }
+
+    const history = [...latestByDate.values()].sort((left, right) =>
+      right.score_date.localeCompare(left.score_date),
     );
     let count = 0;
+    let previousDate: Date | null = null;
+
     for (const scorecard of history) {
+      const currentDate = new Date(`${scorecard.score_date}T00:00:00Z`);
+      if (previousDate) {
+        const gapDays = Math.round((previousDate.getTime() - currentDate.getTime()) / 86_400_000);
+        if (gapDays !== 1) break;
+      }
       if (
-        scorecard.individual_score_percent >= config.bonus_threshold_percent &&
-        (scorecard.team_performance_percent ?? 0) >= config.bonus_threshold_percent
+        scorecard.individual_score_percent < config.bonus_threshold_percent ||
+        (scorecard.team_performance_percent ?? 0) < config.bonus_threshold_percent
       ) {
-        count += 1;
-      } else {
         break;
       }
+      count += 1;
+      previousDate = currentDate;
     }
+
     return count;
   }, [config, scorecardsQuery.data]);
 
@@ -434,7 +450,13 @@ function BonusProgress({
 
 function AminaMessage({ scorecard }: { scorecard: PerformanceScorecardRecord }) {
   return (
-    <Alert variant={scorecard.management_mode === "critical" ? "destructive" : "default"}>
+    <Alert
+      variant={
+        scorecard.management_mode === "critical" || scorecard.management_mode === "very_strict"
+          ? "destructive"
+          : "default"
+      }
+    >
       {scorecard.management_mode === "supportive" ? (
         <Gauge className="h-4 w-4" />
       ) : (
