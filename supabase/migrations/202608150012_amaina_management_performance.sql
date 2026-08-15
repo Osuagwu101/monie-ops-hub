@@ -24,6 +24,7 @@ create table public.performance_scorecards (
   subject_kind text not null check (subject_kind in ('assistant', 'emeka', 'zainab', 'tunde')),
   subject_key text not null,
   subject_user_id uuid references public.profiles(id) on delete cascade,
+  scope_assistant_id uuid not null references public.profiles(id) on delete cascade,
   team_performance_percent numeric(5,2) check (
     team_performance_percent is null or team_performance_percent between 0 and 100
   ),
@@ -78,7 +79,7 @@ create table public.compensation_recommendations (
 );
 
 create index performance_scorecards_subject_date_idx
-  on public.performance_scorecards (subject_key, score_date desc, created_at desc);
+  on public.performance_scorecards (scope_assistant_id, subject_key, score_date desc, created_at desc);
 create index performance_scorecards_report_idx
   on public.performance_scorecards (report_id, subject_kind);
 create index compensation_recommendations_assistant_idx
@@ -102,10 +103,7 @@ with check (public.is_director());
 
 create policy performance_scorecards_assistant_read on public.performance_scorecards
 for select to authenticated
-using (
-  subject_kind <> 'assistant'
-  or subject_user_id = auth.uid()
-);
+using (scope_assistant_id = auth.uid());
 
 create policy compensation_recommendations_director_manage on public.compensation_recommendations
 for all to authenticated
@@ -441,6 +439,7 @@ begin
     subject_kind,
     subject_key,
     subject_user_id,
+    scope_assistant_id,
     team_performance_percent,
     individual_score_percent,
     management_mode,
@@ -452,6 +451,7 @@ begin
     v_report_date,
     'assistant',
     'assistant:' || p_assistant_id::text,
+    p_assistant_id,
     p_assistant_id,
     v_team_percent,
     v_assistant_score,
@@ -571,6 +571,7 @@ begin
 
   perform public.upsert_agent_performance_scorecard(
     p_report_id,
+    p_assistant_id,
     v_report_date,
     'emeka',
     v_team_percent,
@@ -583,6 +584,7 @@ begin
 
   perform public.upsert_agent_performance_scorecard(
     p_report_id,
+    p_assistant_id,
     v_report_date,
     'zainab',
     v_team_percent,
@@ -596,6 +598,7 @@ begin
 
   perform public.upsert_agent_performance_scorecard(
     p_report_id,
+    p_assistant_id,
     v_report_date,
     'tunde',
     v_team_percent,
@@ -790,6 +793,7 @@ $$;
 
 create or replace function public.upsert_agent_performance_scorecard(
   p_report_id uuid,
+  p_assistant_id uuid,
   p_score_date date,
   p_agent_kind text,
   p_team_percent numeric,
@@ -833,6 +837,7 @@ begin
     score_date,
     subject_kind,
     subject_key,
+    scope_assistant_id,
     team_performance_percent,
     individual_score_percent,
     management_mode,
@@ -843,7 +848,8 @@ begin
     p_report_id,
     p_score_date,
     p_agent_kind,
-    'agent:' || p_agent_kind,
+    'agent:' || p_agent_kind || ':' || p_assistant_id::text,
+    p_assistant_id,
     p_team_percent,
     p_individual_score,
     v_mode,
@@ -970,4 +976,4 @@ grant execute on function public.refresh_amaina_management_scores(uuid, uuid) to
 revoke all on function public.review_compensation_recommendation(uuid, text, text) from public;
 grant execute on function public.review_compensation_recommendation(uuid, text, text) to authenticated;
 
-revoke all on function public.upsert_agent_performance_scorecard(uuid, date, text, numeric, numeric, jsonb) from public;
+revoke all on function public.upsert_agent_performance_scorecard(uuid, uuid, date, text, numeric, numeric, jsonb) from public;
