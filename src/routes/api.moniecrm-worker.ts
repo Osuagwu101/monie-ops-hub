@@ -110,17 +110,13 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
 
   let profileId = claim.browserProfileId;
   if (!profileId) {
-    const profile = await browserFetch<BrowserProfileCreated>(
-      "/profiles",
-      claim.browserUseApiKey,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          name: "monie-ops-primary-brm",
-          userId: "monie-ops-director",
-        }),
-      },
-    );
+    const profile = await browserFetch<BrowserProfileCreated>("/profiles", claim.browserUseApiKey, {
+      method: "POST",
+      body: JSON.stringify({
+        name: "monie-ops-primary-brm",
+        userId: "monie-ops-director",
+      }),
+    });
     if (!isUuid(profile.id)) {
       throw workerError(
         "browser_invalid_profile",
@@ -136,23 +132,19 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
     });
   }
 
-  const session = await browserFetch<BrowserSessionCreated>(
-    "/sessions",
-    claim.browserUseApiKey,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        startUrl: claim.loginUrl,
-        profileId,
-        persistMemory: true,
-        keepAlive: true,
-        enableRecording: false,
-        // Explicitly pass the configured location. Omitting this field makes Browser Use default
-        // to a US proxy, which is inappropriate for this Nigeria-based MonieCRM account.
-        proxyCountryCode: claim.proxyCountryCode,
-      }),
-    },
-  );
+  const session = await browserFetch<BrowserSessionCreated>("/sessions", claim.browserUseApiKey, {
+    method: "POST",
+    body: JSON.stringify({
+      startUrl: claim.loginUrl,
+      profileId,
+      persistMemory: true,
+      keepAlive: true,
+      enableRecording: false,
+      // Explicitly pass the configured location. Omitting this field makes Browser Use default
+      // to a US proxy, which is inappropriate for this Nigeria-based MonieCRM account.
+      proxyCountryCode: claim.proxyCountryCode,
+    }),
+  });
   if (!isUuid(session.id)) {
     throw workerError(
       "browser_invalid_session",
@@ -263,7 +255,12 @@ function assertMonieCrmScope(loginUrl: string, allowedDomains: string[]) {
   try {
     url = new URL(loginUrl);
   } catch {
-    throw workerError("invalid_login_url", "The configured MonieCRM login URL is invalid.", false, 422);
+    throw workerError(
+      "invalid_login_url",
+      "The configured MonieCRM login URL is invalid.",
+      false,
+      422,
+    );
   }
   if (url.protocol !== "https:" || url.hostname.toLowerCase() !== monieCrmHost) {
     throw workerError(
@@ -332,7 +329,9 @@ async function rpc<T = unknown>(name: string, payload: unknown) {
   if (!response.ok) {
     const text = await response.text();
     const authFailure =
-      response.status === 401 || response.status === 403 || text.includes("Invalid automation token");
+      response.status === 401 ||
+      response.status === 403 ||
+      text.includes("Invalid automation token");
     throw workerError(
       authFailure ? "bridge_rejected" : `cloud_rpc_${response.status}`,
       authFailure
@@ -365,7 +364,8 @@ function sanitizeError(error: unknown) {
       httpStatus?: unknown;
     };
     return {
-      code: typeof candidate.code === "string" ? candidate.code.slice(0, 100) : "moniecrm_worker_error",
+      code:
+        typeof candidate.code === "string" ? candidate.code.slice(0, 100) : "moniecrm_worker_error",
       message:
         typeof candidate.message === "string"
           ? candidate.message.replace(/[\r\n]+/g, " ").slice(0, 800)
