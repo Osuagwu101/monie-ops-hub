@@ -27,5 +27,8 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Offline acceptance
+        run: bun scripts/phase6-offline-acceptance.ts
+
       - name: Build
         run: bun run build
