@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { parseMoniepointReportBytes, sha256Bytes } from "@/lib/moniepoint-report-node";
 import type { ParsedTerminalRow } from "@/lib/moniepoint-report-core";
 
 const cloudUrl = import.meta.env["VITE_SUPABASE_URL"]?.replace(/\/$/, "") ?? "";
@@ -273,6 +272,7 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
   }
 
   const bytes = new Uint8Array(await reportResponse.arrayBuffer());
+  const { parseMoniepointReportBytes, sha256Bytes } = await import("@/lib/moniepoint-report-node");
   const parsed = await parseMoniepointReportBytes(bytes);
   if (!parsed.canImport) {
     const firstError = parsed.checks.find((check) => check.level === "error")?.message;
