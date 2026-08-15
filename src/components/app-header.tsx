@@ -36,7 +36,7 @@ export function AppHeader() {
           <span className="max-w-48 truncate">{user?.email ?? "Team member"}</span>
         </div>
         <Button variant="outline" size="sm" className="gap-2 px-2 sm:px-3" asChild>
-          <a href="/app-download.html" aria-label="Download Moniepoint BRM app">
+          <a href="/app-download" aria-label="Download Moniepoint BRM app">
             <Download className="h-4 w-4" />
             <span className="hidden lg:inline">Download App</span>
           </a>
