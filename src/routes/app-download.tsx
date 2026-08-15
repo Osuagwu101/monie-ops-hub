@@ -10,7 +10,8 @@ export const Route = createFileRoute("/app-download")({
       { title: "Download Moniepoint BRM App" },
       {
         name: "description",
-        content: "Download the Moniepoint BRM mobile companion for synchronized operations and meeting alerts.",
+        content:
+          "Download the Moniepoint BRM mobile companion for synchronized operations and meeting alerts.",
       },
     ],
   }),
@@ -41,9 +42,10 @@ function AppDownloadPage() {
           </div>
 
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">
-            <strong className="text-foreground">Android installer:</strong> the native app source is
-            ready, but the signed APK has not yet been published. This page is the permanent app
-            download location and the button below will activate as soon as the installer is released.
+            <strong className="text-foreground">Android installer:</strong> the native app source
+            is ready, but the signed APK has not yet been published. This page is the permanent app
+            download location and the button below will activate as soon as the installer is
+            released.
           </div>
 
           <Button className="w-full gap-2" disabled>
@@ -60,13 +62,7 @@ function AppDownloadPage() {
   );
 }
 
-function Feature({
-  icon: Icon,
-  text,
-}: {
-  icon: typeof Smartphone;
-  text: string;
-}) {
+function Feature({ icon: Icon, text }: { icon: typeof Smartphone; text: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg border bg-background p-3 text-xs font-medium text-foreground">
       <Icon className="h-4 w-4 shrink-0 text-primary" />
