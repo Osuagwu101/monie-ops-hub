@@ -201,7 +201,7 @@ export function LoginScreen() {
           </Tabs>
 
           <Button variant="outline" className="mt-6 w-full gap-2" asChild>
-            <a href="/app-download.html">
+            <a href="/app-download">
               <Download className="h-4 w-4" />
               Download Moniepoint BRM App
             </a>
