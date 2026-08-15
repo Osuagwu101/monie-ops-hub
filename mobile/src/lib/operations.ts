@@ -18,6 +18,25 @@ export interface MobileTaskSummary {
   priority: number;
   queue_rank: number | null;
   reason: string;
+  merchant_id: string | null;
+  terminal_id: string | null;
+  merchant?: {
+    business_name: string;
+    phone_number: string | null;
+    account_number: string | null;
+  };
+  terminal?: {
+    terminal_id: string;
+    serial_number: string | null;
+  };
+  weekly?: {
+    report_date: string;
+    payment_value: number;
+    transfer_value: number;
+    official_target_value: number;
+    official_target_met: boolean;
+    days_since_last_transaction: number;
+  };
 }
 
 export interface MobileScorecard {
@@ -63,11 +82,11 @@ export async function loadOperationsSnapshot(): Promise<MobileOperationsSnapshot
       .maybeSingle(),
     supabase
       .from("tasks")
-      .select("id,task_date,task_type,status,priority,queue_rank,reason")
+      .select("id,task_date,task_type,status,priority,queue_rank,reason,merchant_id,terminal_id")
       .eq("task_date", today)
       .order("queue_rank", { ascending: true, nullsFirst: false })
       .order("priority", { ascending: false })
-      .limit(12),
+      .limit(15),
     supabase
       .from("performance_scorecards")
       .select(
@@ -91,12 +110,72 @@ export async function loadOperationsSnapshot(): Promise<MobileOperationsSnapshot
     recommendationsResult.error;
   if (firstError) throw firstError;
 
+  const taskRows = (tasksResult.data ?? []) as MobileTaskSummary[];
+  const merchantIds = unique(taskRows.map((task) => task.merchant_id));
+  const terminalIds = unique(taskRows.map((task) => task.terminal_id));
+
+  const [merchantResult, terminalResult, weeklyResult] = await Promise.all([
+    merchantIds.length
+      ? supabase
+          .from("merchants")
+          .select("id,business_name,phone_number,account_number")
+          .in("id", merchantIds)
+      : Promise.resolve({ data: [], error: null }),
+    terminalIds.length
+      ? supabase.from("terminals").select("id,terminal_id,serial_number").in("id", terminalIds)
+      : Promise.resolve({ data: [], error: null }),
+    terminalIds.length
+      ? supabase
+          .from("terminal_performance_snapshots")
+          .select(
+            "terminal_id,report_date,payment_value,transfer_value,official_target_value,official_target_met,days_since_last_transaction",
+          )
+          .in("terminal_id", terminalIds)
+          .eq("period_kind", "rolling_7_day")
+          .order("report_date", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const contextError = merchantResult.error ?? terminalResult.error ?? weeklyResult.error;
+  if (contextError) throw contextError;
+
+  const merchantMap = new Map(
+    (merchantResult.data ?? []).map((merchant) => [merchant.id, merchant] as const),
+  );
+  const terminalMap = new Map(
+    (terminalResult.data ?? []).map((terminal) => [terminal.id, terminal] as const),
+  );
+  const weeklyMap = new Map<string, NonNullable<MobileTaskSummary["weekly"]>>();
+  for (const row of weeklyResult.data ?? []) {
+    if (!weeklyMap.has(row.terminal_id)) {
+      weeklyMap.set(row.terminal_id, {
+        report_date: row.report_date,
+        payment_value: Number(row.payment_value ?? 0),
+        transfer_value: Number(row.transfer_value ?? 0),
+        official_target_value: Number(row.official_target_value ?? 0),
+        official_target_met: Boolean(row.official_target_met),
+        days_since_last_transaction: Number(row.days_since_last_transaction ?? 0),
+      });
+    }
+  }
+
+  const tasks = taskRows.map((task) => ({
+    ...task,
+    merchant: task.merchant_id ? merchantMap.get(task.merchant_id) : undefined,
+    terminal: task.terminal_id ? terminalMap.get(task.terminal_id) : undefined,
+    weekly: task.terminal_id ? weeklyMap.get(task.terminal_id) : undefined,
+  }));
+
   return {
     portfolio: (portfolioResult.data as PortfolioSnapshot | null) ?? null,
-    todayTasks: (tasksResult.data ?? []) as MobileTaskSummary[],
+    todayTasks: tasks,
     scorecards: (scorecardsResult.data ?? []) as MobileScorecard[],
     recommendations: (recommendationsResult.data ?? []) as MobileAgentRecommendation[],
   };
+}
+
+function unique(values: Array<string | null>) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
 function lagosDateKey(date = new Date()) {
