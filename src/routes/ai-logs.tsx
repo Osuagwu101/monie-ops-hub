@@ -2,13 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Bot, Fingerprint, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/ai-logs")({
   head: () => ({
@@ -65,9 +59,7 @@ function AuditAgentsPage() {
                 <Badge variant="outline">Not activated</Badge>
               </div>
             </CardHeader>
-            <CardContent className="text-sm leading-6 text-muted-foreground">
-              {purpose}
-            </CardContent>
+            <CardContent className="text-sm leading-6 text-muted-foreground">{purpose}</CardContent>
           </Card>
         ))}
       </div>
