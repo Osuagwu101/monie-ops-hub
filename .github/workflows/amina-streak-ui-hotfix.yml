@@ -1,0 +1,50 @@
+name: Amina Streak UI Hotfix
+
+on:
+  push:
+    branches: [agent/amina-bonus-streak-ui-hotfix]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/amina-bonus-streak-ui-hotfix
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Align visible streak with server rule
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/components/amina-performance-panel.tsx')
+          text = path.read_text()
+          old = '''  const streak = useMemo(() => {\n    if (!config) return 0;\n    const history = (scorecardsQuery.data ?? []).filter(\n      (scorecard) => scorecard.subject_kind === "assistant",\n    );\n    let count = 0;\n    for (const scorecard of history) {\n      if (\n        scorecard.individual_score_percent >= config.bonus_threshold_percent &&\n        (scorecard.team_performance_percent ?? 0) >= config.bonus_threshold_percent\n      ) {\n        count += 1;\n      } else {\n        break;\n      }\n    }\n    return count;\n  }, [config, scorecardsQuery.data]);'''
+          new = '''  const streak = useMemo(() => {\n    if (!config) return 0;\n\n    const latestByDate = new Map<string, PerformanceScorecardRecord>();\n    for (const scorecard of scorecardsQuery.data ?? []) {\n      if (scorecard.subject_kind !== "assistant" || latestByDate.has(scorecard.score_date)) continue;\n      latestByDate.set(scorecard.score_date, scorecard);\n    }\n\n    const history = [...latestByDate.values()].sort((left, right) =>\n      right.score_date.localeCompare(left.score_date),\n    );\n    let count = 0;\n    let previousDate: Date | null = null;\n\n    for (const scorecard of history) {\n      const currentDate = new Date(`${scorecard.score_date}T00:00:00Z`);\n      if (previousDate) {\n        const gapDays = Math.round((previousDate.getTime() - currentDate.getTime()) / 86_400_000);\n        if (gapDays !== 1) break;\n      }\n      if (\n        scorecard.individual_score_percent < config.bonus_threshold_percent ||\n        (scorecard.team_performance_percent ?? 0) < config.bonus_threshold_percent\n      ) {\n        break;\n      }\n      count += 1;\n      previousDate = currentDate;\n    }\n\n    return count;\n  }, [config, scorecardsQuery.data]);'''
+          if text.count(old) != 1:
+              raise SystemExit('Streak calculation target not found exactly once')
+          text = text.replace(old, new, 1)
+          old_alert = '    <Alert variant={scorecard.management_mode === "critical" ? "destructive" : "default"}>'
+          new_alert = '''    <Alert\n      variant={\n        scorecard.management_mode === "critical" || scorecard.management_mode === "very_strict"\n          ? "destructive"\n          : "default"\n      }\n    >'''
+          if text.count(old_alert) != 1:
+              raise SystemExit('Amina alert target not found exactly once')
+          text = text.replace(old_alert, new_alert, 1)
+          path.write_text(text)
+          PY
+      - run: bunx prettier --write src/components/amina-performance-panel.tsx
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run build
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/amina-streak-ui-hotfix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/amina-performance-panel.tsx .github/workflows/amina-streak-ui-hotfix.yml
+          git commit -m "Align Amina bonus streak display with server rules"
+          git push origin HEAD:agent/amina-bonus-streak-ui-hotfix
