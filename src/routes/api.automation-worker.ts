@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import type { ParsedTerminalRow } from "@/lib/moniepoint-report-core";
+import type { ParsedMoniepointReport, ParsedTerminalRow } from "@/lib/moniepoint-report-core";
 
 const cloudUrl = import.meta.env["VITE_SUPABASE_URL"]?.replace(/\/$/, "") ?? "";
 const publishableKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
@@ -38,6 +38,11 @@ interface PollClaim {
 
 type AutomationClaim = ExecuteClaim | PollClaim;
 
+interface BrowserSessionCreated {
+  id: string;
+  status: "active" | "stopped";
+}
+
 interface BrowserTaskCreated {
   id: string;
   sessionId: string;
@@ -61,6 +66,30 @@ interface BrowserOutputFile {
   id: string;
   fileName: string;
   downloadUrl: string;
+}
+
+interface AutomationContext {
+  runId: string;
+  reportId: string | null;
+  browserSessionId: string | null;
+  workflowStage: string;
+}
+
+interface EnrichedBusiness {
+  requestedName: string;
+  matchedName: string | null;
+  phoneNumber: string | null;
+  accountNumber: string | null;
+  status: "matched" | "not_found" | "ambiguous";
+}
+
+interface EnrichmentOutput {
+  sourceUrl: string | null;
+  capturedAt: string | null;
+  dashboard: {
+    metrics: Array<{ label: string; value: string; section: string | null }>;
+  };
+  businesses: EnrichedBusiness[];
 }
 
 export const Route = createFileRoute("/api/automation-worker")({
@@ -140,46 +169,70 @@ async function dispatchBrowserTask(claim: ExecuteClaim, bridgeToken: string) {
     claim.allowedDomains.map((domain) => [domain.replace(/^\*\./, ""), credentialValue]),
   );
 
-  const prompt = taskPrompt(claim.triggerKind);
-  const sessionSettings: Record<string, unknown> = { enableRecording: false };
-  if (claim.proxyCountryCode) sessionSettings["proxyCountryCode"] = claim.proxyCountryCode;
+  const sessionBody: Record<string, unknown> = {
+    startUrl: claim.loginUrl,
+    persistMemory: true,
+    keepAlive: true,
+    enableRecording: false,
+  };
+  if (claim.proxyCountryCode) sessionBody["proxyCountryCode"] = claim.proxyCountryCode;
+
+  const session = await browserFetch<BrowserSessionCreated>(
+    "/sessions",
+    claim.browserUseApiKey,
+    { method: "POST", body: JSON.stringify(sessionBody) },
+  );
+  if (!isUuid(session.id)) {
+    throw workerError(
+      "browser_invalid_session",
+      "Browser Use returned an invalid session identifier.",
+      true,
+      502,
+    );
+  }
 
   const task = await browserFetch<BrowserTaskCreated>("/tasks", claim.browserUseApiKey, {
     method: "POST",
     body: JSON.stringify({
-      task: prompt,
+      task: reportTaskPrompt(claim.triggerKind),
       llm: "browser-use-2.0",
       startUrl: claim.loginUrl,
+      sessionId: session.id,
       maxSteps: claim.maxSteps,
       metadata: { source: "monie-ops-hub", runId: claim.runId, trigger: claim.triggerKind },
       secrets,
       allowedDomains: claim.allowedDomains,
-      sessionSettings,
       highlightElements: false,
       flashMode: false,
       thinking: false,
-      vision: false,
+      vision: true,
       judge: false,
     }),
   });
 
-  if (!isUuid(task.id))
+  if (!isUuid(task.id)) {
+    await stopBrowserSession(session.id, claim.browserUseApiKey);
     throw workerError(
       "browser_invalid_task",
       "Browser Use returned an invalid task identifier.",
       true,
       502,
     );
+  }
 
   await rpc("automation_mark_dispatched", {
     p_token: bridgeToken,
     p_run_id: claim.runId,
     p_browser_task_id: task.id,
-    p_browser_session_id: task.sessionId ?? null,
+    p_browser_session_id: session.id,
   });
 }
 
 async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
+  const context = await rpc<AutomationContext>("automation_run_context", {
+    p_token: bridgeToken,
+    p_run_id: claim.runId,
+  });
   const status = await browserFetch<BrowserTaskStatus>(
     `/tasks/${encodeURIComponent(claim.browserTaskId)}/status`,
     claim.browserUseApiKey,
@@ -189,7 +242,11 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     await rpc("automation_mark_pending", {
       p_token: bridgeToken,
       p_run_id: claim.runId,
-      p_diagnostics: { browserStatus: status.status, browserCost: status.cost },
+      p_diagnostics: {
+        browserStatus: status.status,
+        browserCost: status.cost,
+        workflowStage: context.workflowStage,
+      },
     });
     return;
   }
@@ -225,11 +282,26 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     `/tasks/${encodeURIComponent(claim.browserTaskId)}`,
     claim.browserUseApiKey,
   );
+
+  if (context.reportId || context.workflowStage === "enrichment") {
+    await finishEnrichment(detail, claim, context, bridgeToken);
+    return;
+  }
+
+  await stageOfficialReport(detail, claim, context, bridgeToken);
+}
+
+async function stageOfficialReport(
+  detail: BrowserTaskDetail,
+  claim: PollClaim,
+  context: AutomationContext,
+  bridgeToken: string,
+) {
   const pdf = detail.outputFiles.find((file) => file.fileName.toLowerCase().endsWith(".pdf"));
   if (!pdf) {
     throw workerError(
       "report_file_missing",
-      "The browser task finished without a PDF output file.",
+      "The Moniepoint report task finished without an official PDF output file.",
       true,
       502,
     );
@@ -293,7 +365,7 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
   const storagePath = `automation/${claim.runId}/${claim.uploadNonce}/${filename}`;
   await uploadAutomationPdf(storagePath, bytes);
 
-  await rpc("automation_complete_run", {
+  await rpc("automation_stage_report", {
     p_token: bridgeToken,
     p_run_id: claim.runId,
     p_upload_nonce: claim.uploadNonce,
@@ -309,19 +381,219 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     },
     p_rows: serializableRows(parsed.rows),
   });
+
+  if (!context.browserSessionId || !isUuid(context.browserSessionId)) {
+    throw workerError(
+      "browser_session_missing",
+      "The persistent Moniepoint browser session is unavailable for contact enrichment.",
+      true,
+      502,
+    );
+  }
+
+  const priorityNames = priorityBusinessNames(parsed);
+  const enrichmentTask = await browserFetch<BrowserTaskCreated>("/tasks", claim.browserUseApiKey, {
+    method: "POST",
+    body: JSON.stringify({
+      task: enrichmentTaskPrompt(priorityNames),
+      llm: "browser-use-2.0",
+      sessionId: context.browserSessionId,
+      maxSteps: Math.max(100, priorityNames.length * 10 + 60),
+      structuredOutput: JSON.stringify(enrichmentSchema),
+      metadata: {
+        source: "monie-ops-hub",
+        runId: claim.runId,
+        stage: "team-management-enrichment",
+      },
+      highlightElements: false,
+      flashMode: false,
+      thinking: false,
+      vision: true,
+      judge: false,
+    }),
+  });
+
+  if (!isUuid(enrichmentTask.id)) {
+    throw workerError(
+      "enrichment_invalid_task",
+      "Browser Use returned an invalid enrichment task identifier.",
+      true,
+      502,
+    );
+  }
+
+  await rpc("automation_mark_enrichment_dispatched", {
+    p_token: bridgeToken,
+    p_run_id: claim.runId,
+    p_browser_task_id: enrichmentTask.id,
+    p_browser_session_id: context.browserSessionId,
+  });
 }
 
-function taskPrompt(triggerKind: string) {
+async function finishEnrichment(
+  detail: BrowserTaskDetail,
+  claim: PollClaim,
+  context: AutomationContext,
+  bridgeToken: string,
+) {
+  const output = parseEnrichmentOutput(detail.output);
+  await rpc("finalize_moniepoint_enrichment", {
+    p_token: bridgeToken,
+    p_run_id: claim.runId,
+    p_contacts: output.businesses,
+    p_dashboard: {
+      capturedAt: output.capturedAt,
+      metrics: output.dashboard.metrics,
+    },
+    p_source_url: output.sourceUrl,
+  });
+
+  if (context.browserSessionId) {
+    await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+  }
+}
+
+function reportTaskPrompt(triggerKind: string) {
   const timing =
     triggerKind === "morning_audit"
       ? "Use the latest completed report appropriate for closing the previous day's verification window."
       : "Use the latest official BRM performance report available at this moment.";
   return [
     "Sign in to the Moniepoint BRM portal using the domain-scoped credentials supplied securely to this task.",
-    "Navigate to the BRM performance/report area and download the official BRM daily performance report as a PDF output file.",
+    "Navigate to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
     timing,
     "Do not summarize, rewrite, calculate, or fabricate any metric. The task is complete only after the original official PDF has been downloaded as an output file.",
   ].join(" ");
+}
+
+function enrichmentTaskPrompt(priorityNames: string[]) {
+  const names = JSON.stringify(priorityNames);
+  return [
+    "Continue in the already authenticated Moniepoint BRM session.",
+    "First return to the primary BRM dashboard. Capture every visible summary/KPI card exactly as displayed as label/value pairs. Do not calculate, rename, infer, or invent fields.",
+    `Then open Team Management > Business and search each of these exact BO/business names from the official report: ${names}.`,
+    "For each requested name, return the confirmed business name, BO phone number and terminal/business account number shown in that area.",
+    "Use status matched only when one clear business result corresponds to the requested name. Use ambiguous when multiple plausible results exist and not_found when there is no confirmed result. Leave unconfirmed phone/account fields null.",
+    "Return only the requested structured output. Do not fabricate missing values.",
+  ].join(" ");
+}
+
+const enrichmentSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    sourceUrl: { type: ["string", "null"] },
+    capturedAt: { type: ["string", "null"] },
+    dashboard: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        metrics: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              label: { type: "string" },
+              value: { type: "string" },
+              section: { type: ["string", "null"] },
+            },
+            required: ["label", "value", "section"],
+          },
+        },
+      },
+      required: ["metrics"],
+    },
+    businesses: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          requestedName: { type: "string" },
+          matchedName: { type: ["string", "null"] },
+          phoneNumber: { type: ["string", "null"] },
+          accountNumber: { type: ["string", "null"] },
+          status: { type: "string", enum: ["matched", "not_found", "ambiguous"] },
+        },
+        required: ["requestedName", "matchedName", "phoneNumber", "accountNumber", "status"],
+      },
+    },
+  },
+  required: ["sourceUrl", "capturedAt", "dashboard", "businesses"],
+} as const;
+
+function priorityBusinessNames(parsed: ParsedMoniepointReport) {
+  const candidates = parsed.rollingRows
+    .filter(
+      (row) =>
+        (row.officialTargetValue ?? 0) > 0 && row.officialTargetMet === false && row.businessName,
+    )
+    .map((row) => {
+      const actual = (row.paymentValue ?? 0) + (row.transferValue ?? 0);
+      const target = row.officialTargetValue ?? 0;
+      const gapRatio = target > 0 ? Math.max(0, Math.min(1, (target - actual) / target)) : 0;
+      const score = gapRatio * 40 + Math.min(row.daysSinceLastTransaction ?? 0, 5) * 5;
+      return { businessName: row.businessName.trim(), score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 15);
+
+  return [...new Set(candidates.map((candidate) => candidate.businessName).filter(Boolean))];
+}
+
+function parseEnrichmentOutput(value: string | null): EnrichmentOutput {
+  if (!value) {
+    throw workerError(
+      "enrichment_output_missing",
+      "The Team Management enrichment task returned no structured output.",
+      true,
+      502,
+    );
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw workerError(
+      "enrichment_output_invalid",
+      "The Team Management enrichment output was not valid JSON.",
+      true,
+      502,
+    );
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw workerError(
+      "enrichment_output_invalid",
+      "The Team Management enrichment output had an invalid shape.",
+      true,
+      502,
+    );
+  }
+  const candidate = parsed as Partial<EnrichmentOutput>;
+  if (!candidate.dashboard || !Array.isArray(candidate.dashboard.metrics) || !Array.isArray(candidate.businesses)) {
+    throw workerError(
+      "enrichment_output_invalid",
+      "The Team Management enrichment output was incomplete.",
+      true,
+      502,
+    );
+  }
+  return {
+    sourceUrl: typeof candidate.sourceUrl === "string" ? candidate.sourceUrl : null,
+    capturedAt: typeof candidate.capturedAt === "string" ? candidate.capturedAt : null,
+    dashboard: {
+      metrics: candidate.dashboard.metrics.filter(
+        (metric) => metric && typeof metric.label === "string" && typeof metric.value === "string",
+      ),
+    },
+    businesses: candidate.businesses.filter(
+      (business) =>
+        business &&
+        typeof business.requestedName === "string" &&
+        ["matched", "not_found", "ambiguous"].includes(business.status),
+    ),
+  };
 }
 
 function validateLoginScope(loginUrl: string, allowedDomains: string[]) {
@@ -347,6 +619,20 @@ function validateLoginScope(loginUrl: string, allowedDomains: string[]) {
       false,
       422,
     );
+  }
+}
+
+async function stopBrowserSession(sessionId: string, apiKey: string) {
+  try {
+    await browserFetch(`/sessions/${encodeURIComponent(sessionId)}`, apiKey, {
+      method: "PATCH",
+      body: JSON.stringify({ action: "stop" }),
+    });
+  } catch (error) {
+    console.warn("Could not stop Browser Use session", {
+      sessionId,
+      message: sanitizeError(error).message,
+    });
   }
 }
 
@@ -381,9 +667,7 @@ async function rpc<T = unknown>(name: string, payload: unknown) {
   if (!response.ok) {
     const text = await response.text();
     const authFailure =
-      response.status === 401 ||
-      response.status === 403 ||
-      text.includes("Invalid automation token");
+      response.status === 401 || response.status === 403 || text.includes("Invalid automation token");
     throw workerError(
       authFailure ? "bridge_rejected" : `cloud_rpc_${response.status}`,
       authFailure
