@@ -3,7 +3,7 @@ import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-export const MONIEPOINT_PARSER_VERSION = "brm-daily-report-v1";
+export const MONIEPOINT_PARSER_VERSION = "brm-daily-report-v2";
 
 export type ReportTerminalSection = "daily" | "rolling_7_day" | "non_transacting";
 
@@ -67,13 +67,20 @@ interface PdfTextItemLike {
   hasEOL?: boolean;
 }
 
+interface RowLead {
+  rowNumber: number;
+  businessName: string;
+  terminalSerial: string;
+  tail: string;
+}
+
 const DAY_MONTH_YEAR = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})$/;
-const TERMINAL_ID = /^[A-Z0-9]{8,10}$/;
-const SERIAL_WITH_TARGET = /^([A-Z0-9]{12,20})\s+([\d,]+\.\d{2})\s+(True|False)$/;
-const TRANSACTION_LINE = /^([\d,]+\.\d{2})\s+(\d+)\s+(\d+)$/;
-const TRANSFER_AND_DAYS = /^([\d,]+\.\d{2})\s+(\d+)$/;
-const SERIAL_WITH_LAST_TRANSACTION = /^([A-Z0-9]{12,20})\s+(\d{4}-\d{2}-\d{2})\s+(\d+)$/;
-const TWO_DATES = /^(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ROW_NUMBER = /^\d+$/;
+const ROW_LEAD = /^(\d+)\s+(.+)$/;
+const FULL_ROW_START = /^([A-Z0-9]{8,10})\s+(\d+)(?:\s+(.+))?$/;
+const TRANSACTION_TOKEN = /True|False|[\d,]+(?:\.\d+)?/g;
+const NON_TRANSACTING_TOKEN = /\d{4}-\d{2}-\d{2}|\d+/g;
 
 const MONTHS: Record<string, string> = {
   Jan: "01",
@@ -92,14 +99,21 @@ const MONTHS: Record<string, string> = {
 
 const HEADER_PREFIXES = [
   "Terminal ID",
-  "S/N Business Name",
+  "S/N",
+  "Business Name",
   "Terminal Serial",
-  "Value",
+  "Target Payment",
   "Target Met",
   "Payment Value",
+  "Payment Volume",
   "Transfer Value",
-  "Transaction",
+  "Transfer Volume",
+  "Days Since Last",
+  "Last Transaction Date",
   "Business Registration Date",
+  "Terminal Assignment Date",
+  "Transaction",
+  "Value",
   "Page ",
   "August ",
   "September ",
@@ -144,6 +158,18 @@ function parseInteger(value: string | undefined) {
   return parsed === null ? null : Math.trunc(parsed);
 }
 
+function countDigits(value: string) {
+  return [...value].filter((character) => /\d/.test(character)).length;
+}
+
+function isTerminalIdValue(value: string) {
+  return /^[A-Z0-9]{8,10}$/.test(value) && countDigits(value) >= 1;
+}
+
+function isSerialValue(value: string) {
+  return /^[A-Z0-9]{12,20}$/.test(value) && countDigits(value) >= 6;
+}
+
 function parseReportDateLine(value: string) {
   const match = DAY_MONTH_YEAR.exec(value);
   if (!match) return null;
@@ -157,7 +183,7 @@ function parseReportDateLine(value: string) {
 
 function parseHeaderDate(value: string) {
   const cleaned = value.replace(/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+/, "");
-  const match = /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/.exec(cleaned);
+  const match = /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/.exec(cleaned.trim());
   if (!match) return null;
   const day = group(match, 1);
   const month = group(match, 2);
@@ -188,7 +214,11 @@ function requiredNumberAfterLabel(lines: string[], label: string) {
 }
 
 function isIgnorableLine(line: string) {
-  return !line || HEADER_PREFIXES.some((prefix) => line.startsWith(prefix));
+  return (
+    !line ||
+    line.startsWith("__PAGE_BREAK_") ||
+    HEADER_PREFIXES.some((prefix) => line.startsWith(prefix))
+  );
 }
 
 function isSectionBoundary(line: string) {
@@ -199,6 +229,25 @@ function isSectionBoundary(line: string) {
     line === "Businesses with Sold Cards" ||
     line === "Business Owners with Referrals"
   );
+}
+
+function pushCanonicalLine(lines: string[], rawValue: string) {
+  const line = normalizeLine(rawValue);
+  if (!line) return;
+
+  const combinedRow = FULL_ROW_START.exec(line);
+  if (combinedRow) {
+    const terminalId = group(combinedRow, 1);
+    const rowNumber = group(combinedRow, 2);
+    const remainder = group(combinedRow, 3);
+    if (isTerminalIdValue(terminalId) && ROW_NUMBER.test(rowNumber)) {
+      lines.push(terminalId);
+      lines.push(normalizeLine(`${rowNumber} ${remainder}`));
+      return;
+    }
+  }
+
+  lines.push(line);
 }
 
 async function extractRawLines(file: File) {
@@ -212,8 +261,7 @@ async function extractRawLines(file: File) {
     let current: string[] = [];
 
     const flush = () => {
-      const line = normalizeLine(current.join(" "));
-      if (line) lines.push(line);
+      pushCanonicalLine(lines, current.join(" "));
       current = [];
     };
 
@@ -233,15 +281,61 @@ async function extractRawLines(file: File) {
   return { lines, pageCount: pdf.numPages };
 }
 
-function findNextRowLead(lines: string[], start: number) {
+function nextMeaningfulLine(lines: string[], start: number) {
   let index = start;
-  while (index < lines.length) {
-    const line = lineAt(lines, index);
-    if (isSectionBoundary(line) || line.startsWith("__PAGE_BREAK_")) return index;
-    if (/^\d+\s+.+/.test(line)) return index;
-    index += 1;
+  while (index < lines.length && isIgnorableLine(lineAt(lines, index))) index += 1;
+  return { line: lineAt(lines, index), index };
+}
+
+function isTerminalAt(lines: string[], index: number) {
+  const terminalId = lineAt(lines, index);
+  if (!isTerminalIdValue(terminalId)) return false;
+  const next = nextMeaningfulLine(lines, index + 1).line;
+  return ROW_NUMBER.test(next) || ROW_LEAD.test(next);
+}
+
+function collectRowChunk(lines: string[], terminalIndex: number) {
+  const chunk: string[] = [];
+  let cursor = terminalIndex + 1;
+
+  while (cursor < lines.length) {
+    const line = lineAt(lines, cursor);
+    if (isSectionBoundary(line) || isTerminalAt(lines, cursor)) break;
+    if (!isIgnorableLine(line)) chunk.push(line);
+    cursor += 1;
   }
-  return index;
+
+  return { chunk, nextIndex: cursor };
+}
+
+function parseRowLead(chunk: string[]): RowLead | null {
+  if (!chunk.length) return null;
+  const rowText = normalizeLine(chunk.join(" "));
+  const lead = /^(\d+)\s+(.+)$/.exec(rowText);
+  if (!lead) return null;
+
+  const rowNumber = Number.parseInt(group(lead, 1), 10);
+  const remainder = group(lead, 2);
+  if (!Number.isFinite(rowNumber) || !remainder) return null;
+
+  const tokens = remainder.split(/\s+/);
+  const serialIndex = tokens.findIndex(isSerialValue);
+  if (serialIndex < 0) return null;
+
+  const terminalSerial = tokens[serialIndex] ?? "";
+  const businessName = normalizeLine(tokens.slice(0, serialIndex).join(" "));
+  const tail = normalizeLine(tokens.slice(serialIndex + 1).join(" "));
+  if (!terminalSerial || !businessName) return null;
+
+  return { rowNumber, businessName, terminalSerial, tail };
+}
+
+function transactionTokens(tail: string) {
+  return tail.match(TRANSACTION_TOKEN) ?? [];
+}
+
+function nonTransactingTokens(tail: string) {
+  return tail.match(NON_TRANSACTING_TOKEN) ?? [];
 }
 
 function parseTransactionRow(
@@ -252,50 +346,40 @@ function parseTransactionRow(
   periodEnd: string,
 ) {
   const terminalId = lineAt(lines, terminalIndex);
-  if (!terminalId) return null;
+  if (!isTerminalIdValue(terminalId)) return null;
 
-  const leadIndex = findNextRowLead(lines, terminalIndex + 1);
-  const leadLine = lineAt(lines, leadIndex);
-  if (!leadLine || isSectionBoundary(leadLine)) return null;
-
-  const lead = /^(\d+)\s+(.+)$/.exec(leadLine);
+  const collected = collectRowChunk(lines, terminalIndex);
+  const lead = parseRowLead(collected.chunk);
   if (!lead) return null;
 
-  const rowNumber = Number.parseInt(group(lead, 1), 10);
-  const firstBusinessPart = group(lead, 2);
-  if (!Number.isFinite(rowNumber) || !firstBusinessPart) return null;
+  const tokens = transactionTokens(lead.tail);
+  if (tokens.length < 7 || (tokens[1] !== "True" && tokens[1] !== "False")) return null;
 
-  const businessParts = [firstBusinessPart];
-  let cursor = leadIndex + 1;
+  const targetValue = tokens[0];
+  const targetMet = tokens[1];
+  const paymentValue = tokens[2];
+  const paymentVolume = tokens[3];
+  const transferVolume = tokens[4];
+  const transferValue = tokens[5];
+  const daysSinceLastTransaction = tokens[6];
 
-  while (cursor < lines.length && !SERIAL_WITH_TARGET.test(lineAt(lines, cursor))) {
-    const line = lineAt(lines, cursor);
-    if (isSectionBoundary(line) || TERMINAL_ID.test(line)) return null;
-    if (!isIgnorableLine(line) && !line.startsWith("__PAGE_BREAK_")) businessParts.push(line);
-    cursor += 1;
+  if (
+    parseNumber(targetValue) === null ||
+    parseNumber(paymentValue) === null ||
+    parseInteger(paymentVolume) === null ||
+    parseInteger(transferVolume) === null ||
+    parseNumber(transferValue) === null ||
+    parseInteger(daysSinceLastTransaction) === null
+  ) {
+    return null;
   }
-
-  const serialMatch = SERIAL_WITH_TARGET.exec(lineAt(lines, cursor));
-  const transactionMatch = TRANSACTION_LINE.exec(lineAt(lines, cursor + 1));
-  const transferMatch = TRANSFER_AND_DAYS.exec(lineAt(lines, cursor + 2));
-  if (!serialMatch || !transactionMatch || !transferMatch) return null;
-
-  const terminalSerial = group(serialMatch, 1);
-  const targetValue = group(serialMatch, 2);
-  const targetMet = group(serialMatch, 3);
-  const paymentValue = group(transactionMatch, 1);
-  const paymentVolume = group(transactionMatch, 2);
-  const transferVolume = group(transactionMatch, 3);
-  const transferValue = group(transferMatch, 1);
-  const daysSinceLastTransaction = group(transferMatch, 2);
-  if (!terminalSerial || !targetValue || !targetMet) return null;
 
   const row: ParsedTerminalRow = {
     section,
-    rowNumber,
+    rowNumber: lead.rowNumber,
     terminalId,
-    terminalSerial,
-    businessName: normalizeLine(businessParts.join(" ")),
+    terminalSerial: lead.terminalSerial,
+    businessName: lead.businessName,
     paymentValue: parseNumber(paymentValue),
     paymentVolume: parseInteger(paymentVolume),
     transferValue: parseNumber(transferValue),
@@ -310,58 +394,40 @@ function parseTransactionRow(
     terminalAssignmentDate: null,
   };
 
-  return { row, nextIndex: cursor + 3 };
+  return { row, nextIndex: collected.nextIndex };
 }
 
 function parseNonTransactingRow(lines: string[], terminalIndex: number) {
   const terminalId = lineAt(lines, terminalIndex);
-  if (!terminalId) return null;
+  if (!isTerminalIdValue(terminalId)) return null;
 
-  const leadIndex = findNextRowLead(lines, terminalIndex + 1);
-  const leadLine = lineAt(lines, leadIndex);
-  if (!leadLine || isSectionBoundary(leadLine)) return null;
-
-  const lead = /^(\d+)\s+(.+)$/.exec(leadLine);
+  const collected = collectRowChunk(lines, terminalIndex);
+  const lead = parseRowLead(collected.chunk);
   if (!lead) return null;
 
-  const rowNumber = Number.parseInt(group(lead, 1), 10);
-  const firstBusinessPart = group(lead, 2);
-  if (!Number.isFinite(rowNumber) || !firstBusinessPart) return null;
+  const tokens = nonTransactingTokens(lead.tail);
+  if (tokens.length < 4) return null;
 
-  const businessParts = [firstBusinessPart];
-  let cursor = leadIndex + 1;
+  const lastTransactionDate = tokens[0] ?? "";
+  const daysSinceLastTransaction = tokens[1];
+  const businessRegistrationDate = tokens[2] ?? "";
+  const terminalAssignmentDate = tokens[3] ?? "";
 
-  while (cursor < lines.length && !SERIAL_WITH_LAST_TRANSACTION.test(lineAt(lines, cursor))) {
-    const line = lineAt(lines, cursor);
-    if (isSectionBoundary(line) || TERMINAL_ID.test(line)) return null;
-    if (!isIgnorableLine(line) && !line.startsWith("__PAGE_BREAK_")) businessParts.push(line);
-    cursor += 1;
-  }
-
-  const serialMatch = SERIAL_WITH_LAST_TRANSACTION.exec(lineAt(lines, cursor));
-  const dateMatch = TWO_DATES.exec(lineAt(lines, cursor + 1));
-  if (!serialMatch || !dateMatch) return null;
-
-  const terminalSerial = group(serialMatch, 1);
-  const lastTransactionDate = group(serialMatch, 2);
-  const daysSinceLastTransaction = group(serialMatch, 3);
-  const businessRegistrationDate = group(dateMatch, 1);
-  const terminalAssignmentDate = group(dateMatch, 2);
   if (
-    !terminalSerial ||
-    !lastTransactionDate ||
-    !businessRegistrationDate ||
-    !terminalAssignmentDate
+    !ISO_DATE.test(lastTransactionDate) ||
+    parseInteger(daysSinceLastTransaction) === null ||
+    !ISO_DATE.test(businessRegistrationDate) ||
+    !ISO_DATE.test(terminalAssignmentDate)
   ) {
     return null;
   }
 
   const row: ParsedTerminalRow = {
     section: "non_transacting",
-    rowNumber,
+    rowNumber: lead.rowNumber,
     terminalId,
-    terminalSerial,
-    businessName: normalizeLine(businessParts.join(" ")),
+    terminalSerial: lead.terminalSerial,
+    businessName: lead.businessName,
     paymentValue: null,
     paymentVolume: null,
     transferValue: null,
@@ -376,7 +442,15 @@ function parseNonTransactingRow(lines: string[], terminalIndex: number) {
     terminalAssignmentDate,
   };
 
-  return { row, nextIndex: cursor + 2 };
+  return { row, nextIndex: collected.nextIndex };
+}
+
+function sectionHeaderWindow(lines: string[], index: number) {
+  return normalizeLine(
+    [lineAt(lines, index), lineAt(lines, index + 1), lineAt(lines, index + 2)]
+      .filter((line) => line && !line.startsWith("__PAGE_BREAK_"))
+      .join(" "),
+  );
 }
 
 function parseRows(lines: string[], reportDate: string) {
@@ -390,10 +464,11 @@ function parseRows(lines: string[], reportDate: string) {
 
   while (index < lines.length) {
     const line = lineAt(lines, index);
+    const headerWindow = sectionHeaderWindow(lines, index);
 
-    const dailyHeader = /^Daily Terminal Transactions \((.+)\)$/.exec(line);
-    if (dailyHeader) {
-      const parsed = parseHeaderDate(group(dailyHeader, 1));
+    if (headerWindow.includes("Daily Terminal Transactions")) {
+      const dailyHeader = /Daily Terminal Transactions\s*\(([^)]+)\)/.exec(headerWindow);
+      const parsed = dailyHeader ? parseHeaderDate(group(dailyHeader, 1)) : null;
       dailyStart = parsed ?? reportDate;
       dailyEnd = parsed ?? reportDate;
       section = "daily";
@@ -401,10 +476,14 @@ function parseRows(lines: string[], reportDate: string) {
       continue;
     }
 
-    const weeklyHeader = /^Weekly Terminal Transactions \((.+) to (.+)\)$/.exec(line);
-    if (weeklyHeader) {
-      rollingStart = parseHeaderDate(group(weeklyHeader, 1)) ?? "";
-      rollingEnd = parseHeaderDate(group(weeklyHeader, 2)) ?? reportDate;
+    if (headerWindow.includes("Weekly Terminal Transactions")) {
+      const weeklyHeader = /Weekly Terminal Transactions\s*\((.+?)\s+to\s+(.+?)\)/.exec(
+        headerWindow,
+      );
+      rollingStart = weeklyHeader ? (parseHeaderDate(group(weeklyHeader, 1)) ?? "") : "";
+      rollingEnd = weeklyHeader
+        ? (parseHeaderDate(group(weeklyHeader, 2)) ?? reportDate)
+        : reportDate;
       section = "rolling_7_day";
       index += 1;
       continue;
@@ -422,7 +501,7 @@ function parseRows(lines: string[], reportDate: string) {
       continue;
     }
 
-    if (!section || !TERMINAL_ID.test(line)) {
+    if (!section || !isTerminalAt(lines, index)) {
       index += 1;
       continue;
     }
