@@ -71,6 +71,7 @@ const outcomeOptions: Array<{ value: TaskOutcomeCode; label: string }> = [
   { value: "terminal_issue", label: "Terminal issue identified" },
   { value: "merchant_declined", label: "Merchant declined" },
   { value: "loan_interest", label: "Loan interest" },
+  { value: "loan_disbursed", label: "Loan disbursed — confirmed success" },
   { value: "escalation_required", label: "Escalation required" },
 ];
 
@@ -134,7 +135,7 @@ function DailyTasksPage() {
       <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Phase 2</Badge>
+            <Badge variant="outline">Phase 4</Badge>
             <Badge variant="secondary">Amina daily workspace</Badge>
             {profile?.role && <Badge variant="outline">{profile.role}</Badge>}
           </div>
@@ -250,7 +251,7 @@ function DailyTasksPage() {
                 <QueueRow
                   key={task.id}
                   task={task}
-                  number={index + 1}
+                  number={task.queue_rank ?? index + 1}
                   canAct={Boolean(isAssistant)}
                   onOutcome={() => setSelectedTask(task)}
                 />
@@ -403,6 +404,7 @@ function QueueRow({
           </Badge>
           <StatusBadge status={task.status} />
           {task.rolled_from_task_id && <Badge variant="outline">Rolled over</Badge>}
+          {task.auto_generated && <Badge variant="outline">Amina</Badge>}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>TID: {task.terminal?.terminal_id ?? "—"}</span>
@@ -511,11 +513,15 @@ function OutcomeDialog({
                 defaultValue="reached_commitment"
                 required
               >
-                {outcomeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {outcomeOptions
+                  .filter(
+                    (option) => option.value !== "loan_disbursed" || task.task_type === "LOAN",
+                  )
+                  .map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
               </select>
             </div>
 
