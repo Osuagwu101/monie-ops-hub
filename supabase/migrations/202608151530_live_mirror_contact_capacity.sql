@@ -248,7 +248,7 @@ begin
     v_status := lower(coalesce(v_item->>'status',''));
     if v_requested is null or v_status <> 'matched' then continue; end if;
 
-    select count(*), min(id) into v_matches, v_merchant_id
+    select count(*), min(id::text)::uuid into v_matches, v_merchant_id
     from public.merchants
     where lower(trim(business_name))=lower(trim(v_requested));
 
