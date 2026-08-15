@@ -26,7 +26,11 @@ interface AuthContextValue {
   user: CloudUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<"signed_in" | "verify_email">;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+  ) => Promise<"signed_in" | "verify_email">;
   signOut: () => Promise<void>;
 }
 

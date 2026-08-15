@@ -105,8 +105,12 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
 
   if (!tasks.length) return tasks;
 
-  const merchantIds = [...new Set(tasks.map((task) => task.merchant_id).filter(Boolean))] as string[];
-  const terminalIds = [...new Set(tasks.map((task) => task.terminal_id).filter(Boolean))] as string[];
+  const merchantIds = [
+    ...new Set(tasks.map((task) => task.merchant_id).filter(Boolean)),
+  ] as string[];
+  const terminalIds = [
+    ...new Set(tasks.map((task) => task.terminal_id).filter(Boolean)),
+  ] as string[];
   const taskIds = tasks.map((task) => task.id);
 
   const [merchants, terminals, outcomes, verifications] = await Promise.all([

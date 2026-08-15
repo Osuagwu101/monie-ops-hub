@@ -17,7 +17,9 @@ export function AppHeader() {
           <span className="text-sm font-bold">M</span>
         </div>
         <div>
-          <span className="hidden text-base font-bold text-foreground sm:inline">Monie Ops Hub</span>
+          <span className="hidden text-base font-bold text-foreground sm:inline">
+            Monie Ops Hub
+          </span>
           <div className="hidden text-[11px] text-muted-foreground md:block">
             Secure BRM operations mirror
           </div>

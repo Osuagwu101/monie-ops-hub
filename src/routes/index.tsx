@@ -75,10 +75,12 @@ function OverviewPage() {
             <Badge variant="outline">Phase 2</Badge>
             <Badge variant="secondary">Amina morning brief</Badge>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Operations Command Centre</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Operations Command Centre
+          </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Today starts with the work that needs attention now. Human task completion is recorded here;
-            official performance verification remains a separate Tunde-controlled process.
+            Today starts with the work that needs attention now. Human task completion is recorded
+            here; official performance verification remains a separate Tunde-controlled process.
           </p>
         </div>
         <div className="rounded-lg border bg-card px-4 py-3 text-sm shadow-sm">
@@ -126,7 +128,7 @@ function OverviewPage() {
             <CardTitle>
               {tasksQuery.isLoading
                 ? "Loading today's priority…"
-                : nextTask?.merchant?.business_name ?? "No unresolved task assigned"}
+                : (nextTask?.merchant?.business_name ?? "No unresolved task assigned")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -179,8 +181,8 @@ function OverviewPage() {
             <Activity className="h-5 w-5 text-primary" /> Reference performance context
           </CardTitle>
           <CardDescription>
-            Phase 3 will replace this reference context with automated official report ingestion. It is
-            intentionally not labelled live.
+            Phase 3 will replace this reference context with automated official report ingestion. It
+            is intentionally not labelled live.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -233,7 +235,9 @@ function MetricCard({
 function SnapshotItem({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="rounded-lg border bg-muted/20 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-2 text-2xl font-bold text-foreground">{value}</div>
       {detail && <div className="mt-1 text-xs text-muted-foreground">{detail}</div>}
     </div>

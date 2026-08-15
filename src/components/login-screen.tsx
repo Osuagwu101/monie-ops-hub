@@ -69,7 +69,8 @@ export function LoginScreen() {
             </div>
             <h1 className="mt-8 text-3xl font-bold tracking-tight">Monie Ops Hub</h1>
             <p className="mt-3 max-w-md text-sm leading-6 text-primary-foreground/80">
-              A focused workspace for merchant calls, terminal recovery and accountable follow-through.
+              A focused workspace for merchant calls, terminal recovery and accountable
+              follow-through.
             </p>
           </div>
 
@@ -95,7 +96,8 @@ export function LoginScreen() {
             <Alert variant="destructive" className="mb-5">
               <AlertTitle>Cloud configuration missing</AlertTitle>
               <AlertDescription>
-                This build does not have the Lovable Cloud environment variables required for sign-in.
+                This build does not have the Lovable Cloud environment variables required for
+                sign-in.
               </AlertDescription>
             </Alert>
           )}
@@ -152,7 +154,8 @@ export function LoginScreen() {
                     <UserPlus className="h-4 w-4" /> Create team account
                   </CardTitle>
                   <CardDescription>
-                    New registrations always start with Assistant permissions. Director access cannot be self-selected.
+                    New registrations always start with Assistant permissions. Director access
+                    cannot be self-selected.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0">
@@ -178,7 +181,8 @@ export function LoginScreen() {
 
           <div className="mt-6 flex items-start gap-2 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-            Access is enforced by database Row Level Security, not by hidden buttons or browser-only checks.
+            Access is enforced by database Row Level Security, not by hidden buttons or browser-only
+            checks.
           </div>
         </section>
       </div>

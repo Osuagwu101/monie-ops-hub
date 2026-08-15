@@ -13,7 +13,10 @@ export const Route = createFileRoute("/merchant-list")({
   head: () => ({
     meta: [
       { title: "Merchants — Monie Ops Hub" },
-      { name: "description", content: "Merchants and terminals linked to assigned operations work." },
+      {
+        name: "description",
+        content: "Merchants and terminals linked to assigned operations work.",
+      },
     ],
   }),
   component: MerchantListPage,
@@ -54,7 +57,9 @@ function MerchantListPage() {
         <Alert variant="destructive">
           <AlertTitle>Unable to load merchants</AlertTitle>
           <AlertDescription>
-            {tasksQuery.error instanceof Error ? tasksQuery.error.message : "Secure data request failed."}
+            {tasksQuery.error instanceof Error
+              ? tasksQuery.error.message
+              : "Secure data request failed."}
           </AlertDescription>
         </Alert>
       )}
@@ -90,7 +95,9 @@ function MerchantListPage() {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <TabletSmartphone className="h-3.5 w-3.5" /> Terminal ID
                   </div>
-                  <div className="mt-1 font-semibold">{task.terminal?.terminal_id ?? "Not linked"}</div>
+                  <div className="mt-1 font-semibold">
+                    {task.terminal?.terminal_id ?? "Not linked"}
+                  </div>
                 </div>
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">Serial number</div>

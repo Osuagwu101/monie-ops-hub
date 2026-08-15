@@ -139,11 +139,13 @@ function DailyTasksPage() {
             {profile?.role && <Badge variant="outline">{profile.role}</Badge>}
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            {profile?.full_name ? `Good day, ${profile.full_name.split(" ")[0]}` : "Daily Operations"}
+            {profile?.full_name
+              ? `Good day, ${profile.full_name.split(" ")[0]}`
+              : "Daily Operations"}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Amina keeps the day focused: one next action, seven priority calls, clear outcomes and no
-            self-verification.
+            Amina keeps the day focused: one next action, seven priority calls, clear outcomes and
+            no self-verification.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground">
@@ -184,7 +186,7 @@ function DailyTasksPage() {
                 {tasksQuery.isLoading
                   ? "Loading today's priority…"
                   : nowTask
-                    ? nowTask.merchant?.business_name ?? "Assigned merchant"
+                    ? (nowTask.merchant?.business_name ?? "Assigned merchant")
                     : "Today's queue is clear"}
               </CardTitle>
             </div>
@@ -224,7 +226,8 @@ function DailyTasksPage() {
             <div>
               <CardTitle>Today's queue</CardTitle>
               <CardDescription>
-                The queue is ordered by priority. Postponed work remains visible with its callback context.
+                The queue is ordered by priority. Postponed work remains visible with its callback
+                context.
               </CardDescription>
             </div>
             <div className="min-w-48">
@@ -262,8 +265,8 @@ function DailyTasksPage() {
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Director view</AlertTitle>
           <AlertDescription>
-            You can inspect the assistant queue, but assistant activity buttons stay disabled so task
-            accountability remains attached to the person actually assigned the work.
+            You can inspect the assistant queue, but assistant activity buttons stay disabled so
+            task accountability remains attached to the person actually assigned the work.
           </AlertDescription>
         </Alert>
       )}
@@ -307,7 +310,9 @@ function NowTask({
         </div>
 
         <div className="rounded-lg bg-muted/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why now</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Why now
+          </p>
           <p className="mt-1.5 text-sm leading-6 text-foreground">{task.reason}</p>
         </div>
 
@@ -327,7 +332,9 @@ function NowTask({
             <RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div>
               <div className="font-medium">Previous postponement</div>
-              <div className="mt-1 text-muted-foreground">{task.latestOutcome.postponement_reason}</div>
+              <div className="mt-1 text-muted-foreground">
+                {task.latestOutcome.postponement_reason}
+              </div>
               {task.latestOutcome.callback_at && (
                 <div className="mt-1 text-xs text-muted-foreground">
                   Callback: {formatDateTime(task.latestOutcome.callback_at)}
@@ -352,7 +359,11 @@ function NowTask({
         )}
         {!started && (
           <Button variant="outline" onClick={onStart} disabled={!canAct || starting}>
-            {starting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+            {starting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" />
+            )}
             Start task
           </Button>
         )}
@@ -387,7 +398,9 @@ function QueueRow({
           <span className="truncate font-medium">
             {task.merchant?.business_name ?? "Assigned merchant"}
           </span>
-          <Badge variant={task.task_type === "TA" ? "default" : "secondary"}>{task.task_type}</Badge>
+          <Badge variant={task.task_type === "TA" ? "default" : "secondary"}>
+            {task.task_type}
+          </Badge>
           <StatusBadge status={task.status} />
           {task.rolled_from_task_id && <Badge variant="outline">Rolled over</Badge>}
         </div>
@@ -430,7 +443,8 @@ function OutcomeDialog({
     mutationFn: (input: Parameters<typeof submitAssistantOutcome>[0]) =>
       submitAssistantOutcome(input, accessToken),
     onSuccess: () => onSaved(),
-    onError: (caught) => setError(caught instanceof Error ? caught.message : "Unable to save outcome."),
+    onError: (caught) =>
+      setError(caught instanceof Error ? caught.message : "Unable to save outcome."),
   });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -464,14 +478,17 @@ function OutcomeDialog({
         <DialogHeader>
           <DialogTitle>Record merchant outcome</DialogTitle>
           <DialogDescription>
-            Record what happened. This closes or postpones the human task; it does not mark the result Verified.
+            Record what happened. This closes or postpones the human task; it does not mark the
+            result Verified.
           </DialogDescription>
         </DialogHeader>
 
         {task && (
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="rounded-lg bg-muted/60 p-3 text-sm">
-              <div className="font-medium">{task.merchant?.business_name ?? "Assigned merchant"}</div>
+              <div className="font-medium">
+                {task.merchant?.business_name ?? "Assigned merchant"}
+              </div>
               <div className="mt-1 text-xs text-muted-foreground">
                 {task.task_type} · TID {task.terminal?.terminal_id ?? "not linked"}
               </div>
@@ -597,8 +614,13 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function PriorityBadge({ priority }: { priority: number }) {
-  const label = priority >= 5 ? "Critical" : priority >= 4 ? "High" : priority >= 3 ? "Priority" : "Standard";
-  return <Badge variant={priority >= 4 ? "default" : "secondary"}>{label} · {priority}/5</Badge>;
+  const label =
+    priority >= 5 ? "Critical" : priority >= 4 ? "High" : priority >= 3 ? "Priority" : "Standard";
+  return (
+    <Badge variant={priority >= 4 ? "default" : "secondary"}>
+      {label} · {priority}/5
+    </Badge>
+  );
 }
 
 function StatusBadge({ status }: { status: AssistantTask["status"] }) {
@@ -647,7 +669,16 @@ function Field({
 
 function reachedFromOutcome(outcome: TaskOutcomeCode) {
   if (["no_answer", "merchant_busy"].includes(outcome)) return false;
-  if (["reached_commitment", "reached_no_commitment", "callback_requested", "merchant_declined", "loan_interest"].includes(outcome)) return true;
+  if (
+    [
+      "reached_commitment",
+      "reached_no_commitment",
+      "callback_requested",
+      "merchant_declined",
+      "loan_interest",
+    ].includes(outcome)
+  )
+    return true;
   return null;
 }
 
