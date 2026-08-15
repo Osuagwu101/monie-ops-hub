@@ -179,12 +179,18 @@ export async function cancelLocalMeetingAlerts(occurrenceId: string) {
 }
 
 export function listenForMeetingActions(onAcknowledge: (occurrenceId: string) => Promise<void>) {
-  return Notifications.addNotificationResponseReceivedListener((response) => {
-    if (response.actionIdentifier !== ACK_ACTION) return;
+  const handleResponse = async (response: Notifications.NotificationResponse | null) => {
+    if (!response || response.actionIdentifier !== ACK_ACTION) return;
     const occurrenceId = response.notification.request.content.data?.["occurrenceId"];
     if (typeof occurrenceId === "string" && occurrenceId) {
-      void onAcknowledge(occurrenceId);
+      await onAcknowledge(occurrenceId);
+      await Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
     }
+  };
+
+  void Notifications.getLastNotificationResponseAsync().then(handleResponse);
+  return Notifications.addNotificationResponseReceivedListener((response) => {
+    void handleResponse(response);
   });
 }
 
