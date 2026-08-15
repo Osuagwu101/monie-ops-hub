@@ -6,15 +6,19 @@ language plpgsql
 security definer
 set search_path = public
 as $$
-declare v_run public.automation_runs;
+declare
+  v_run public.automation_runs;
+  v_allowed_domains text[];
 begin
   if not public.automation_bridge_valid(p_token) then raise exception 'Invalid automation token'; end if;
   select * into v_run from public.automation_runs where id=p_run_id;
   if v_run.id is null then raise exception 'Automation run not found'; end if;
+  select allowed_domains into v_allowed_domains from public.automation_config where id=true;
   return jsonb_build_object(
     'runId',v_run.id,
     'reportId',v_run.report_id,
     'browserSessionId',v_run.browser_session_id,
+    'allowedDomains',coalesce(to_jsonb(v_allowed_domains),'[]'::jsonb),
     'workflowStage',coalesce(v_run.diagnostics->>'workflowStage','report')
   );
 end;
