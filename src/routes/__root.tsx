@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -136,6 +137,9 @@ function RootComponent() {
 
 function PortalGate() {
   const { session, loading } = useAuth();
+  const currentPath = useRouterState({ select: (router) => router.location.pathname });
+
+  if (currentPath === "/app-download") return <Outlet />;
 
   if (loading) {
     return (
