@@ -14,6 +14,7 @@ import {
   Workflow,
 } from "lucide-react";
 
+import { MonieBrmMark } from "@/components/monie-brm-mark";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -75,9 +76,7 @@ export function AppSidebar() {
         <div
           className={cn("flex items-center gap-2 overflow-hidden", collapsed && "justify-center")}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-sm font-bold">M</span>
-          </div>
+          <MonieBrmMark compact />
           {!collapsed && (
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-sidebar-foreground">

@@ -13,12 +13,14 @@ import {
 } from "lucide-react";
 
 import { AminaPerformancePanel } from "@/components/amina-performance-panel";
+import { LiveMirrorPanel } from "@/components/live-mirror-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   COMPANY_TARGET_PERCENT,
-  DAILY_CALL_TARGET,
+  DAILY_CONTACT_CAPACITY,
+  DAILY_REQUIRED_CONTACTS,
   ROLLING_WEEKLY_TA_TARGET_NAIRA,
   TEAM_STANDARD_PERCENT,
 } from "@/domain/models";
@@ -101,8 +103,9 @@ function OverviewPage() {
         <div className="rounded-lg border bg-card px-4 py-3 text-sm shadow-sm">
           <div className="font-medium text-foreground">Daily operating rule</div>
           <div className="mt-1 text-muted-foreground">
-            {DAILY_CALL_TARGET} priority calls · 60–80% TA focus · ₦
-            {ROLLING_WEEKLY_TA_TARGET_NAIRA.toLocaleString()} rolling weekly TA target
+            {DAILY_REQUIRED_CONTACTS} required contacts · up to {DAILY_CONTACT_CAPACITY} ranked ·
+            60–80% TA focus · ₦{ROLLING_WEEKLY_TA_TARGET_NAIRA.toLocaleString()} rolling weekly TA
+            target
           </div>
         </div>
       </section>
@@ -111,7 +114,7 @@ function OverviewPage() {
         <MetricCard
           title="Assigned today"
           value={tasksQuery.isLoading ? "…" : `${tasks.length}`}
-          description={`Amina's target is ${DAILY_CALL_TARGET} priority calls`}
+          description={`${DAILY_REQUIRED_CONTACTS} required; up to ${DAILY_CONTACT_CAPACITY} available when BOs are unreachable`}
           icon={PhoneCall}
         />
         <MetricCard
@@ -143,6 +146,10 @@ function OverviewPage() {
           icon={Gauge}
         />
       </section>
+
+      {profileQuery.data?.role === "director" && accessToken && (
+        <LiveMirrorPanel accessToken={accessToken} date={date} />
+      )}
 
       {profileQuery.data?.role === "assistant" && user?.id && accessToken && (
         <AminaPerformancePanel

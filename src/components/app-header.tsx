@@ -1,6 +1,7 @@
 import { Download, LogOut, ShieldCheck, UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { MonieBrmMark } from "@/components/monie-brm-mark";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
@@ -13,9 +14,7 @@ export function AppHeader() {
       <SidebarTrigger className="h-8 w-8" />
 
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <span className="text-sm font-bold">M</span>
-        </div>
+        <MonieBrmMark compact />
         <div>
           <span className="hidden text-base font-bold text-foreground sm:inline">
             Monie Ops Hub
