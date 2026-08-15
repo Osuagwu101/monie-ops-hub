@@ -1,0 +1,46 @@
+name: Phase 5 SQL Safety Patch
+
+on:
+  push:
+    branches:
+      - agent/phase5-secure-automation-hardening
+    paths:
+      - .github/workflows/phase5-migration-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase5-secure-automation-hardening
+      - name: Fix cron SQL quoting
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/migrations/202608150910_phase5_secure_automation.sql')
+          text = path.read_text()
+          replacements = {
+            "$$select public.run_scheduled_automation('morning_audit')$$": "'select public.run_scheduled_automation(''morning_audit'')'",
+            "$$select public.run_scheduled_automation('morning_refresh')$$": "'select public.run_scheduled_automation(''morning_refresh'')'",
+            "$$select public.run_scheduled_automation('evening_refresh')$$": "'select public.run_scheduled_automation(''evening_refresh'')'",
+            "$$select public.poll_automation_queue()$$": "'select public.poll_automation_queue()'",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'missing expected SQL fragment: {old}')
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+      - name: Remove temporary workflow
+        run: rm .github/workflows/phase5-migration-fix.yml
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/migrations/202608150910_phase5_secure_automation.sql .github/workflows/phase5-migration-fix.yml
+          git commit -m 'Fix Phase 5 cron SQL quoting'
+          git push
