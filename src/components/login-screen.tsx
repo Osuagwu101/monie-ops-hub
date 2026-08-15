@@ -1,4 +1,11 @@
-import { CheckCircle2, Loader2, LockKeyhole, ShieldCheck, UserRoundCog } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  Loader2,
+  LockKeyhole,
+  ShieldCheck,
+  UserRoundCog,
+} from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -193,7 +200,14 @@ export function LoginScreen() {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 flex items-start gap-2 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+          <Button variant="outline" className="mt-6 w-full gap-2" asChild>
+            <a href="/app-download.html">
+              <Download className="h-4 w-4" />
+              Download Moniepoint BRM App
+            </a>
+          </Button>
+
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
             Public signup is blocked at the Auth database boundary. Future Staff Support Agents are
             created from the Admin portal only.
