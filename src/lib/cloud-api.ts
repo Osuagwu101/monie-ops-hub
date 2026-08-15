@@ -88,6 +88,28 @@ export async function signUpWithPassword(email: string, password: string, fullNa
   );
 }
 
+export async function activateInvitedStaffAccount(
+  email: string,
+  password: string,
+  fullName: string,
+  inviteToken: string,
+) {
+  return cloudFetch<CloudSession | { user: CloudUser; session: CloudSession | null }>(
+    "/auth/v1/signup",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+        data: {
+          full_name: fullName,
+          staff_invite_token: inviteToken,
+        },
+      }),
+    },
+  );
+}
+
 export async function refreshCloudSession(refreshToken: string) {
   return cloudFetch<CloudSession>("/auth/v1/token?grant_type=refresh_token", {
     method: "POST",
