@@ -17,6 +17,14 @@ alter table public.operating_config
   add column bonus_percent numeric(5,2) not null default 5
     check (bonus_percent > 0 and bonus_percent <= 100);
 
+alter table public.operating_config
+  add constraint operating_config_management_threshold_order
+  check (
+    critical_threshold_percent <= penalty_trigger_percent
+    and penalty_trigger_percent <= management_warning_threshold_percent
+    and management_warning_threshold_percent <= team_standard_percent
+  );
+
 create table public.performance_scorecards (
   id uuid primary key default gen_random_uuid(),
   report_id uuid not null references public.report_imports(id) on delete cascade,
@@ -295,6 +303,17 @@ begin
     v_bonus_percent
   from public.operating_config
   where id = true;
+
+  -- Recalculation must not leave a stale, unreviewed recommendation behind.
+  -- Reviewed Director decisions are never changed automatically.
+  update public.compensation_recommendations
+  set status = 'cancelled',
+      reviewed_at = now(),
+      director_note = 'Superseded by a refreshed Amina score for the same performance date.'
+  where assistant_id = p_assistant_id
+    and period_end = v_report_date
+    and status = 'pending_director'
+    and recommendation_type in ('performance_warning', 'penalty_review', 'bonus');
 
   select
     count(*),
@@ -641,6 +660,22 @@ begin
     set scorecard_id = excluded.scorecard_id,
         rationale = excluded.rationale,
         evidence = excluded.evidence,
+        status = case
+          when compensation_recommendations.status = 'cancelled' then 'pending_director'
+          else compensation_recommendations.status
+        end,
+        reviewed_by = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.reviewed_by
+        end,
+        reviewed_at = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.reviewed_at
+        end,
+        director_note = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.director_note
+        end,
         updated_at = now();
   end if;
 
@@ -678,33 +713,60 @@ begin
     set scorecard_id = excluded.scorecard_id,
         rationale = excluded.rationale,
         evidence = excluded.evidence,
+        status = case
+          when compensation_recommendations.status = 'cancelled' then 'pending_director'
+          else compensation_recommendations.status
+        end,
+        reviewed_by = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.reviewed_by
+        end,
+        reviewed_at = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.reviewed_at
+        end,
+        director_note = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.director_note
+        end,
         updated_at = now();
   end if;
 
-  with recent_team as (
-    select report_date, terminal_activity_rate
+  with latest_team_by_day as (
+    select distinct on (report_date)
+      report_date,
+      terminal_activity_rate
     from public.portfolio_performance_snapshots
     where report_date <= v_report_date
+    order by report_date desc, captured_at desc
+  ), recent_team as (
+    select *
+    from latest_team_by_day
     order by report_date desc
     limit v_bonus_days
-  )
-  select
-    count(*) filter (where terminal_activity_rate >= v_bonus_threshold),
-    coalesce(max(report_date) - min(report_date), 0)
-  into v_bonus_team_days, v_bonus_span
-  from recent_team;
-
-  select count(*)
-  into v_bonus_assistant_days
-  from (
-    select score_date, individual_score_percent
+  ), latest_assistant_by_day as (
+    select distinct on (score_date)
+      score_date,
+      individual_score_percent
     from public.performance_scorecards
     where subject_key = 'assistant:' || p_assistant_id::text
       and score_date <= v_report_date
-    order by score_date desc
-    limit v_bonus_days
-  ) recent_scores
-  where individual_score_percent >= v_bonus_threshold;
+    order by score_date desc, updated_at desc
+  ), paired as (
+    select
+      team.report_date,
+      team.terminal_activity_rate,
+      assistant.individual_score_percent
+    from recent_team team
+    join latest_assistant_by_day assistant
+      on assistant.score_date = team.report_date
+  )
+  select
+    count(*) filter (where terminal_activity_rate >= v_bonus_threshold),
+    count(*) filter (where individual_score_percent >= v_bonus_threshold),
+    coalesce(max(report_date) - min(report_date), 0)
+  into v_bonus_team_days, v_bonus_assistant_days, v_bonus_span
+  from paired;
 
   if v_bonus_team_days = v_bonus_days
      and v_bonus_assistant_days = v_bonus_days
@@ -744,6 +806,22 @@ begin
         recommendation_percent = excluded.recommendation_percent,
         rationale = excluded.rationale,
         evidence = excluded.evidence,
+        status = case
+          when compensation_recommendations.status = 'cancelled' then 'pending_director'
+          else compensation_recommendations.status
+        end,
+        reviewed_by = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.reviewed_by
+        end,
+        reviewed_at = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.reviewed_at
+        end,
+        director_note = case
+          when compensation_recommendations.status = 'cancelled' then null
+          else compensation_recommendations.director_note
+        end,
         updated_at = now();
   end if;
 
