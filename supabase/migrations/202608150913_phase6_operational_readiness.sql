@@ -137,7 +137,7 @@ begin
   into v_team_functions;
 
   select
-    exists(select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'refresh_amina_management')
+    exists(select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'refresh_amina_management_scores')
     and exists(select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'review_compensation_recommendation')
   into v_management_functions;
 
