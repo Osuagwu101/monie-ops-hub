@@ -114,7 +114,7 @@ export async function refreshManagementScores(
   accessToken: string,
 ) {
   return callRpc<RefreshManagementScoresResult>(
-    "refresh_amaina_management_scores",
+    "refresh_amina_management_scores",
     {
       p_assistant_id: assistantId,
       p_report_id: reportId,

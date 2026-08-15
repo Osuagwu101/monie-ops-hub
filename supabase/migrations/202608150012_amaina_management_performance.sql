@@ -200,7 +200,7 @@ begin
 end;
 $$;
 
-create or replace function public.refresh_amaina_management_scores(
+create or replace function public.refresh_amina_management_scores(
   p_assistant_id uuid,
   p_report_id uuid
 )
@@ -708,7 +708,7 @@ begin
 
   if v_bonus_team_days = v_bonus_days
      and v_bonus_assistant_days = v_bonus_days
-     and v_bonus_span >= v_bonus_days - 1 then
+     and v_bonus_span = v_bonus_days - 1 then
     insert into public.compensation_recommendations (
       assistant_id,
       scorecard_id,
@@ -884,7 +884,7 @@ begin
      and new.assistant_id is not null
      and new.report_id is not null then
     begin
-      perform public.refresh_amaina_management_scores(new.assistant_id, new.report_id);
+      perform public.refresh_amina_management_scores(new.assistant_id, new.report_id);
     exception
       when others then
         insert into public.audit_events (
@@ -908,7 +908,7 @@ begin
 end;
 $$;
 
-create trigger agent_runs_amaina_score_after_completion
+create trigger agent_runs_amina_score_after_completion
 after update of status on public.agent_runs
 for each row execute function public.amina_score_after_run();
 
@@ -970,8 +970,8 @@ begin
 end;
 $$;
 
-revoke all on function public.refresh_amaina_management_scores(uuid, uuid) from public;
-grant execute on function public.refresh_amaina_management_scores(uuid, uuid) to authenticated;
+revoke all on function public.refresh_amina_management_scores(uuid, uuid) from public;
+grant execute on function public.refresh_amina_management_scores(uuid, uuid) to authenticated;
 
 revoke all on function public.review_compensation_recommendation(uuid, text, text) from public;
 grant execute on function public.review_compensation_recommendation(uuid, text, text) to authenticated;
