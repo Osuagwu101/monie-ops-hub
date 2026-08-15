@@ -169,7 +169,8 @@ function StaffAccountsPage() {
                     <div>
                       <div className="font-medium">{staff.full_name}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Staff Support Agent · Created {new Date(staff.created_at).toLocaleDateString()}
+                        Staff Support Agent · Created{" "}
+                        {new Date(staff.created_at).toLocaleDateString()}
                       </div>
                     </div>
                     <Badge variant={staff.is_active ? "secondary" : "outline"}>

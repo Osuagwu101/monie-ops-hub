@@ -17,6 +17,7 @@ import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as MerchantListRouteImport } from './routes/merchant-list'
 import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ReportImportsRouteImport } from './routes/report-imports'
+import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ApiAutomationWorkerRouteImport } from './routes/api.automation-worker'
 import { Route as ApiMeetingNotificationsRouteImport } from './routes/api.meeting-notifications'
 
@@ -60,6 +61,11 @@ const ReportImportsRoute = ReportImportsRouteImport.update({
   path: '/report-imports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAutomationWorkerRoute = ApiAutomationWorkerRouteImport.update({
   id: '/api/automation-worker',
   path: '/api/automation-worker',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/merchant-list': typeof MerchantListRoute
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
+  '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/merchant-list': typeof MerchantListRoute
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
+  '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/merchant-list': typeof MerchantListRoute
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
+  '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/merchant-list'
     | '/readiness'
     | '/report-imports'
+    | '/staff'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/merchant-list'
     | '/readiness'
     | '/report-imports'
+    | '/staff'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/merchant-list'
     | '/readiness'
     | '/report-imports'
+    | '/staff'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   MerchantListRoute: typeof MerchantListRoute
   ReadinessRoute: typeof ReadinessRoute
   ReportImportsRoute: typeof ReportImportsRoute
+  StaffRoute: typeof StaffRoute
   ApiAutomationWorkerRoute: typeof ApiAutomationWorkerRoute
   ApiMeetingNotificationsRoute: typeof ApiMeetingNotificationsRoute
 }
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportImportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/automation-worker': {
       id: '/api/automation-worker'
       path: '/api/automation-worker'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   MerchantListRoute: MerchantListRoute,
   ReadinessRoute: ReadinessRoute,
   ReportImportsRoute: ReportImportsRoute,
+  StaffRoute: StaffRoute,
   ApiAutomationWorkerRoute: ApiAutomationWorkerRoute,
   ApiMeetingNotificationsRoute: ApiMeetingNotificationsRoute,
 }
