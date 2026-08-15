@@ -97,10 +97,15 @@ export function LiveMirrorPanel({ accessToken, date }: { accessToken: string; da
                           <span>Account {item.merchant?.account_number ?? "Not confirmed"}</span>
                         </div>
                       </div>
-                      <Badge variant="secondary">Score {Number(item.priority_score).toFixed(0)}</Badge>
+                      <Badge variant="secondary">
+                        Score {Number(item.priority_score).toFixed(0)}
+                      </Badge>
                     </div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                      <Mini label="Official weekly target" value={target === null ? "—" : money(target)} />
+                      <Mini
+                        label="Official weekly target"
+                        value={target === null ? "—" : money(target)}
+                      />
                       <Mini label="Actual rolling value" value={money(actual)} />
                       <Mini label="Remaining gap" value={gap === null ? "—" : money(gap)} />
                       <Mini
@@ -119,7 +124,8 @@ export function LiveMirrorPanel({ accessToken, date }: { accessToken: string; da
                       </span>
                       {item.merchant?.contact_synced_at && (
                         <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3.5 w-3.5" /> Team Management synced {formatDateTime(item.merchant.contact_synced_at)}
+                          <Clock3 className="h-3.5 w-3.5" /> Team Management synced{" "}
+                          {formatDateTime(item.merchant.contact_synced_at)}
                         </span>
                       )}
                     </div>

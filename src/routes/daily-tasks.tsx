@@ -31,7 +31,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { DAILY_CALL_TARGET, TA_CALL_SHARE_MAX, TA_CALL_SHARE_MIN } from "@/domain/models";
+import {
+  DAILY_CONTACT_CAPACITY,
+  DAILY_REQUIRED_CONTACTS,
+  TA_CALL_SHARE_MAX,
+  TA_CALL_SHARE_MIN,
+} from "@/domain/models";
 import {
   loadAssistantProfile,
   loadAssistantTasks,
@@ -100,7 +105,7 @@ function DailyTasksPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assistant-tasks", date] }),
   });
 
-  const tasks = tasksQuery.data ?? [];
+  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
   const profile = profileQuery.data;
   const isAssistant = profile?.role === "assistant";
 
@@ -108,7 +113,9 @@ function DailyTasksPage() {
     const completed = tasks.filter((task) => finishedStates.has(task.status)).length;
     const taTasks = tasks.filter((task) => task.task_type === "TA").length;
     const taShare = tasks.length ? taTasks / tasks.length : 0;
-    const progress = DAILY_CALL_TARGET ? Math.min((completed / DAILY_CALL_TARGET) * 100, 100) : 0;
+    const progress = DAILY_REQUIRED_CONTACTS
+      ? Math.min((completed / DAILY_REQUIRED_CONTACTS) * 100, 100)
+      : 0;
     return { completed, taTasks, taShare, progress };
   }, [tasks]);
 
@@ -145,8 +152,8 @@ function DailyTasksPage() {
               : "Daily Operations"}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Amina keeps the day focused: one next action, seven priority calls, clear outcomes and
-            no self-verification.
+            Amina ranks up to 15 contacts so unreachable BOs do not stop the workday. Seven recorded
+            contacts meet the required daily target; ranks 8–15 remain available as backup.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground">
@@ -158,8 +165,12 @@ function DailyTasksPage() {
         <MetricCard
           icon={<Target className="h-4 w-4 text-primary" />}
           label="Daily progress"
-          value={`${stats.completed}/${DAILY_CALL_TARGET}`}
-          detail="Completed human interactions"
+          value={`${stats.completed}/${DAILY_REQUIRED_CONTACTS}`}
+          detail={
+            stats.completed >= DAILY_REQUIRED_CONTACTS
+              ? `Required target met · ${tasks.length}/${DAILY_CONTACT_CAPACITY} contacts available`
+              : `7 required · up to ${DAILY_CONTACT_CAPACITY} ranked contacts available`
+          }
         />
         <MetricCard
           icon={<Phone className="h-4 w-4 text-primary" />}
@@ -227,8 +238,8 @@ function DailyTasksPage() {
             <div>
               <CardTitle>Today's queue</CardTitle>
               <CardDescription>
-                The queue is ordered by priority. Postponed work remains visible with its callback
-                context.
+                The first seven completed contacts satisfy the daily requirement. Amina may rank up
+                to 15 so no-answer and unavailable BOs can be replaced without stopping the day.
               </CardDescription>
             </div>
             <div className="min-w-48">
@@ -300,15 +311,39 @@ function NowTask({
 }) {
   const phoneNumber = task.merchant?.phone_number;
   const started = task.status === "in_progress";
+  const weekly = task.weeklyPerformance;
+  const weeklyActual = weekly ? weekly.payment_value + weekly.transfer_value : null;
+  const weeklyGap =
+    weekly && weeklyActual !== null
+      ? Math.max(0, weekly.official_target_value - weeklyActual)
+      : null;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <Detail label="Task" value={task.task_type} />
-          <Detail label="Terminal" value={task.terminal?.terminal_id ?? "Not linked"} />
+          <Detail label="Terminal ID" value={task.terminal?.terminal_id ?? "Not linked"} />
+          <Detail label="Terminal serial" value={task.terminal?.serial_number ?? "Not supplied"} />
+          <Detail label="BO account" value={task.merchant?.account_number ?? "Not confirmed"} />
+          <Detail label="BO phone" value={phoneNumber ?? "Not confirmed"} />
           <Detail label="Status" value={humanizeStatus(task.status)} />
         </div>
+
+        {weekly && weeklyActual !== null && (
+          <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-4">
+            <Detail
+              label="Official weekly target"
+              value={formatMoney(weekly.official_target_value)}
+            />
+            <Detail label="Actual rolling value" value={formatMoney(weeklyActual)} />
+            <Detail label="Remaining gap" value={formatMoney(weeklyGap ?? 0)} />
+            <Detail
+              label="Last transacted"
+              value={`${weekly.days_since_last_transaction} day${weekly.days_since_last_transaction === 1 ? "" : "s"} ago`}
+            />
+          </div>
+        )}
 
         <div className="rounded-lg bg-muted/60 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -388,6 +423,8 @@ function QueueRow({
   onOutcome: () => void;
 }) {
   const final = finishedStates.has(task.status);
+  const weekly = task.weeklyPerformance;
+  const weeklyActual = weekly ? weekly.payment_value + weekly.transfer_value : null;
 
   return (
     <div className="grid gap-3 rounded-xl border p-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
@@ -408,6 +445,14 @@ function QueueRow({
         </div>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>TID: {task.terminal?.terminal_id ?? "—"}</span>
+          <span>Serial: {task.terminal?.serial_number ?? "—"}</span>
+          <span>Account: {task.merchant?.account_number ?? "Not confirmed"}</span>
+          {weekly && weeklyActual !== null && (
+            <span>
+              Weekly {formatMoney(weeklyActual)} / {formatMoney(weekly.official_target_value)}
+            </span>
+          )}
+          {weekly && <span>Last txn: {weekly.days_since_last_transaction}d</span>}
           <span>Priority {task.priority}/5</span>
           {task.latestOutcome?.callback_at && (
             <span>Callback {formatDateTime(task.latestOutcome.callback_at)}</span>
@@ -693,6 +738,10 @@ function humanizeStatus(status: string) {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function formatMoney(value: number) {
+  return `₦${new Intl.NumberFormat("en-NG", { maximumFractionDigits: 2 }).format(value)}`;
 }
 
 function formatDateTime(value: string) {

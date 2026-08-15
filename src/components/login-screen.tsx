@@ -9,6 +9,7 @@ import {
 import { useState, type FormEvent } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MonieBrmMark } from "@/components/monie-brm-mark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -75,8 +76,8 @@ export function LoginScreen() {
       <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl border bg-background shadow-xl lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden bg-primary p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
           <div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-foreground/15 text-lg font-bold">
-              M
+            <div className="rounded-xl bg-white p-3">
+              <MonieBrmMark />
             </div>
             <h1 className="mt-8 text-3xl font-bold tracking-tight">Monie Ops Hub</h1>
             <p className="mt-3 max-w-md text-sm leading-6 text-primary-foreground/80">

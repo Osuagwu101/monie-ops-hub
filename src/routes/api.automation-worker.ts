@@ -177,11 +177,10 @@ async function dispatchBrowserTask(claim: ExecuteClaim, bridgeToken: string) {
   };
   if (claim.proxyCountryCode) sessionBody["proxyCountryCode"] = claim.proxyCountryCode;
 
-  const session = await browserFetch<BrowserSessionCreated>(
-    "/sessions",
-    claim.browserUseApiKey,
-    { method: "POST", body: JSON.stringify(sessionBody) },
-  );
+  const session = await browserFetch<BrowserSessionCreated>("/sessions", claim.browserUseApiKey, {
+    method: "POST",
+    body: JSON.stringify(sessionBody),
+  });
   if (!isUuid(session.id)) {
     throw workerError(
       "browser_invalid_session",
@@ -571,7 +570,11 @@ function parseEnrichmentOutput(value: string | null): EnrichmentOutput {
     );
   }
   const candidate = parsed as Partial<EnrichmentOutput>;
-  if (!candidate.dashboard || !Array.isArray(candidate.dashboard.metrics) || !Array.isArray(candidate.businesses)) {
+  if (
+    !candidate.dashboard ||
+    !Array.isArray(candidate.dashboard.metrics) ||
+    !Array.isArray(candidate.businesses)
+  ) {
     throw workerError(
       "enrichment_output_invalid",
       "The Team Management enrichment output was incomplete.",
@@ -667,7 +670,9 @@ async function rpc<T = unknown>(name: string, payload: unknown) {
   if (!response.ok) {
     const text = await response.text();
     const authFailure =
-      response.status === 401 || response.status === 403 || text.includes("Invalid automation token");
+      response.status === 401 ||
+      response.status === 403 ||
+      text.includes("Invalid automation token");
     throw workerError(
       authFailure ? "bridge_rejected" : `cloud_rpc_${response.status}`,
       authFailure

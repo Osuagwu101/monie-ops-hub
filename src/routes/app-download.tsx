@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BellRing, Download, ShieldCheck, Smartphone } from "lucide-react";
 
+import { MonieBrmMark } from "@/components/monie-brm-mark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -23,8 +24,8 @@ function AppDownloadPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
       <Card className="w-full max-w-xl rounded-2xl shadow-xl">
         <CardHeader className="space-y-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">
-            M
+          <div className="w-fit rounded-2xl border bg-white p-3">
+            <MonieBrmMark />
           </div>
           <div>
             <CardTitle className="text-2xl sm:text-3xl">Moniepoint BRM App</CardTitle>
