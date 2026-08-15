@@ -2,11 +2,6 @@ name: Mobile APK Release
 
 on:
   workflow_dispatch:
-  push:
-    branches: [agent/live-mirror-15-task-production]
-    paths:
-      - mobile/**
-      - .github/workflows/mobile-apk-release.yml
 
 permissions:
   contents: read
@@ -62,11 +57,3 @@ jobs:
             mobile/dist/moniepoint-brm-1.0.0-internal.apk.sha256
           if-no-files-found: error
           retention-days: 14
-      - name: Publish APK to website download storage
-        run: |
-          curl --fail-with-body --request POST \
-            --header "apikey: sb_publishable_EtiaAjDKKyM0jV54jpTuXQ_sdAVic5H" \
-            --header "Content-Type: application/vnd.android.package-archive" \
-            --header "x-upsert: false" \
-            --data-binary @dist/moniepoint-brm-1.0.0-internal.apk \
-            "https://maajpydeugszipsbilgh.supabase.co/storage/v1/object/app-downloads/moniepoint-brm-1.0.0-internal.apk"
