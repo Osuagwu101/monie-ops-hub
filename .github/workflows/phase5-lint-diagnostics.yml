@@ -1,0 +1,47 @@
+name: Phase 5 Lint Diagnostics
+
+on:
+  push:
+    branches:
+      - agent/phase5-secure-automation-hardening
+    paths:
+      - .github/workflows/phase5-lint-diagnostics.yml
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase5-secure-automation-hardening
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Apply proven TypeScript fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/api.automation-worker.ts')
+          s = p.read_text()
+          s = s.replace('sessionSettings.proxyCountryCode = claim.proxyCountryCode;', 'sessionSettings["proxyCountryCode"] = claim.proxyCountryCode;')
+          s = s.replace('body: new Blob([bytes], { type: "application/pdf" }),', 'body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,')
+          p.write_text(s)
+          PY
+      - name: Generate routes and verify TypeScript
+        run: |
+          bun run build
+          bun run typecheck
+      - name: Capture lint diagnostics
+        run: bun run lint > phase5-lint.txt 2>&1 || true
+      - name: Clean temporary workflows and commit state
+        run: |
+          rm -f phase5-typecheck.txt
+          rm -f .github/workflows/phase5-typescript-fix.yml
+          rm .github/workflows/phase5-lint-diagnostics.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Capture Phase 5 lint diagnostics after TypeScript fixes'
+          git push
