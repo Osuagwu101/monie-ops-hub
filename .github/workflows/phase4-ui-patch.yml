@@ -55,6 +55,14 @@ jobs:
               text = text.replace(old, new, 1)
 
           path.write_text(text)
+
+          agent_path = Path('src/routes/ai-logs.tsx')
+          agent_text = agent_path.read_text()
+          old = 'function AgentCard({ agent, run }: { agent: AgentKind; run?: AgentRunRecord }) {'
+          new = 'function AgentCard({ agent, run }: { agent: AgentKind; run: AgentRunRecord | undefined }) {'
+          if old not in agent_text:
+              raise SystemExit('Expected AgentCard typing target not found')
+          agent_path.write_text(agent_text.replace(old, new, 1))
           PY
       - run: bunx prettier --write src/routes/daily-tasks.tsx src/routes/ai-logs.tsx src/lib/agent-data.ts src/lib/assistant-data.ts src/components/app-sidebar.tsx
       - run: bun run typecheck
