@@ -1,7 +1,6 @@
-import { Bell, Search, User } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function AppHeader() {
@@ -13,29 +12,17 @@ export function AppHeader() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <span className="text-sm font-bold">M</span>
         </div>
-        <span className="hidden text-lg font-bold text-foreground sm:inline">
-          Moniepoint Operations
-        </span>
+        <div>
+          <span className="hidden text-base font-bold text-foreground sm:inline">Monie Ops Hub</span>
+          <div className="hidden text-[11px] text-muted-foreground md:block">Secure BRM operations mirror</div>
+        </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-3">
-        <div className="relative hidden w-64 sm:block">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search merchants, TIDs..."
-            className="h-9 pl-9 text-sm"
-          />
-        </div>
-
-        <Button variant="ghost" size="icon" className="relative h-8 w-8" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
-
-        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Profile">
-          <User className="h-4 w-4" />
-        </Button>
+      <div className="ml-auto flex items-center gap-2">
+        <Badge variant="outline" className="gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Phase 1
+        </Badge>
       </div>
     </header>
   );
