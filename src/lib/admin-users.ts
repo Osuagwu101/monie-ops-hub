@@ -1,4 +1,10 @@
-import { restSelect } from "@/lib/cloud-api";
+import {
+  activateInvitedStaffAccount,
+  callRpc,
+  restSelect,
+  type CloudSession,
+  type CloudUser,
+} from "@/lib/cloud-api";
 
 export interface StaffAccount {
   id: string;
@@ -8,10 +14,18 @@ export interface StaffAccount {
   created_at: string;
 }
 
+interface StaffInviteResult {
+  inviteId: string;
+  email: string;
+  fullName: string;
+  inviteToken: string;
+  expiresAt: string;
+}
+
 export interface CreateStaffInput {
   fullName: string;
   email: string;
-  password?: string;
+  temporaryPassword: string;
 }
 
 export async function loadStaffAccounts(accessToken: string) {
@@ -22,26 +36,41 @@ export async function loadStaffAccounts(accessToken: string) {
 }
 
 export async function createStaffAccount(input: CreateStaffInput, accessToken: string) {
-  const response = await fetch("/api/admin-staff", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      fullName: input.fullName.trim(),
-      email: input.email.trim().toLowerCase(),
-      password: input.password?.trim() || null,
-    }),
-  });
+  const fullName = input.fullName.trim();
+  const email = input.email.trim().toLowerCase();
+  const temporaryPassword = input.temporaryPassword.trim();
 
-  const payload = (await response.json()) as
-    | { ok: true; mode: "created" | "invited"; userId: string }
-    | { ok: false; error: string };
-
-  if (!response.ok || !payload.ok) {
-    throw new Error(payload.ok ? "Unable to create staff account." : payload.error);
+  if (!fullName) throw new Error("Staff full name is required.");
+  if (!email || !email.includes("@")) throw new Error("A valid staff email is required.");
+  if (temporaryPassword.length < 8) {
+    throw new Error("Temporary password must be at least 8 characters.");
   }
 
-  return payload;
+  const invite = await callRpc<StaffInviteResult>(
+    "create_staff_invite",
+    { p_email: email, p_full_name: fullName },
+    accessToken,
+  );
+
+  const result = await activateInvitedStaffAccount(
+    invite.email,
+    temporaryPassword,
+    invite.fullName,
+    invite.inviteToken,
+  );
+
+  const session = isCloudSession(result) ? result : result.session;
+  const user = isCloudSession(result) ? result.user : result.user;
+
+  return {
+    userId: user.id,
+    email: invite.email,
+    requiresEmailConfirmation: !session,
+  };
+}
+
+function isCloudSession(
+  value: CloudSession | { user: CloudUser; session: CloudSession | null },
+): value is CloudSession {
+  return "access_token" in value;
 }
