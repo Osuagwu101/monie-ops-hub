@@ -1,0 +1,55 @@
+name: Phase 5 Worker Runtime Hotfix
+
+on:
+  push:
+    branches:
+      - agent/phase5-worker-runtime-hotfix
+    paths:
+      - .github/workflows/phase5-worker-runtime-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase5-worker-runtime-hotfix
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Lazy-load server PDF adapter
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/routes/api.automation-worker.ts')
+          text = path.read_text()
+          old = 'import { parseMoniepointReportBytes, sha256Bytes } from "@/lib/moniepoint-report-node";\n'
+          if old not in text:
+              raise SystemExit('expected eager PDF import not found')
+          text = text.replace(old, '', 1)
+          needle = '  const bytes = new Uint8Array(await reportResponse.arrayBuffer());\n  const parsed = await parseMoniepointReportBytes(bytes);'
+          replacement = '  const bytes = new Uint8Array(await reportResponse.arrayBuffer());\n  const { parseMoniepointReportBytes, sha256Bytes } = await import(\n    "@/lib/moniepoint-report-node"\n  );\n  const parsed = await parseMoniepointReportBytes(bytes);'
+          if needle not in text:
+              raise SystemExit('expected PDF parse block not found')
+          text = text.replace(needle, replacement, 1)
+          path.write_text(text)
+          PY
+      - name: Format
+        run: bunx prettier --write src/routes/api.automation-worker.ts
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Lint
+        run: bun run lint
+      - name: Build
+        run: bun run build
+      - name: Remove temporary workflow
+        run: rm .github/workflows/phase5-worker-runtime-hotfix.yml
+      - name: Commit hotfix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/api.automation-worker.ts .github/workflows/phase5-worker-runtime-hotfix.yml
+          git commit -m 'Lazy-load PDF runtime in automation worker'
+          git push
