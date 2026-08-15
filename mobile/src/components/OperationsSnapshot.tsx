@@ -7,6 +7,8 @@ const INK = "#111827";
 const MUTED = "#667085";
 const BORDER = "#E4E7EC";
 const SURFACE = "#F7F9FC";
+const REQUIRED_CONTACTS = 7;
+const CONTACT_CAPACITY = 15;
 
 export function OperationsSnapshot({ data }: { data: MobileOperationsSnapshot | null }) {
   if (!data) {
@@ -20,6 +22,11 @@ export function OperationsSnapshot({ data }: { data: MobileOperationsSnapshot | 
 
   const latestScore = data.scorecards[0];
   const latestRecommendation = data.recommendations[0];
+  const completed = data.todayTasks.filter((task) =>
+    ["completed", "pending_verification", "verified", "discrepancy", "deferred", "unverifiable"].includes(
+      task.status,
+    ),
+  ).length;
 
   return (
     <View style={styles.stack}>
@@ -40,9 +47,9 @@ export function OperationsSnapshot({ data }: { data: MobileOperationsSnapshot | 
           }
         />
         <Metric
-          label="Today's tasks"
-          value={String(data.todayTasks.length)}
-          detail={`${data.todayTasks.filter((task) => task.task_type === "TA").length} TA`}
+          label="Human contact target"
+          value={`${Math.min(completed, REQUIRED_CONTACTS)}/${REQUIRED_CONTACTS}`}
+          detail={`${data.todayTasks.length}/${CONTACT_CAPACITY} ranked contacts available`}
         />
         <Metric
           label="Amina rating"
@@ -54,24 +61,50 @@ export function OperationsSnapshot({ data }: { data: MobileOperationsSnapshot | 
       {data.todayTasks.length ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Today's operating queue</Text>
-          <Text style={styles.cardSub}>Synced from the same task ledger as the web portal.</Text>
+          <Text style={styles.cardSub}>
+            Seven completed contacts meet the daily requirement. Up to 15 are available so no-answer
+            BOs can be replaced immediately.
+          </Text>
           <View style={styles.list}>
-            {data.todayTasks.slice(0, 7).map((task, index) => (
-              <View key={task.id} style={styles.row}>
-                <View style={styles.rankBox}>
-                  <Text style={styles.rank}>{task.queue_rank ?? index + 1}</Text>
-                </View>
-                <View style={styles.rowText}>
-                  <View style={styles.rowTop}>
-                    <Text style={styles.rowTitle}>{task.task_type}</Text>
-                    <Text style={styles.status}>{humanize(task.status)}</Text>
+            {data.todayTasks.slice(0, CONTACT_CAPACITY).map((task, index) => {
+              const actual = task.weekly
+                ? task.weekly.payment_value + task.weekly.transfer_value
+                : null;
+              const gap =
+                task.weekly && actual !== null
+                  ? Math.max(0, task.weekly.official_target_value - actual)
+                  : null;
+              return (
+                <View key={task.id} style={styles.row}>
+                  <View style={styles.rankBox}>
+                    <Text style={styles.rank}>{task.queue_rank ?? index + 1}</Text>
                   </View>
-                  <Text style={styles.reason} numberOfLines={2}>
-                    {task.reason}
-                  </Text>
+                  <View style={styles.rowText}>
+                    <View style={styles.rowTop}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>
+                        {task.merchant?.business_name ?? task.task_type}
+                      </Text>
+                      <Text style={styles.status}>{humanize(task.status)}</Text>
+                    </View>
+                    <Text style={styles.context} numberOfLines={2}>
+                      TID {task.terminal?.terminal_id ?? "—"} · Serial {task.terminal?.serial_number ?? "—"}
+                      {task.merchant?.account_number ? ` · Acct ${task.merchant.account_number}` : ""}
+                    </Text>
+                    {task.weekly && actual !== null ? (
+                      <Text style={styles.context} numberOfLines={2}>
+                        Weekly {money(actual)} / {money(task.weekly.official_target_value)} · Gap {money(gap ?? 0)} · Last txn {task.weekly.days_since_last_transaction}d
+                      </Text>
+                    ) : null}
+                    <Text style={styles.context} numberOfLines={1}>
+                      Phone {task.merchant?.phone_number ?? "not confirmed"}
+                    </Text>
+                    <Text style={styles.reason} numberOfLines={2}>
+                      {task.reason}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       ) : (
@@ -122,6 +155,10 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
   );
 }
 
+function money(value: number) {
+  return `₦${new Intl.NumberFormat("en-NG", { maximumFractionDigits: 2 }).format(value)}`;
+}
+
 function round(value: number) {
   return Math.round(Number(value) * 10) / 10;
 }
@@ -146,18 +183,40 @@ const styles = StyleSheet.create({
   metricLabel: { color: MUTED, fontSize: 10, fontWeight: "700" },
   metricValue: { color: INK, fontSize: 23, fontWeight: "900", marginTop: 7 },
   metricDetail: { color: MUTED, fontSize: 10, marginTop: 5 },
-  card: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: BORDER, borderRadius: 18, padding: 16, gap: 10 },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 18,
+    padding: 16,
+    gap: 10,
+  },
   cardTitle: { color: INK, fontSize: 15, fontWeight: "900" },
   cardSub: { color: MUTED, fontSize: 11, lineHeight: 17, marginTop: -4 },
   list: { marginTop: 2 },
-  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BORDER },
-  rankBox: { width: 32, height: 32, borderRadius: 9, backgroundColor: "#EAF1FF", alignItems: "center", justifyContent: "center" },
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingVertical: 11,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BORDER,
+  },
+  rankBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: "#EAF1FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rank: { color: BLUE, fontSize: 12, fontWeight: "900" },
   rowText: { flex: 1 },
   rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  rowTitle: { color: INK, fontSize: 12, fontWeight: "900" },
+  rowTitle: { color: INK, fontSize: 12, fontWeight: "900", flex: 1 },
   status: { color: BLUE, fontSize: 9, fontWeight: "800" },
-  reason: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 3 },
+  context: { color: INK, fontSize: 9, lineHeight: 14, marginTop: 3 },
+  reason: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 4 },
   modePill: { backgroundColor: SURFACE, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
   modePillText: { color: INK, fontSize: 9, fontWeight: "900" },
   scoreLine: { color: BLUE, fontSize: 12, fontWeight: "800" },
