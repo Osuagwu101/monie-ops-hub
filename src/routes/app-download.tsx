@@ -42,8 +42,8 @@ function AppDownloadPage() {
           </div>
 
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">
-            <strong className="text-foreground">Android installer:</strong> the native app source
-            is ready, but the signed APK has not yet been published. This page is the permanent app
+            <strong className="text-foreground">Android installer:</strong> the native app source is
+            ready, but the signed APK has not yet been published. This page is the permanent app
             download location and the button below will activate as soon as the installer is
             released.
           </div>
