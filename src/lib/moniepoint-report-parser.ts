@@ -74,8 +74,7 @@ interface RowLead {
   tail: string;
 }
 
-const DAY_MONTH_YEAR =
-  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})$/;
+const DAY_MONTH_YEAR = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ROW_NUMBER = /^\d+$/;
 const ROW_LEAD = /^(\d+)\s+(.+)$/;
@@ -478,10 +477,13 @@ function parseRows(lines: string[], reportDate: string) {
     }
 
     if (headerWindow.includes("Weekly Terminal Transactions")) {
-      const weeklyHeader =
-        /Weekly Terminal Transactions\s*\((.+?)\s+to\s+(.+?)\)/.exec(headerWindow);
+      const weeklyHeader = /Weekly Terminal Transactions\s*\((.+?)\s+to\s+(.+?)\)/.exec(
+        headerWindow,
+      );
       rollingStart = weeklyHeader ? (parseHeaderDate(group(weeklyHeader, 1)) ?? "") : "";
-      rollingEnd = weeklyHeader ? (parseHeaderDate(group(weeklyHeader, 2)) ?? reportDate) : reportDate;
+      rollingEnd = weeklyHeader
+        ? (parseHeaderDate(group(weeklyHeader, 2)) ?? reportDate)
+        : reportDate;
       section = "rolling_7_day";
       index += 1;
       continue;
@@ -633,8 +635,7 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
 
   const summary: MoniepointReportSummary = {
     topBoRetentionRate: requiredNumberAfterLabel(lines, "Top BO Retention Rate"),
-    terminalActivityRate:
-      requiredNumberAfterLabel(lines, "Terminal Activity Rate") ?? Number.NaN,
+    terminalActivityRate: requiredNumberAfterLabel(lines, "Terminal Activity Rate") ?? Number.NaN,
     assignedTerminalGrowth: requiredNumberAfterLabel(
       lines,
       "Assigned Terminal Growth (Current Month)",
@@ -643,8 +644,7 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
     assignedTerminalCount:
       requiredNumberAfterLabel(lines, "Terminals Assigned to BOs") ?? Number.NaN,
     activeTerminalCount: requiredNumberAfterLabel(lines, "Active Terminals") ?? Number.NaN,
-    unassignedTerminalCount:
-      requiredNumberAfterLabel(lines, "Unassigned Terminals") ?? Number.NaN,
+    unassignedTerminalCount: requiredNumberAfterLabel(lines, "Unassigned Terminals") ?? Number.NaN,
     assignedSevenPlusDaysCount:
       requiredNumberAfterLabel(lines, "Terminals Assigned for 7+ Days") ?? Number.NaN,
     activeAssignedSevenPlusDaysCount:
@@ -691,7 +691,5 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
 
 export async function sha256File(file: File) {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
