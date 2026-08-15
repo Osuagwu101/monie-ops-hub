@@ -2,7 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Clock3, ListTodo, RotateCcw, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { DAILY_CALL_TARGET } from "@/domain/models";
 
 export const Route = createFileRoute("/daily-tasks")({
@@ -19,9 +25,15 @@ const taskStates = [
   ["Assigned", "Amina places a priority task into the assistant queue."],
   ["In progress", "The assistant has started the merchant interaction."],
   ["Postponed", "A reason and callback context are required."],
-  ["Completed", "The human interaction is finished; performance is not yet verified."],
+  [
+    "Completed",
+    "The human interaction is finished; performance is not yet verified.",
+  ],
   ["Pending verification", "Tunde is waiting for official report evidence."],
-  ["Verified / Discrepancy / Deferred / Unverifiable", "Only the verification layer determines the final evidence state."],
+  [
+    "Verified / Discrepancy / Deferred / Unverifiable",
+    "Only the verification layer determines the final evidence state.",
+  ],
 ] as const;
 
 function DailyTasksPage() {
@@ -34,8 +46,8 @@ function DailyTasksPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Daily Tasks</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Amina will assign {DAILY_CALL_TARGET} priority calls each workday. The live queue will be connected
-          after Supabase is attached; this phase establishes the safe state machine first.
+          Amina will assign {DAILY_CALL_TARGET} priority calls each workday. The live queue will be
+          connected after Supabase is attached; this phase establishes the safe state machine first.
         </p>
       </section>
 
@@ -48,7 +60,9 @@ function DailyTasksPage() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             <div className="text-3xl font-bold text-foreground">{DAILY_CALL_TARGET}</div>
-            <p className="mt-1">Priority merchant calls per day, with 60–80% normally focused on TA.</p>
+            <p className="mt-1">
+              Priority merchant calls per day, with 60–80% normally focused on TA.
+            </p>
           </CardContent>
         </Card>
 
@@ -59,8 +73,8 @@ function DailyTasksPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm leading-6 text-muted-foreground">
-            Urgent unresolved work can return the next morning when the official report still shows that the
-            underlying issue remains open.
+            Urgent unresolved work can return the next morning when the official report still shows
+            that the underlying issue remains open.
           </CardContent>
         </Card>
 
