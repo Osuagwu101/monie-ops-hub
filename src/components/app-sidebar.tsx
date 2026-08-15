@@ -26,12 +26,14 @@ import { loadAssistantProfile } from "@/lib/assistant-data";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
-const baseMenuItems = [
-  { title: "Overview", url: "/", icon: LayoutDashboard },
-  { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo },
-  { title: "Merchants", url: "/merchant-list", icon: Store },
-  { title: "Audit & Agents", url: "/ai-logs", icon: Bot },
-];
+const overviewItem = { title: "Overview", url: "/", icon: LayoutDashboard } as const;
+const dailyTasksItem = { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo } as const;
+const merchantsItem = { title: "Merchants", url: "/merchant-list", icon: Store } as const;
+const reportsItem = { title: "Official Reports", url: "/report-imports", icon: FileStack } as const;
+const auditItem = { title: "Audit & Agents", url: "/ai-logs", icon: Bot } as const;
+
+const assistantMenuItems = [overviewItem, dailyTasksItem, merchantsItem, auditItem];
+const directorMenuItems = [overviewItem, dailyTasksItem, merchantsItem, reportsItem, auditItem];
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
@@ -46,15 +48,7 @@ export function AppSidebar() {
     enabled: Boolean(user?.id && session?.access_token),
   });
 
-  const menuItems =
-    profileQuery.data?.role === "director"
-      ? [
-          ...baseMenuItems.slice(0, 3),
-          { title: "Official Reports", url: "/report-imports", icon: FileStack },
-          baseMenuItems[3],
-        ]
-      : baseMenuItems;
-
+  const menuItems = profileQuery.data?.role === "director" ? directorMenuItems : assistantMenuItems;
   const isActive = (path: string) => currentPath === path;
 
   return (
