@@ -1,6 +1,7 @@
 -- One-time public delivery location for the signed internal Android build.
+-- The native debug-signed internal APK includes all supported Android ABIs and is about 131 MB.
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('app-downloads','app-downloads',true,104857600,array['application/vnd.android.package-archive','application/octet-stream'])
+values('app-downloads','app-downloads',true,209715200,array['application/vnd.android.package-archive','application/octet-stream'])
 on conflict(id) do update set
   public=excluded.public,
   file_size_limit=excluded.file_size_limit,
