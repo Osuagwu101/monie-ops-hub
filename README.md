@@ -1,12 +1,12 @@
 # Moniepoint Ops Hub
 
-Create a minimal, clean starter dashboard for a "Moniepoint BRM Operations Portal". 
+Create a minimal, clean starter dashboard for a "Moniepoint BRM Operations Portal".
 
 Keep it lightweight and simple:
 
 - Layout: Top header with "Moniepoint Operations" branding (Moniepoint blue #0357EE theme) and a collapsible sidebar (Overview, Daily Tasks, Merchant List, AI Logs).
 
-- Overview Page: 
+- Overview Page:
 
   - 3 simple stat cards (Active Terminals, Daily Volume Target, Pending Tasks).
 

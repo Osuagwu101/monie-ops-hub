@@ -2,7 +2,7 @@ name: Quality
 
 on:
   push:
-    branches: [main, agent/phase-1-foundation]
+    branches: [main, "agent/**"]
   pull_request:
     branches: [main]
 

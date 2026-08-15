@@ -7,13 +7,16 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
+import { AppSidebar } from "@/components/app-sidebar";
+import { LoginScreen } from "@/components/login-screen";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 
 function NotFoundComponent() {
   return (
@@ -80,22 +83,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Moniepoint BRM Operations Portal" },
-      { name: "description", content: "Moniepoint BRM Operations Portal starter dashboard." },
-      { name: "author", content: "Moniepoint BRM Operations" },
-      { property: "og:title", content: "Moniepoint BRM Operations Portal" },
+      { title: "Monie Ops Hub" },
+      {
+        name: "description",
+        content: "Secure BRM operations workspace for merchant task execution and verification.",
+      },
+      { name: "author", content: "Monie Ops Hub" },
+      { property: "og:title", content: "Monie Ops Hub" },
       {
         property: "og:description",
-        content: "Moniepoint BRM Operations Portal starter dashboard.",
+        content: "Secure BRM operations workspace for merchant task execution and verification.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
@@ -124,17 +127,39 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider defaultOpen={true}>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <div className="flex flex-1 flex-col">
-            <AppHeader />
-            <main className="flex-1 bg-background p-4 sm:p-6 lg:p-8">
-              <Outlet />
-            </main>
-          </div>
-        </div>
-      </SidebarProvider>
+      <AuthProvider>
+        <PortalGate />
+      </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function PortalGate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" /> Checking secure session…
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) return <LoginScreen />;
+
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppHeader />
+          <main className="flex-1 bg-background p-4 sm:p-6 lg:p-8">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
