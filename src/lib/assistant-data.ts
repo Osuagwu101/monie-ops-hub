@@ -32,29 +32,37 @@ export interface AssistantTask {
   due_at: string | null;
   rolled_from_task_id: string | null;
   created_at: string;
-  merchant?: {
-    id: string;
-    business_name: string;
-    phone_number: string | null;
-  };
-  terminal?: {
-    id: string;
-    terminal_id: string;
-    serial_number: string | null;
-  };
-  latestOutcome?: {
-    outcome_code: TaskOutcomeCode | null;
-    postponement_reason: string | null;
-    callback_at: string | null;
-    notes: string | null;
-    submitted_at: string;
-    attempt_number: number;
-  };
-  verification?: {
-    state: "verified" | "discrepancy" | "deferred" | "unverifiable";
-    rationale: string;
-    verified_at: string;
-  };
+  merchant?:
+    | {
+        id: string;
+        business_name: string;
+        phone_number: string | null;
+      }
+    | undefined;
+  terminal?:
+    | {
+        id: string;
+        terminal_id: string;
+        serial_number: string | null;
+      }
+    | undefined;
+  latestOutcome?:
+    | {
+        outcome_code: TaskOutcomeCode | null;
+        postponement_reason: string | null;
+        callback_at: string | null;
+        notes: string | null;
+        submitted_at: string;
+        attempt_number: number;
+      }
+    | undefined;
+  verification?:
+    | {
+        state: "verified" | "discrepancy" | "deferred" | "unverifiable";
+        rationale: string;
+        verified_at: string;
+      }
+    | undefined;
 }
 
 export interface SubmitOutcomeInput {
