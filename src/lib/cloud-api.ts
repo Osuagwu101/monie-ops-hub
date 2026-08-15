@@ -130,3 +130,37 @@ export async function callRpc<T>(name: string, payload: unknown, accessToken: st
     accessToken,
   );
 }
+
+export async function uploadImmutablePdf(
+  bucket: string,
+  path: string,
+  file: File,
+  accessToken: string,
+) {
+  if (!isCloudConfigured()) {
+    throw new Error("Lovable Cloud is not configured for this build.");
+  }
+
+  const encodedPath = path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const headers = new Headers();
+  headers.set("apikey", publishableKey);
+  headers.set("Authorization", `Bearer ${accessToken}`);
+  headers.set("Content-Type", "application/pdf");
+  headers.set("x-upsert", "false");
+
+  const response = await fetch(
+    `${cloudUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`,
+    {
+      method: "POST",
+      headers,
+      body: file,
+    },
+  );
+
+  if (response.status === 409) return { alreadyExists: true };
+  if (!response.ok) throw new Error(await readError(response));
+  return { alreadyExists: false };
+}
