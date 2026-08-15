@@ -1,0 +1,37 @@
+name: Final mobile source acceptance
+
+on:
+  push:
+    branches: [agent/live-mirror-15-task-production]
+    paths: [.github/workflows/final-mobile-check.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/live-mirror-15-task-production
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx expo export --platform android --output-dir dist-android
+      - run: npx expo export --platform ios --output-dir dist-ios
+      - name: Remove temporary acceptance workflow
+        working-directory: .
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/final-mobile-check.yml
+          git commit -m "Remove temporary mobile acceptance workflow"
+          git push origin HEAD:agent/live-mirror-15-task-production
