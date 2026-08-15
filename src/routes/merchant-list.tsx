@@ -2,13 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link2, Store, TabletSmartphone } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/merchant-list")({
   head: () => ({
@@ -28,9 +22,7 @@ function MerchantListPage() {
           <Badge variant="outline">Phase 1</Badge>
           <Badge variant="secondary">Canonical model ready</Badge>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Merchants & Terminals
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Merchants & Terminals</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
           The database now treats a merchant and a terminal as separate entities. TA performance is
           measured per terminal, even when one merchant operates multiple terminals.
