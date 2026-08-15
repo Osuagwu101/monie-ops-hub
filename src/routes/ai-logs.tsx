@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { AminaPerformancePanel } from "@/components/amina-performance-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -281,6 +282,14 @@ function OperationsTeamPage() {
             source rows and Director controls remain hidden.
           </AlertDescription>
         </Alert>
+      )}
+
+      {effectiveAssistantId && (
+        <AminaPerformancePanel
+          assistantId={effectiveAssistantId}
+          accessToken={accessToken}
+          isDirector={isDirector}
+        />
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
