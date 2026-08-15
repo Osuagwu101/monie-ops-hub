@@ -18,7 +18,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { loadAssistantProfile } from "@/lib/assistant-data";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -158,7 +165,8 @@ function ReportImportsPage() {
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Director access only</AlertTitle>
           <AlertDescription>
-            Raw Moniepoint reports and report-import controls are not exposed to the Human Operations Assistant.
+            Raw Moniepoint reports and report-import controls are not exposed to the Human
+            Operations Assistant.
           </AlertDescription>
         </Alert>
       </div>
@@ -175,7 +183,9 @@ function ReportImportsPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Moniepoint Report Engine</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Upload the official BRM Daily Report PDF. The engine validates the report before import, preserves the original PDF as immutable evidence, normalises terminal data, and hands the official rolling result to Tunde.
+          Upload the official BRM Daily Report PDF. The engine validates the report before import,
+          preserves the original PDF as immutable evidence, normalises terminal data, and hands the
+          official rolling result to Tunde.
         </p>
       </section>
 
@@ -190,7 +200,9 @@ function ReportImportsPage() {
       {result && (
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
-          <AlertTitle>{result.duplicate ? "Report already exists" : "Official report imported"}</AlertTitle>
+          <AlertTitle>
+            {result.duplicate ? "Report already exists" : "Official report imported"}
+          </AlertTitle>
           <AlertDescription>
             {result.duplicate
               ? `The same report source was already ingested for ${result.reportDate}. No duplicate rows were created.`
@@ -206,14 +218,17 @@ function ReportImportsPage() {
               <FileUp className="h-5 w-5 text-primary" /> Import official PDF
             </CardTitle>
             <CardDescription>
-              Maximum 15 MB. The parser will refuse import if the terminal sections do not reconcile with the report summary.
+              Maximum 15 MB. The parser will refuse import if the terminal sections do not reconcile
+              with the report summary.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-8 text-center transition-colors hover:bg-muted/30">
               <FileCheck2 className="h-8 w-8 text-primary" />
               <span className="mt-3 text-sm font-semibold">Choose Moniepoint BRM Daily Report</span>
-              <span className="mt-1 text-xs text-muted-foreground">PDF only · source file remains immutable</span>
+              <span className="mt-1 text-xs text-muted-foreground">
+                PDF only · source file remains immutable
+              </span>
               <input
                 className="sr-only"
                 type="file"
@@ -230,7 +245,8 @@ function ReportImportsPage() {
                 </div>
                 <Progress value={55} />
                 <p className="text-xs text-muted-foreground">
-                  Extracting summary, daily transactions, rolling 7-day transactions and non-transacting terminals.
+                  Extracting summary, daily transactions, rolling 7-day transactions and
+                  non-transacting terminals.
                 </p>
               </div>
             )}
@@ -244,13 +260,33 @@ function ReportImportsPage() {
                   </Badge>
                 </div>
                 <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                  <div>Report date: <strong className="text-foreground">{parsed.report.reportDate}</strong></div>
-                  <div>BRM: <strong className="text-foreground">{parsed.report.brmName}</strong></div>
-                  <div>Pages: <strong className="text-foreground">{parsed.report.pageCount}</strong></div>
-                  <div>SHA-256: <strong className="font-mono text-foreground">{parsed.sha256.slice(0, 12)}…</strong></div>
+                  <div>
+                    Report date:{" "}
+                    <strong className="text-foreground">{parsed.report.reportDate}</strong>
+                  </div>
+                  <div>
+                    BRM: <strong className="text-foreground">{parsed.report.brmName}</strong>
+                  </div>
+                  <div>
+                    Pages: <strong className="text-foreground">{parsed.report.pageCount}</strong>
+                  </div>
+                  <div>
+                    SHA-256:{" "}
+                    <strong className="font-mono text-foreground">
+                      {parsed.sha256.slice(0, 12)}…
+                    </strong>
+                  </div>
                 </div>
-                <Button className="w-full" onClick={handleImport} disabled={!parsed.report.canImport || importing}>
-                  {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                <Button
+                  className="w-full"
+                  onClick={handleImport}
+                  disabled={!parsed.report.canImport || importing}
+                >
+                  {importing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="mr-2 h-4 w-4" />
+                  )}
                   Preserve source & import official data
                 </Button>
               </div>
@@ -264,7 +300,8 @@ function ReportImportsPage() {
               <Target className="h-5 w-5 text-primary" /> Parser validation
             </CardTitle>
             <CardDescription>
-              Moniepoint's own Target Met flag is retained exactly. Internal checks only detect extraction errors; they do not rewrite official outcomes.
+              Moniepoint's own Target Met flag is retained exactly. Internal checks only detect
+              extraction errors; they do not rewrite official outcomes.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -275,22 +312,34 @@ function ReportImportsPage() {
             ) : (
               <div className="space-y-5">
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <MiniMetric label="Terminal activity" value={`${parsed.report.summary.terminalActivityRate}%`} />
-                  <MiniMetric label="Assigned terminals" value={`${parsed.report.summary.assignedTerminalCount}`} />
+                  <MiniMetric
+                    label="Terminal activity"
+                    value={`${parsed.report.summary.terminalActivityRate}%`}
+                  />
+                  <MiniMetric
+                    label="Assigned terminals"
+                    value={`${parsed.report.summary.assignedTerminalCount}`}
+                  />
                   <MiniMetric label="Daily rows" value={`${parsed.report.dailyRows.length}`} />
                   <MiniMetric label="Rolling Target Met" value={`${rollingTargetMet}`} />
                 </div>
 
                 <div className="space-y-2">
                   {parsed.report.checks.map((check, index) => (
-                    <div key={`${check.message}-${index}`} className="flex gap-3 rounded-lg border p-3 text-sm">
+                    <div
+                      key={`${check.message}-${index}`}
+                      className="flex gap-3 rounded-lg border p-3 text-sm"
+                    >
                       {check.level === "pass" ? (
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       ) : (
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                       )}
                       <div>
-                        <Badge variant={check.level === "error" ? "destructive" : "outline"} className="mb-1">
+                        <Badge
+                          variant={check.level === "error" ? "destructive" : "outline"}
+                          className="mb-1"
+                        >
                           {check.level}
                         </Badge>
                         <p className="leading-5 text-muted-foreground">{check.message}</p>
@@ -308,7 +357,8 @@ function ReportImportsPage() {
         <CardHeader>
           <CardTitle>Recent official imports</CardTitle>
           <CardDescription>
-            Import history is append-only. A newer report never overwrites the evidence from an earlier import.
+            Import history is append-only. A newer report never overwrites the evidence from an
+            earlier import.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -337,7 +387,11 @@ function ReportImportsPage() {
                       </TableCell>
                       <TableCell>{report.row_count ?? "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={report.processing_status === "processed" ? "secondary" : "outline"}>
+                        <Badge
+                          variant={
+                            report.processing_status === "processed" ? "secondary" : "outline"
+                          }
+                        >
                           {report.processing_status}
                         </Badge>
                       </TableCell>
@@ -345,7 +399,9 @@ function ReportImportsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={report.processing_status !== "processed" || reconcilingId === report.id}
+                          disabled={
+                            report.processing_status !== "processed" || reconcilingId === report.id
+                          }
                           onClick={() => handleReconcile(report.id)}
                         >
                           {reconcilingId === report.id ? (
@@ -375,7 +431,9 @@ function ReportImportsPage() {
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-background p-3">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 text-xl font-bold">{value}</div>
     </div>
   );
@@ -383,7 +441,9 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
 
 function LoadingState({ label, compact = false }: { label: string; compact?: boolean }) {
   return (
-    <div className={`flex items-center justify-center gap-2 text-sm text-muted-foreground ${compact ? "py-6" : "min-h-[240px]"}`}>
+    <div
+      className={`flex items-center justify-center gap-2 text-sm text-muted-foreground ${compact ? "py-6" : "min-h-[240px]"}`}
+    >
       <Loader2 className="h-4 w-4 animate-spin text-primary" /> {label}
     </div>
   );

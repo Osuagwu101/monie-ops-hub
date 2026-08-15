@@ -65,10 +65,17 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list' | '/report-imports'
+  fullPaths:
+    '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list' | '/report-imports'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list' | '/report-imports'
-  id: '__root__' | '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list' | '/report-imports'
+  id:
+    | '__root__'
+    | '/'
+    | '/ai-logs'
+    | '/daily-tasks'
+    | '/merchant-list'
+    | '/report-imports'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {

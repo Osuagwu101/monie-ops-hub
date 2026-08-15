@@ -67,14 +67,12 @@ interface PdfTextItemLike {
   hasEOL?: boolean;
 }
 
-const DAY_MONTH_YEAR =
-  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})$/;
+const DAY_MONTH_YEAR = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})$/;
 const TERMINAL_ID = /^[A-Z0-9]{8,10}$/;
 const SERIAL_WITH_TARGET = /^([A-Z0-9]{12,20})\s+([\d,]+\.\d{2})\s+(True|False)$/;
 const TRANSACTION_LINE = /^([\d,]+\.\d{2})\s+(\d+)\s+(\d+)$/;
 const TRANSFER_AND_DAYS = /^([\d,]+\.\d{2})\s+(\d+)$/;
-const SERIAL_WITH_LAST_TRANSACTION =
-  /^([A-Z0-9]{12,20})\s+(\d{4}-\d{2}-\d{2})\s+(\d+)$/;
+const SERIAL_WITH_LAST_TRANSACTION = /^([A-Z0-9]{12,20})\s+(\d{4}-\d{2}-\d{2})\s+(\d+)$/;
 const TWO_DATES = /^(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})$/;
 
 const MONTHS: Record<string, string> = {
@@ -333,10 +331,7 @@ function parseNonTransactingRow(lines: string[], terminalIndex: number) {
   const businessParts = [firstBusinessPart];
   let cursor = leadIndex + 1;
 
-  while (
-    cursor < lines.length &&
-    !SERIAL_WITH_LAST_TRANSACTION.test(lineAt(lines, cursor))
-  ) {
+  while (cursor < lines.length && !SERIAL_WITH_LAST_TRANSACTION.test(lineAt(lines, cursor))) {
     const line = lineAt(lines, cursor);
     if (isSectionBoundary(line) || TERMINAL_ID.test(line)) return null;
     if (!isIgnorableLine(line) && !line.startsWith("__PAGE_BREAK_")) businessParts.push(line);
@@ -352,7 +347,12 @@ function parseNonTransactingRow(lines: string[], terminalIndex: number) {
   const daysSinceLastTransaction = group(serialMatch, 3);
   const businessRegistrationDate = group(dateMatch, 1);
   const terminalAssignmentDate = group(dateMatch, 2);
-  if (!terminalSerial || !lastTransactionDate || !businessRegistrationDate || !terminalAssignmentDate) {
+  if (
+    !terminalSerial ||
+    !lastTransactionDate ||
+    !businessRegistrationDate ||
+    !terminalAssignmentDate
+  ) {
     return null;
   }
 
@@ -556,8 +556,7 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
 
   const summary: MoniepointReportSummary = {
     topBoRetentionRate: requiredNumberAfterLabel(lines, "Top BO Retention Rate"),
-    terminalActivityRate:
-      requiredNumberAfterLabel(lines, "Terminal Activity Rate") ?? Number.NaN,
+    terminalActivityRate: requiredNumberAfterLabel(lines, "Terminal Activity Rate") ?? Number.NaN,
     assignedTerminalGrowth: requiredNumberAfterLabel(
       lines,
       "Assigned Terminal Growth (Current Month)",
@@ -566,8 +565,7 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
     assignedTerminalCount:
       requiredNumberAfterLabel(lines, "Terminals Assigned to BOs") ?? Number.NaN,
     activeTerminalCount: requiredNumberAfterLabel(lines, "Active Terminals") ?? Number.NaN,
-    unassignedTerminalCount:
-      requiredNumberAfterLabel(lines, "Unassigned Terminals") ?? Number.NaN,
+    unassignedTerminalCount: requiredNumberAfterLabel(lines, "Unassigned Terminals") ?? Number.NaN,
     assignedSevenPlusDaysCount:
       requiredNumberAfterLabel(lines, "Terminals Assigned for 7+ Days") ?? Number.NaN,
     activeAssignedSevenPlusDaysCount:
@@ -614,7 +612,5 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
 
 export async function sha256File(file: File) {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }

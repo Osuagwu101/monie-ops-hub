@@ -68,8 +68,10 @@ function OverviewPage() {
   const nextTask = tasks.find((task) => !finalStates.has(task.status));
   const performance = performanceQuery.data;
   const terminalActivityRate = performance?.terminal_activity_rate ?? null;
-  const companyGap = terminalActivityRate === null ? null : terminalActivityRate - COMPANY_TARGET_PERCENT;
-  const teamGap = terminalActivityRate === null ? null : terminalActivityRate - TEAM_STANDARD_PERCENT;
+  const companyGap =
+    terminalActivityRate === null ? null : terminalActivityRate - COMPANY_TARGET_PERCENT;
+  const teamGap =
+    terminalActivityRate === null ? null : terminalActivityRate - TEAM_STANDARD_PERCENT;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -84,7 +86,9 @@ function OverviewPage() {
             Operations Command Centre
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Amina keeps the human work focused while the performance cards below come from the latest successfully ingested official Moniepoint report. Human completion and Tunde verification remain separate.
+            Amina keeps the human work focused while the performance cards below come from the
+            latest successfully ingested official Moniepoint report. Human completion and Tunde
+            verification remain separate.
           </p>
         </div>
         <div className="rounded-lg border bg-card px-4 py-3 text-sm shadow-sm">
@@ -111,7 +115,13 @@ function OverviewPage() {
         />
         <MetricCard
           title="Official terminal activity"
-          value={performanceQuery.isLoading ? "…" : terminalActivityRate === null ? "—" : `${terminalActivityRate}%`}
+          value={
+            performanceQuery.isLoading
+              ? "…"
+              : terminalActivityRate === null
+                ? "—"
+                : `${terminalActivityRate}%`
+          }
           description={
             performance
               ? `${performance.active_assigned_7_plus_days_count ?? 0}/${performance.assigned_7_plus_days_count ?? 0} active terminals assigned for 7+ days`
@@ -189,13 +199,15 @@ function OverviewPage() {
             <Database className="h-5 w-5 text-primary" /> Official portfolio performance
           </CardTitle>
           <CardDescription>
-            These figures are populated only from successfully validated Moniepoint PDF imports. No reference or mock portfolio numbers are used here.
+            These figures are populated only from successfully validated Moniepoint PDF imports. No
+            reference or mock portfolio numbers are used here.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {performanceQuery.isLoading ? (
             <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading official performance…
+              <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading official
+              performance…
             </div>
           ) : performance ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -208,7 +220,11 @@ function OverviewPage() {
               <SnapshotItem
                 label="Gap to 77%"
                 value={teamGap === null ? "—" : `${Math.abs(teamGap).toFixed(1)} pts`}
-                detail={teamGap !== null && teamGap >= 0 ? "Team standard reached" : "Internal standard not yet reached"}
+                detail={
+                  teamGap !== null && teamGap >= 0
+                    ? "Team standard reached"
+                    : "Internal standard not yet reached"
+                }
               />
               <SnapshotItem
                 label="Rolling targets met"
@@ -218,7 +234,8 @@ function OverviewPage() {
             </div>
           ) : (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              No official report has been imported yet. The dashboard will remain empty rather than display fake performance data.
+              No official report has been imported yet. The dashboard will remain empty rather than
+              display fake performance data.
             </div>
           )}
         </CardContent>
