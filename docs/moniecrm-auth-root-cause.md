@@ -21,6 +21,8 @@ The hardened dispatcher:
 
 The database also clamps automation credential attempts to one and stores the Browser Use profile id separately from the Moniepoint credentials.
 
-## Data integrity
+## Data integrity and acceptance
+
+The database migration was executed against the production schema inside a transaction and rolled back successfully before release. The test confirmed the exact MonieCRM URL, Nigeria proxy, one-attempt limit, hardened worker URL and profile column without leaving production changes behind.
 
 No production BO, terminal, report, dashboard KPI or Human Support task is created from this correction by itself. Those records remain dependent on a successfully downloaded official Moniepoint report and values captured from the authenticated MonieCRM session.
