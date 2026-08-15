@@ -132,8 +132,8 @@ function ReadinessPage() {
           <h1 className="text-3xl font-bold tracking-tight">Readiness & Acceptance</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
             This page separates platform readiness, manual operating readiness, and live automation
-            readiness. Missing Browser Use or Moniepoint credentials are shown as external activation
-            items, not disguised as development failures.
+            readiness. Missing Browser Use or Moniepoint credentials are shown as external
+            activation items, not disguised as development failures.
           </p>
         </div>
         <Button onClick={() => auditMutation.mutate()} disabled={auditMutation.isPending}>
@@ -170,7 +170,11 @@ function ReadinessPage() {
         <SummaryCard
           title="Scheduled retrieval"
           value={snapshot.automationEnabled ? "Enabled" : "Disabled"}
-          detail={snapshot.automationEnabled ? "Unattended retrieval can run" : "Safe default while activation is pending"}
+          detail={
+            snapshot.automationEnabled
+              ? "Unattended retrieval can run"
+              : "Safe default while activation is pending"
+          }
           ok={!snapshot.automationEnabled || snapshot.liveAutomationReady}
         />
       </div>
@@ -179,8 +183,8 @@ function ReadinessPage() {
         <CardHeader>
           <CardTitle>Acceptance score</CardTitle>
           <CardDescription>
-            {passed} of {snapshot.checks.length} checks currently pass. External credential items are
-            tracked separately from platform blockers.
+            {passed} of {snapshot.checks.length} checks currently pass. External credential items
+            are tracked separately from platform blockers.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -212,12 +216,20 @@ function ReadinessPage() {
           <Card>
             <CardHeader>
               <CardTitle>Operational activation</CardTitle>
-              <CardDescription>What must exist before the Human Assistant can work a real day.</CardDescription>
+              <CardDescription>
+                What must exist before the Human Assistant can work a real day.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <ChecklistItem done={snapshot.counts.directors > 0} text="Active Director account" />
-              <ChecklistItem done={snapshot.counts.assistants > 0} text="Active Human Operations Assistant account" />
-              <ChecklistItem done={snapshot.latestReport?.status === "processed"} text="Processed official Moniepoint report" />
+              <ChecklistItem
+                done={snapshot.counts.assistants > 0}
+                text="Active Human Operations Assistant account"
+              />
+              <ChecklistItem
+                done={snapshot.latestReport?.status === "processed"}
+                text="Processed official Moniepoint report"
+              />
               <ChecklistItem done={snapshot.platformReady} text="Platform/security checks pass" />
               <Button asChild variant="outline" className="w-full">
                 <Link to="/report-imports">
@@ -247,7 +259,10 @@ function ReadinessPage() {
                 done={snapshot.externalActivation.loginScopeConfigured}
                 text="Exact login URL and allowed domains configured"
               />
-              <ChecklistItem done={snapshot.liveAutomationReady} text="Live automation readiness passes" />
+              <ChecklistItem
+                done={snapshot.liveAutomationReady}
+                text="Live automation readiness passes"
+              />
               <Button asChild variant="outline" className="w-full">
                 <Link to="/automation">
                   <Workflow className="mr-2 h-4 w-4" /> Open Automation
@@ -265,11 +280,14 @@ function ReadinessPage() {
                 <div className="space-y-2">
                   <div className="font-medium">{snapshot.latestReport.reportDate}</div>
                   <div className="text-muted-foreground">
-                    Status: {snapshot.latestReport.status} · {snapshot.latestReport.ageDays} day(s) old
+                    Status: {snapshot.latestReport.status} · {snapshot.latestReport.ageDays} day(s)
+                    old
                   </div>
                 </div>
               ) : (
-                <div className="text-muted-foreground">No production report has been imported yet.</div>
+                <div className="text-muted-foreground">
+                  No production report has been imported yet.
+                </div>
               )}
             </CardContent>
           </Card>
@@ -297,7 +315,9 @@ function ReadinessPage() {
                 >
                   <div>
                     <div className="font-medium">{statusLabel(audit.overall_status)}</div>
-                    <div className="text-xs text-muted-foreground">{formatDateTime(audit.created_at)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDateTime(audit.created_at)}
+                    </div>
                   </div>
                   <Badge variant={audit.snapshot.platformReady ? "secondary" : "destructive"}>
                     {audit.snapshot.platformReady ? "Platform ready" : "Platform blocked"}
@@ -378,8 +398,10 @@ function CheckRow({ check }: { check: ReadinessCheck }) {
 
 function CheckIcon({ status }: { status: ReadinessCheckStatus }) {
   if (status === "pass") return <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />;
-  if (status === "blocker") return <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />;
-  if (status === "warning") return <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />;
+  if (status === "blocker")
+    return <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />;
+  if (status === "warning")
+    return <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />;
   return <CircleDot className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />;
 }
 

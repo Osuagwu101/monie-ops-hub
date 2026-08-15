@@ -1,7 +1,8 @@
 import { callRpc, restSelect } from "@/lib/cloud-api";
 
 export type ReadinessCheckStatus = "pass" | "warning" | "blocker" | "pending_external" | "info";
-export type ReadinessCategory = "security" | "report_engine" | "operations" | "people" | "data" | "automation";
+export type ReadinessCategory =
+  "security" | "report_engine" | "operations" | "people" | "data" | "automation";
 export type ReadinessOverallStatus =
   | "blocked"
   | "platform_ready_activation_pending"
