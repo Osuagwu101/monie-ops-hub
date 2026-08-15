@@ -10,6 +10,7 @@ export type TaskOutcomeCode =
   | "terminal_issue"
   | "merchant_declined"
   | "loan_interest"
+  | "loan_disbursed"
   | "escalation_required";
 
 export interface AssistantProfile {
@@ -25,6 +26,10 @@ export interface AssistantTask {
   task_type: TaskType;
   status: TaskStatus;
   priority: number;
+  queue_rank: number | null;
+  auto_generated: boolean;
+  planning_report_id: string | null;
+  source_agent_recommendation_id: string | null;
   merchant_id: string | null;
   terminal_id: string | null;
   reason: string;
@@ -99,7 +104,7 @@ export async function loadAssistantProfile(userId: string, accessToken: string) 
 
 export async function loadAssistantTasks(date: string, accessToken: string) {
   const tasks = await restSelect<AssistantTask[]>(
-    `tasks?select=id,task_date,task_type,status,priority,merchant_id,terminal_id,reason,recommended_talking_points,due_at,rolled_from_task_id,created_at&task_date=eq.${encodeURIComponent(date)}&order=priority.desc,created_at.asc`,
+    `tasks?select=id,task_date,task_type,status,priority,queue_rank,auto_generated,planning_report_id,source_agent_recommendation_id,merchant_id,terminal_id,reason,recommended_talking_points,due_at,rolled_from_task_id,created_at&task_date=eq.${encodeURIComponent(date)}&order=queue_rank.asc.nullslast,priority.desc,created_at.asc`,
     accessToken,
   );
 
