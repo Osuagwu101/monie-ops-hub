@@ -142,3 +142,8 @@
     color: var(--color-foreground);
   }
 }
+
+/* Hide Lovable's injected production branding badge. */
+#lovable-badge {
+  display: none !important;
+}
