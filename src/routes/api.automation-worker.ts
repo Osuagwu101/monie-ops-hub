@@ -146,7 +146,7 @@ async function dispatchBrowserTask(claim: ExecuteClaim, bridgeToken: string) {
 
   const prompt = taskPrompt(claim.triggerKind);
   const sessionSettings: Record<string, unknown> = { enableRecording: false };
-  if (claim.proxyCountryCode) sessionSettings.proxyCountryCode = claim.proxyCountryCode;
+  if (claim.proxyCountryCode) sessionSettings["proxyCountryCode"] = claim.proxyCountryCode;
 
   const task = await browserFetch<BrowserTaskCreated>(
     "/tasks",
@@ -368,7 +368,7 @@ async function uploadAutomationPdf(path: string, bytes: Uint8Array) {
         "Content-Type": "application/pdf",
         "x-upsert": "false",
       },
-      body: new Blob([bytes], { type: "application/pdf" }),
+      body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
     },
   );
   if (!response.ok && response.status !== 409) {
