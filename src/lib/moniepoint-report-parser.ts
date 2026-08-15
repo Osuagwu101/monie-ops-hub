@@ -231,7 +231,7 @@ function isSectionBoundary(line: string) {
   );
 }
 
-function pushCanonicalLine(lines: string[], rawValue: string) {
+export function pushCanonicalLine(lines: string[], rawValue: string) {
   const line = normalizeLine(rawValue);
   if (!line) return;
 
@@ -614,15 +614,10 @@ function buildChecks(summary: MoniepointReportSummary, rows: ParsedTerminalRow[]
   return checks;
 }
 
-export async function parseMoniepointReport(file: File): Promise<ParsedMoniepointReport> {
-  if (file.type && file.type !== "application/pdf") {
-    throw new Error("Please choose a PDF report.");
-  }
-  if (file.size > 15 * 1024 * 1024) {
-    throw new Error("The report is larger than the 15 MB import limit.");
-  }
-
-  const { lines, pageCount } = await extractRawLines(file);
+export function parseMoniepointExtractedLines(
+  lines: string[],
+  pageCount: number,
+): ParsedMoniepointReport {
   const reportDateLine = lines.find((line) => DAY_MONTH_YEAR.test(line));
   const reportDate = reportDateLine ? parseReportDateLine(reportDateLine) : null;
   if (!reportDate) throw new Error("The Moniepoint report date could not be identified.");
@@ -687,6 +682,18 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
     checks,
     canImport: !checks.some((check) => check.level === "error"),
   };
+}
+
+export async function parseMoniepointReport(file: File): Promise<ParsedMoniepointReport> {
+  if (file.type && file.type !== "application/pdf") {
+    throw new Error("Please choose a PDF report.");
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("The report is larger than the 15 MB import limit.");
+  }
+
+  const { lines, pageCount } = await extractRawLines(file);
+  return parseMoniepointExtractedLines(lines, pageCount);
 }
 
 export async function sha256File(file: File) {
