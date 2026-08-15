@@ -73,7 +73,8 @@ const TERMINAL_ID = /^[A-Z0-9]{8,10}$/;
 const SERIAL_WITH_TARGET = /^([A-Z0-9]{12,20})\s+([\d,]+\.\d{2})\s+(True|False)$/;
 const TRANSACTION_LINE = /^([\d,]+\.\d{2})\s+(\d+)\s+(\d+)$/;
 const TRANSFER_AND_DAYS = /^([\d,]+\.\d{2})\s+(\d+)$/;
-const SERIAL_WITH_LAST_TRANSACTION = /^([A-Z0-9]{12,20})\s+(\d{4}-\d{2}-\d{2})\s+(\d+)$/;
+const SERIAL_WITH_LAST_TRANSACTION =
+  /^([A-Z0-9]{12,20})\s+(\d{4}-\d{2}-\d{2})\s+(\d+)$/;
 const TWO_DATES = /^(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})$/;
 
 const MONTHS: Record<string, string> = {
@@ -120,28 +121,39 @@ function normalizeLine(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function lineAt(lines: string[], index: number) {
+  return lines[index] ?? "";
+}
+
+function group(match: RegExpExecArray, index: number) {
+  return match[index] ?? "";
+}
+
 function isTextItem(item: unknown): item is PdfTextItemLike {
   return Boolean(item && typeof item === "object" && "str" in item);
 }
 
 function parseNumber(value: string | undefined) {
   if (!value) return null;
-  const parsed = Number(value.replace(/,/g, ""));
+  const cleaned = value.replace(/,/g, "").replace(/[^0-9.-]/g, "");
+  if (!cleaned) return null;
+  const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 function parseInteger(value: string | undefined) {
-  if (!value) return null;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : null;
+  const parsed = parseNumber(value);
+  return parsed === null ? null : Math.trunc(parsed);
 }
 
 function parseReportDateLine(value: string) {
   const match = DAY_MONTH_YEAR.exec(value);
   if (!match) return null;
-  const [, day, month, year] = match;
+  const day = group(match, 1);
+  const month = group(match, 2);
+  const year = group(match, 3);
   const monthNumber = MONTHS[month];
-  if (!monthNumber) return null;
+  if (!day || !monthNumber || !year) return null;
   return `${year}-${monthNumber}-${day.padStart(2, "0")}`;
 }
 
@@ -149,15 +161,28 @@ function parseHeaderDate(value: string) {
   const cleaned = value.replace(/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+/, "");
   const match = /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/.exec(cleaned);
   if (!match) return null;
-  const [, day, month, year] = match;
+  const day = group(match, 1);
+  const month = group(match, 2);
+  const year = group(match, 3);
   const monthNumber = MONTHS[month];
-  if (!monthNumber) return null;
+  if (!day || !monthNumber || !year) return null;
   return `${year}-${monthNumber}-${day.padStart(2, "0")}`;
 }
 
 function valueAfterLabel(lines: string[], label: string) {
-  const index = lines.findIndex((line) => line === label);
-  return index >= 0 ? lines[index + 1] : undefined;
+  const index = lines.findIndex((line) => line === label || line.startsWith(`${label} `));
+  if (index < 0) return undefined;
+
+  const sameLine = lineAt(lines, index).slice(label.length).trim();
+  if (sameLine && /^[-₦\d,.%]+$/.test(sameLine)) return sameLine;
+
+  let cursor = index + 1;
+  while (cursor < lines.length && cursor <= index + 3) {
+    const candidate = lineAt(lines, cursor);
+    if (/^[-₦\d,.%]+$/.test(candidate)) return candidate;
+    cursor += 1;
+  }
+  return undefined;
 }
 
 function requiredNumberAfterLabel(lines: string[], label: string) {
@@ -213,7 +238,7 @@ async function extractRawLines(file: File) {
 function findNextRowLead(lines: string[], start: number) {
   let index = start;
   while (index < lines.length) {
-    const line = lines[index];
+    const line = lineAt(lines, index);
     if (isSectionBoundary(line) || line.startsWith("__PAGE_BREAK_")) return index;
     if (/^\d+\s+.+/.test(line)) return index;
     index += 1;
@@ -228,32 +253,44 @@ function parseTransactionRow(
   periodStart: string,
   periodEnd: string,
 ) {
-  const terminalId = lines[terminalIndex];
-  const leadIndex = findNextRowLead(lines, terminalIndex + 1);
-  if (leadIndex >= lines.length || isSectionBoundary(lines[leadIndex])) return null;
+  const terminalId = lineAt(lines, terminalIndex);
+  if (!terminalId) return null;
 
-  const lead = /^(\d+)\s+(.+)$/.exec(lines[leadIndex]);
+  const leadIndex = findNextRowLead(lines, terminalIndex + 1);
+  const leadLine = lineAt(lines, leadIndex);
+  if (!leadLine || isSectionBoundary(leadLine)) return null;
+
+  const lead = /^(\d+)\s+(.+)$/.exec(leadLine);
   if (!lead) return null;
 
-  const rowNumber = Number.parseInt(lead[1], 10);
-  const businessParts = [lead[2]];
+  const rowNumber = Number.parseInt(group(lead, 1), 10);
+  const firstBusinessPart = group(lead, 2);
+  if (!Number.isFinite(rowNumber) || !firstBusinessPart) return null;
+
+  const businessParts = [firstBusinessPart];
   let cursor = leadIndex + 1;
 
-  while (cursor < lines.length && !SERIAL_WITH_TARGET.test(lines[cursor])) {
-    const line = lines[cursor];
+  while (cursor < lines.length && !SERIAL_WITH_TARGET.test(lineAt(lines, cursor))) {
+    const line = lineAt(lines, cursor);
     if (isSectionBoundary(line) || TERMINAL_ID.test(line)) return null;
     if (!isIgnorableLine(line) && !line.startsWith("__PAGE_BREAK_")) businessParts.push(line);
     cursor += 1;
   }
 
-  const serialMatch = SERIAL_WITH_TARGET.exec(lines[cursor] ?? "");
-  const transactionMatch = TRANSACTION_LINE.exec(lines[cursor + 1] ?? "");
-  const transferMatch = TRANSFER_AND_DAYS.exec(lines[cursor + 2] ?? "");
+  const serialMatch = SERIAL_WITH_TARGET.exec(lineAt(lines, cursor));
+  const transactionMatch = TRANSACTION_LINE.exec(lineAt(lines, cursor + 1));
+  const transferMatch = TRANSFER_AND_DAYS.exec(lineAt(lines, cursor + 2));
   if (!serialMatch || !transactionMatch || !transferMatch) return null;
 
-  const [, terminalSerial, targetValue, targetMet] = serialMatch;
-  const [, paymentValue, paymentVolume, transferVolume] = transactionMatch;
-  const [, transferValue, daysSinceLastTransaction] = transferMatch;
+  const terminalSerial = group(serialMatch, 1);
+  const targetValue = group(serialMatch, 2);
+  const targetMet = group(serialMatch, 3);
+  const paymentValue = group(transactionMatch, 1);
+  const paymentVolume = group(transactionMatch, 2);
+  const transferVolume = group(transactionMatch, 3);
+  const transferValue = group(transferMatch, 1);
+  const daysSinceLastTransaction = group(transferMatch, 2);
+  if (!terminalSerial || !targetValue || !targetMet) return null;
 
   const row: ParsedTerminalRow = {
     section,
@@ -279,30 +316,45 @@ function parseTransactionRow(
 }
 
 function parseNonTransactingRow(lines: string[], terminalIndex: number) {
-  const terminalId = lines[terminalIndex];
-  const leadIndex = findNextRowLead(lines, terminalIndex + 1);
-  if (leadIndex >= lines.length || isSectionBoundary(lines[leadIndex])) return null;
+  const terminalId = lineAt(lines, terminalIndex);
+  if (!terminalId) return null;
 
-  const lead = /^(\d+)\s+(.+)$/.exec(lines[leadIndex]);
+  const leadIndex = findNextRowLead(lines, terminalIndex + 1);
+  const leadLine = lineAt(lines, leadIndex);
+  if (!leadLine || isSectionBoundary(leadLine)) return null;
+
+  const lead = /^(\d+)\s+(.+)$/.exec(leadLine);
   if (!lead) return null;
 
-  const rowNumber = Number.parseInt(lead[1], 10);
-  const businessParts = [lead[2]];
+  const rowNumber = Number.parseInt(group(lead, 1), 10);
+  const firstBusinessPart = group(lead, 2);
+  if (!Number.isFinite(rowNumber) || !firstBusinessPart) return null;
+
+  const businessParts = [firstBusinessPart];
   let cursor = leadIndex + 1;
 
-  while (cursor < lines.length && !SERIAL_WITH_LAST_TRANSACTION.test(lines[cursor])) {
-    const line = lines[cursor];
+  while (
+    cursor < lines.length &&
+    !SERIAL_WITH_LAST_TRANSACTION.test(lineAt(lines, cursor))
+  ) {
+    const line = lineAt(lines, cursor);
     if (isSectionBoundary(line) || TERMINAL_ID.test(line)) return null;
     if (!isIgnorableLine(line) && !line.startsWith("__PAGE_BREAK_")) businessParts.push(line);
     cursor += 1;
   }
 
-  const serialMatch = SERIAL_WITH_LAST_TRANSACTION.exec(lines[cursor] ?? "");
-  const dateMatch = TWO_DATES.exec(lines[cursor + 1] ?? "");
+  const serialMatch = SERIAL_WITH_LAST_TRANSACTION.exec(lineAt(lines, cursor));
+  const dateMatch = TWO_DATES.exec(lineAt(lines, cursor + 1));
   if (!serialMatch || !dateMatch) return null;
 
-  const [, terminalSerial, lastTransactionDate, daysSinceLastTransaction] = serialMatch;
-  const [, businessRegistrationDate, terminalAssignmentDate] = dateMatch;
+  const terminalSerial = group(serialMatch, 1);
+  const lastTransactionDate = group(serialMatch, 2);
+  const daysSinceLastTransaction = group(serialMatch, 3);
+  const businessRegistrationDate = group(dateMatch, 1);
+  const terminalAssignmentDate = group(dateMatch, 2);
+  if (!terminalSerial || !lastTransactionDate || !businessRegistrationDate || !terminalAssignmentDate) {
+    return null;
+  }
 
   const row: ParsedTerminalRow = {
     section: "non_transacting",
@@ -337,11 +389,11 @@ function parseRows(lines: string[], reportDate: string) {
   let index = 0;
 
   while (index < lines.length) {
-    const line = lines[index];
+    const line = lineAt(lines, index);
 
     const dailyHeader = /^Daily Terminal Transactions \((.+)\)$/.exec(line);
     if (dailyHeader) {
-      const parsed = parseHeaderDate(dailyHeader[1]);
+      const parsed = parseHeaderDate(group(dailyHeader, 1));
       dailyStart = parsed ?? reportDate;
       dailyEnd = parsed ?? reportDate;
       section = "daily";
@@ -351,8 +403,8 @@ function parseRows(lines: string[], reportDate: string) {
 
     const weeklyHeader = /^Weekly Terminal Transactions \((.+) to (.+)\)$/.exec(line);
     if (weeklyHeader) {
-      rollingStart = parseHeaderDate(weeklyHeader[1]) ?? "";
-      rollingEnd = parseHeaderDate(weeklyHeader[2]) ?? reportDate;
+      rollingStart = parseHeaderDate(group(weeklyHeader, 1)) ?? "";
+      rollingEnd = parseHeaderDate(group(weeklyHeader, 2)) ?? reportDate;
       section = "rolling_7_day";
       index += 1;
       continue;
@@ -444,7 +496,8 @@ function buildChecks(summary: MoniepointReportSummary, rows: ParsedTerminalRow[]
   }
 
   const sameTerminalSet =
-    uniqueDaily.size === uniqueRolling.size && [...uniqueDaily].every((terminalId) => uniqueRolling.has(terminalId));
+    uniqueDaily.size === uniqueRolling.size &&
+    [...uniqueDaily].every((terminalId) => uniqueRolling.has(terminalId));
   if (sameTerminalSet) {
     pass("Daily and rolling sections cover the same terminal set.");
   } else {
@@ -496,19 +549,25 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
   if (!reportDate) throw new Error("The Moniepoint report date could not be identified.");
 
   const reportDateIndex = lines.findIndex((line) => line === reportDateLine);
-  const brmName = normalizeLine(lines[reportDateIndex + 1] ?? "");
+  const brmName = normalizeLine(lineAt(lines, reportDateIndex + 1));
   if (!brmName || brmName === "Performance") {
     throw new Error("The BRM name could not be identified from the report header.");
   }
 
   const summary: MoniepointReportSummary = {
     topBoRetentionRate: requiredNumberAfterLabel(lines, "Top BO Retention Rate"),
-    terminalActivityRate: requiredNumberAfterLabel(lines, "Terminal Activity Rate") ?? Number.NaN,
-    assignedTerminalGrowth: requiredNumberAfterLabel(lines, "Assigned Terminal Growth (Current Month)"),
+    terminalActivityRate:
+      requiredNumberAfterLabel(lines, "Terminal Activity Rate") ?? Number.NaN,
+    assignedTerminalGrowth: requiredNumberAfterLabel(
+      lines,
+      "Assigned Terminal Growth (Current Month)",
+    ),
     totalTerminalCount: requiredNumberAfterLabel(lines, "Total Terminal Count") ?? Number.NaN,
-    assignedTerminalCount: requiredNumberAfterLabel(lines, "Terminals Assigned to BOs") ?? Number.NaN,
+    assignedTerminalCount:
+      requiredNumberAfterLabel(lines, "Terminals Assigned to BOs") ?? Number.NaN,
     activeTerminalCount: requiredNumberAfterLabel(lines, "Active Terminals") ?? Number.NaN,
-    unassignedTerminalCount: requiredNumberAfterLabel(lines, "Unassigned Terminals") ?? Number.NaN,
+    unassignedTerminalCount:
+      requiredNumberAfterLabel(lines, "Unassigned Terminals") ?? Number.NaN,
     assignedSevenPlusDaysCount:
       requiredNumberAfterLabel(lines, "Terminals Assigned for 7+ Days") ?? Number.NaN,
     activeAssignedSevenPlusDaysCount:
@@ -555,5 +614,7 @@ export async function parseMoniepointReport(file: File): Promise<ParsedMoniepoin
 
 export async function sha256File(file: File) {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
