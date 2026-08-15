@@ -1,0 +1,72 @@
+name: Mobile APK Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/live-mirror-15-task-production]
+    paths:
+      - mobile/**
+      - .github/workflows/mobile-apk-release.yml
+
+permissions:
+  contents: read
+
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Install mobile dependencies
+        run: npm ci
+      - name: Generate Moniepoint BRM brand assets
+        run: |
+          python3 -m pip install --disable-pip-version-check pillow
+          python3 scripts/generate_brand_assets.py
+      - name: Configure shared production backend
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=https://maajpydeugszipsbilgh.supabase.co" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_EtiaAjDKKyM0jV54jpTuXQ_sdAVic5H" >> "$GITHUB_ENV"
+      - name: Typecheck mobile app
+        run: npm run typecheck
+      - name: Generate native Android project
+        env:
+          CI: "1"
+        run: npx expo prebuild --platform android --clean
+      - name: Build installable debug-signed APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+      - name: Stage release APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/moniepoint-brm-1.0.0-internal.apk
+          sha256sum dist/moniepoint-brm-1.0.0-internal.apk | tee dist/moniepoint-brm-1.0.0-internal.apk.sha256
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moniepoint-brm-android-apk
+          path: |
+            mobile/dist/moniepoint-brm-1.0.0-internal.apk
+            mobile/dist/moniepoint-brm-1.0.0-internal.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish APK to website download storage
+        run: |
+          curl --fail-with-body --request POST \
+            --header "apikey: sb_publishable_EtiaAjDKKyM0jV54jpTuXQ_sdAVic5H" \
+            --header "Content-Type: application/vnd.android.package-archive" \
+            --header "x-upsert: false" \
+            --data-binary @dist/moniepoint-brm-1.0.0-internal.apk \
+            "https://maajpydeugszipsbilgh.supabase.co/storage/v1/object/app-downloads/moniepoint-brm-1.0.0-internal.apk"
