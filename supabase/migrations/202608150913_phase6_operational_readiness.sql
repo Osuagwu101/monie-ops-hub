@@ -173,7 +173,7 @@ begin
     v_platform_ready
     and v_directors > 0
     and v_assistants > 0
-    and v_latest_report_status = 'processed';
+    and coalesce(v_latest_report_status = 'processed', false);
 
   v_live_automation_ready :=
     v_platform_ready
