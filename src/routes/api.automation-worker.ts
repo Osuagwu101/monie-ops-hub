@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  parseMoniepointReportBytes,
-  sha256Bytes,
-} from "@/lib/moniepoint-report-node";
+import { parseMoniepointReportBytes, sha256Bytes } from "@/lib/moniepoint-report-node";
 import type { ParsedTerminalRow } from "@/lib/moniepoint-report-core";
 
 const cloudUrl = import.meta.env["VITE_SUPABASE_URL"]?.replace(/\/$/, "") ?? "";
@@ -148,30 +145,32 @@ async function dispatchBrowserTask(claim: ExecuteClaim, bridgeToken: string) {
   const sessionSettings: Record<string, unknown> = { enableRecording: false };
   if (claim.proxyCountryCode) sessionSettings["proxyCountryCode"] = claim.proxyCountryCode;
 
-  const task = await browserFetch<BrowserTaskCreated>(
-    "/tasks",
-    claim.browserUseApiKey,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        task: prompt,
-        llm: "browser-use-2.0",
-        startUrl: claim.loginUrl,
-        maxSteps: claim.maxSteps,
-        metadata: { source: "monie-ops-hub", runId: claim.runId, trigger: claim.triggerKind },
-        secrets,
-        allowedDomains: claim.allowedDomains,
-        sessionSettings,
-        highlightElements: false,
-        flashMode: false,
-        thinking: false,
-        vision: false,
-        judge: false,
-      }),
-    },
-  );
+  const task = await browserFetch<BrowserTaskCreated>("/tasks", claim.browserUseApiKey, {
+    method: "POST",
+    body: JSON.stringify({
+      task: prompt,
+      llm: "browser-use-2.0",
+      startUrl: claim.loginUrl,
+      maxSteps: claim.maxSteps,
+      metadata: { source: "monie-ops-hub", runId: claim.runId, trigger: claim.triggerKind },
+      secrets,
+      allowedDomains: claim.allowedDomains,
+      sessionSettings,
+      highlightElements: false,
+      flashMode: false,
+      thinking: false,
+      vision: false,
+      judge: false,
+    }),
+  });
 
-  if (!isUuid(task.id)) throw workerError("browser_invalid_task", "Browser Use returned an invalid task identifier.", true, 502);
+  if (!isUuid(task.id))
+    throw workerError(
+      "browser_invalid_task",
+      "Browser Use returned an invalid task identifier.",
+      true,
+      502,
+    );
 
   await rpc("automation_mark_dispatched", {
     p_token: bridgeToken,
@@ -206,11 +205,21 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
   }
 
   if (status.status !== "finished") {
-    throw workerError("browser_unknown_status", "Browser Use returned an unknown task status.", true, 502);
+    throw workerError(
+      "browser_unknown_status",
+      "Browser Use returned an unknown task status.",
+      true,
+      502,
+    );
   }
 
   if (status.isSuccess === false) {
-    throw workerError("browser_unsuccessful", "Browser retrieval finished without a successful result.", true, 502);
+    throw workerError(
+      "browser_unsuccessful",
+      "Browser retrieval finished without a successful result.",
+      true,
+      502,
+    );
   }
 
   const detail = await browserFetch<BrowserTaskDetail>(
@@ -219,7 +228,12 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
   );
   const pdf = detail.outputFiles.find((file) => file.fileName.toLowerCase().endsWith(".pdf"));
   if (!pdf) {
-    throw workerError("report_file_missing", "The browser task finished without a PDF output file.", true, 502);
+    throw workerError(
+      "report_file_missing",
+      "The browser task finished without a PDF output file.",
+      true,
+      502,
+    );
   }
 
   const output = await browserFetch<BrowserOutputFile>(
@@ -227,7 +241,12 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     claim.browserUseApiKey,
   );
   if (!output.downloadUrl.startsWith("https://")) {
-    throw workerError("invalid_download_url", "Browser Use returned an invalid report download URL.", false, 502);
+    throw workerError(
+      "invalid_download_url",
+      "Browser Use returned an invalid report download URL.",
+      false,
+      502,
+    );
   }
 
   const reportResponse = await fetch(output.downloadUrl, {
@@ -245,7 +264,12 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
 
   const contentLength = Number(reportResponse.headers.get("content-length") ?? "0");
   if (contentLength > 15 * 1024 * 1024) {
-    throw workerError("report_too_large", "The downloaded report exceeds the 15 MB limit.", false, 422);
+    throw workerError(
+      "report_too_large",
+      "The downloaded report exceeds the 15 MB limit.",
+      false,
+      422,
+    );
   }
 
   const bytes = new Uint8Array(await reportResponse.arrayBuffer());
@@ -254,14 +278,18 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     const firstError = parsed.checks.find((check) => check.level === "error")?.message;
     throw workerError(
       "report_validation_failed",
-      firstError ? `Official report validation failed: ${firstError}` : "Official report validation failed.",
+      firstError
+        ? `Official report validation failed: ${firstError}`
+        : "Official report validation failed.",
       false,
       422,
     );
   }
 
   const sha256 = sha256Bytes(bytes);
-  const filename = safeFilename(output.fileName || pdf.fileName || `moniepoint-${parsed.reportDate}.pdf`);
+  const filename = safeFilename(
+    output.fileName || pdf.fileName || `moniepoint-${parsed.reportDate}.pdf`,
+  );
   const storagePath = `automation/${claim.runId}/${claim.uploadNonce}/${filename}`;
   await uploadAutomationPdf(storagePath, bytes);
 
@@ -301,14 +329,24 @@ function validateLoginScope(loginUrl: string, allowedDomains: string[]) {
   try {
     host = new URL(loginUrl).hostname.toLowerCase();
   } catch {
-    throw workerError("invalid_login_url", "The configured Moniepoint login URL is invalid.", false, 422);
+    throw workerError(
+      "invalid_login_url",
+      "The configured Moniepoint login URL is invalid.",
+      false,
+      422,
+    );
   }
   const allowed = allowedDomains.some((entry) => {
     const domain = entry.toLowerCase().replace(/^\*\./, "");
     return host === domain || host.endsWith(`.${domain}`);
   });
   if (!allowed) {
-    throw workerError("login_scope_mismatch", "The login host is outside the configured allowed domains.", false, 422);
+    throw workerError(
+      "login_scope_mismatch",
+      "The login host is outside the configured allowed domains.",
+      false,
+      422,
+    );
   }
 }
 
@@ -342,10 +380,15 @@ async function rpc<T = unknown>(name: string, payload: unknown) {
   });
   if (!response.ok) {
     const text = await response.text();
-    const authFailure = response.status === 401 || response.status === 403 || text.includes("Invalid automation token");
+    const authFailure =
+      response.status === 401 ||
+      response.status === 403 ||
+      text.includes("Invalid automation token");
     throw workerError(
       authFailure ? "bridge_rejected" : `cloud_rpc_${response.status}`,
-      authFailure ? "The automation bridge rejected this request." : `Automation database RPC failed with status ${response.status}.`,
+      authFailure
+        ? "The automation bridge rejected this request."
+        : `Automation database RPC failed with status ${response.status}.`,
       !authFailure && response.status >= 500,
       authFailure ? 401 : 502,
     );
@@ -368,7 +411,10 @@ async function uploadAutomationPdf(path: string, bytes: Uint8Array) {
         "Content-Type": "application/pdf",
         "x-upsert": "false",
       },
-      body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+      body: bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      ) as ArrayBuffer,
     },
   );
   if (!response.ok && response.status !== 409) {
@@ -408,7 +454,10 @@ function safeFilename(filename: string) {
 }
 
 function isUuid(value: unknown): value is string {
-  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
 }
 
 function workerError(code: string, message: string, retryable: boolean, httpStatus: number) {
@@ -423,19 +472,29 @@ function sanitizeError(error: unknown) {
       httpStatus?: unknown;
     };
     return {
-      code: typeof candidate.code === "string" ? candidate.code.slice(0, 100) : "automation_worker_error",
+      code:
+        typeof candidate.code === "string"
+          ? candidate.code.slice(0, 100)
+          : "automation_worker_error",
       message:
         typeof candidate.message === "string"
           ? candidate.message.replace(/[\r\n]+/g, " ").slice(0, 800)
           : "Automation worker failed.",
       retryable: candidate.retryable === true,
       httpStatus:
-        typeof candidate.httpStatus === "number" && candidate.httpStatus >= 400 && candidate.httpStatus <= 599
+        typeof candidate.httpStatus === "number" &&
+        candidate.httpStatus >= 400 &&
+        candidate.httpStatus <= 599
           ? candidate.httpStatus
           : 500,
     };
   }
-  return { code: "automation_worker_error", message: "Automation worker failed.", retryable: false, httpStatus: 500 };
+  return {
+    code: "automation_worker_error",
+    message: "Automation worker failed.",
+    retryable: false,
+    httpStatus: 500,
+  };
 }
 
 function json(payload: unknown, status: number) {

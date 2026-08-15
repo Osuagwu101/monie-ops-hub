@@ -124,9 +124,9 @@ function AutomationPage() {
 
   const secretsReady = Boolean(
     secretQuery.data?.browserUseApiKeyConfigured &&
-      secretQuery.data?.moniepointUsernameConfigured &&
-      secretQuery.data?.moniepointPasswordConfigured &&
-      secretQuery.data?.bridgeConfigured,
+    secretQuery.data?.moniepointUsernameConfigured &&
+    secretQuery.data?.moniepointPasswordConfigured &&
+    secretQuery.data?.bridgeConfigured,
   );
   const activeRun = useMemo(
     () =>
@@ -172,7 +172,9 @@ function AutomationPage() {
       setMoniepointUsername("");
       setMoniepointPassword("");
       setError(null);
-      setMessage("Secure credentials updated in Vault. Their values are not readable from this portal.");
+      setMessage(
+        "Secure credentials updated in Vault. Their values are not readable from this portal.",
+      );
       await queryClient.invalidateQueries({ queryKey: ["automation-secret-status"] });
     },
     onError: (caught) => setError(errorText(caught)),
@@ -273,7 +275,11 @@ function AutomationPage() {
         <StatusCard
           title="Current worker"
           value={activeRun ? humanize(activeRun.status) : "Idle"}
-          detail={activeRun ? `Attempt ${activeRun.attempt_count} · ${humanize(activeRun.trigger_kind)}` : "Only one report retrieval can run at a time."}
+          detail={
+            activeRun
+              ? `Attempt ${activeRun.attempt_count} · ${humanize(activeRun.trigger_kind)}`
+              : "Only one report retrieval can run at a time."
+          }
           ready={!activeRun}
         />
       </div>
@@ -317,7 +323,10 @@ function AutomationPage() {
             <div className="flex flex-wrap gap-2 pt-2">
               <Button
                 onClick={() => secretMutation.mutate()}
-                disabled={secretMutation.isPending || (!browserUseKey && !moniepointUsername && !moniepointPassword)}
+                disabled={
+                  secretMutation.isPending ||
+                  (!browserUseKey && !moniepointUsername && !moniepointPassword)
+                }
               >
                 {secretMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save to Vault
@@ -346,7 +355,9 @@ function AutomationPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <Label htmlFor="automation-enabled">Enable scheduled retrieval</Label>
-                <p className="mt-1 text-xs text-muted-foreground">Manual “Run now” remains Director-controlled.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Manual “Run now” remains Director-controlled.
+                </p>
               </div>
               <Switch
                 id="automation-enabled"
@@ -358,7 +369,9 @@ function AutomationPage() {
               id="login-url"
               label="Moniepoint BRM login URL"
               value={form.moniepointLoginUrl ?? ""}
-              onChange={(value) => setForm((current) => ({ ...current, moniepointLoginUrl: value || null }))}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, moniepointLoginUrl: value || null }))
+              }
               placeholder="https://…"
             />
             <Field
@@ -369,24 +382,59 @@ function AutomationPage() {
               placeholder="portal.example.com, *.identity.example.com"
             />
             <div className="grid gap-3 sm:grid-cols-3">
-              <TimeField label="8:30 audit" value={form.morningAuditTime} onChange={(value) => setForm((c) => ({ ...c, morningAuditTime: value }))} />
-              <TimeField label="Morning refresh" value={form.morningRefreshTime} onChange={(value) => setForm((c) => ({ ...c, morningRefreshTime: value }))} />
-              <TimeField label="Evening refresh" value={form.eveningRefreshTime} onChange={(value) => setForm((c) => ({ ...c, eveningRefreshTime: value }))} />
+              <TimeField
+                label="8:30 audit"
+                value={form.morningAuditTime}
+                onChange={(value) => setForm((c) => ({ ...c, morningAuditTime: value }))}
+              />
+              <TimeField
+                label="Morning refresh"
+                value={form.morningRefreshTime}
+                onChange={(value) => setForm((c) => ({ ...c, morningRefreshTime: value }))}
+              />
+              <TimeField
+                label="Evening refresh"
+                value={form.eveningRefreshTime}
+                onChange={(value) => setForm((c) => ({ ...c, eveningRefreshTime: value }))}
+              />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <NumberField label="Max steps" value={form.maxSteps} min={10} max={250} onChange={(value) => setForm((c) => ({ ...c, maxSteps: value }))} />
-              <NumberField label="Max attempts" value={form.maxAttempts} min={1} max={5} onChange={(value) => setForm((c) => ({ ...c, maxAttempts: value }))} />
-              <NumberField label="Retry backoff (min)" value={form.retryBackoffMinutes} min={2} max={60} onChange={(value) => setForm((c) => ({ ...c, retryBackoffMinutes: value }))} />
+              <NumberField
+                label="Max steps"
+                value={form.maxSteps}
+                min={10}
+                max={250}
+                onChange={(value) => setForm((c) => ({ ...c, maxSteps: value }))}
+              />
+              <NumberField
+                label="Max attempts"
+                value={form.maxAttempts}
+                min={1}
+                max={5}
+                onChange={(value) => setForm((c) => ({ ...c, maxAttempts: value }))}
+              />
+              <NumberField
+                label="Retry backoff (min)"
+                value={form.retryBackoffMinutes}
+                min={2}
+                max={60}
+                onChange={(value) => setForm((c) => ({ ...c, retryBackoffMinutes: value }))}
+              />
             </div>
             <Field
               id="proxy-country"
               label="Browser proxy country code"
               value={form.proxyCountryCode ?? ""}
-              onChange={(value) => setForm((current) => ({ ...current, proxyCountryCode: value || null }))}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, proxyCountryCode: value || null }))
+              }
               placeholder="ng"
             />
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button onClick={() => saveConfigMutation.mutate()} disabled={saveConfigMutation.isPending}>
+              <Button
+                onClick={() => saveConfigMutation.mutate()}
+                disabled={saveConfigMutation.isPending}
+              >
                 {saveConfigMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save configuration
               </Button>
@@ -409,10 +457,18 @@ function AutomationPage() {
               <CardTitle className="flex items-center gap-2">
                 <Workflow className="h-5 w-5 text-primary" /> Retrieval history
               </CardTitle>
-              <CardDescription>Attempts, retries, failures and successful official imports are retained for audit.</CardDescription>
+              <CardDescription>
+                Attempts, retries, failures and successful official imports are retained for audit.
+              </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => runsQuery.refetch()} disabled={runsQuery.isFetching}>
-              <RefreshCw className={`mr-2 h-4 w-4 ${runsQuery.isFetching ? "animate-spin" : ""}`} /> Refresh
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => runsQuery.refetch()}
+              disabled={runsQuery.isFetching}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${runsQuery.isFetching ? "animate-spin" : ""}`} />{" "}
+              Refresh
             </Button>
           </div>
         </CardHeader>
@@ -430,7 +486,9 @@ function AutomationPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {runsQuery.data.map((run) => <RunRow key={run.id} run={run} />)}
+                {runsQuery.data.map((run) => (
+                  <RunRow key={run.id} run={run} />
+                ))}
               </TableBody>
             </Table>
           ) : (
@@ -447,23 +505,56 @@ function AutomationPage() {
 function RunRow({ run }: { run: AutomationRunRecord }) {
   return (
     <TableRow>
-      <TableCell className="whitespace-nowrap text-xs">{new Date(run.created_at).toLocaleString()}</TableCell>
+      <TableCell className="whitespace-nowrap text-xs">
+        {new Date(run.created_at).toLocaleString()}
+      </TableCell>
       <TableCell>{humanize(run.trigger_kind)}</TableCell>
-      <TableCell><Badge variant={run.status === "succeeded" ? "secondary" : run.status === "failed" ? "destructive" : "outline"}>{humanize(run.status)}</Badge></TableCell>
+      <TableCell>
+        <Badge
+          variant={
+            run.status === "succeeded"
+              ? "secondary"
+              : run.status === "failed"
+                ? "destructive"
+                : "outline"
+          }
+        >
+          {humanize(run.status)}
+        </Badge>
+      </TableCell>
       <TableCell>{run.attempt_count}</TableCell>
-      <TableCell className="font-mono text-xs">{run.report_id ? `${run.report_id.slice(0, 8)}…` : "—"}</TableCell>
-      <TableCell className="max-w-sm text-xs text-muted-foreground">{run.last_error_message ?? "—"}</TableCell>
+      <TableCell className="font-mono text-xs">
+        {run.report_id ? `${run.report_id.slice(0, 8)}…` : "—"}
+      </TableCell>
+      <TableCell className="max-w-sm text-xs text-muted-foreground">
+        {run.last_error_message ?? "—"}
+      </TableCell>
     </TableRow>
   );
 }
 
-function StatusCard({ title, value, detail, ready }: { title: string; value: string; detail: string; ready: boolean }) {
+function StatusCard({
+  title,
+  value,
+  detail,
+  ready,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  ready: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardDescription>{title}</CardDescription>
         <CardTitle className="flex items-center gap-2 text-xl">
-          {ready ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <AlertTriangle className="h-4 w-4" />} {value}
+          {ready ? (
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}{" "}
+          {value}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-xs leading-5 text-muted-foreground">{detail}</CardContent>
@@ -471,32 +562,118 @@ function StatusCard({ title, value, detail, ready }: { title: string; value: str
   );
 }
 
-function SecretField({ id, label, configured, value, onChange, type }: { id: string; label: string; configured: boolean; value: string; onChange: (value: string) => void; type: "text" | "password" }) {
+function SecretField({
+  id,
+  label,
+  configured,
+  value,
+  onChange,
+  type,
+}: {
+  id: string;
+  label: string;
+  configured: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  type: "text" | "password";
+}) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={id}>{label}</Label>
-        <Badge variant={configured ? "secondary" : "outline"}>{configured ? "Configured" : "Not configured"}</Badge>
+        <Badge variant={configured ? "secondary" : "outline"}>
+          {configured ? "Configured" : "Not configured"}
+        </Badge>
       </div>
-      <Input id={id} type={type} autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)} placeholder={configured ? "Enter a replacement value" : "Enter value"} />
+      <Input
+        id={id}
+        type={type}
+        autoComplete="off"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={configured ? "Enter a replacement value" : "Enter value"}
+      />
     </div>
   );
 }
 
-function Field({ id, label, value, onChange, placeholder }: { id: string; label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Input id={id} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /></div>;
+function Field({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
 }
 
-function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <div className="space-y-2"><Label>{label}</Label><Input type="time" value={value} onChange={(event) => onChange(event.target.value)} /></div>;
+function TimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input type="time" value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  );
 }
 
-function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  return <div className="space-y-2"><Label>{label}</Label><Input type="number" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></div>;
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </div>
+  );
 }
 
 function LoadingState({ label }: { label: string }) {
-  return <div className="flex min-h-56 items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />{label}</div>;
+  return (
+    <div className="flex min-h-56 items-center justify-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      {label}
+    </div>
+  );
 }
 
 function humanize(value: string) {
