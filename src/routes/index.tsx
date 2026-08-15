@@ -2,13 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Activity, BadgeCheck, Database, Gauge, ShieldCheck, Target, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   COMPANY_TARGET_PERCENT,
   DAILY_CALL_TARGET,
@@ -48,9 +42,7 @@ function OverviewPage() {
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant="outline">Phase 1 foundation</Badge>
-            <Badge variant="secondary">
-              Reference snapshot · {referenceSnapshot.reportDate}
-            </Badge>
+            <Badge variant="secondary">Reference snapshot · {referenceSnapshot.reportDate}</Badge>
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Operations Command Centre
