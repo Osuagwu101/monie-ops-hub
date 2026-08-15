@@ -103,6 +103,10 @@ function inFilter(ids: string[]) {
   return `in.(${ids.join(",")})`;
 }
 
+function assistantFilter(assistantId?: string | null) {
+  return assistantId ? `&assistant_id=eq.${encodeURIComponent(assistantId)}` : "";
+}
+
 export async function loadActiveAssistants(accessToken: string) {
   return restSelect<AssistantProfile[]>(
     "profiles?select=id,full_name,role,is_active&role=eq.assistant&is_active=eq.true&order=full_name.asc",
@@ -110,9 +114,13 @@ export async function loadActiveAssistants(accessToken: string) {
   );
 }
 
-export async function loadAgentRuns(accessToken: string, limit = 24) {
+export async function loadAgentRuns(
+  accessToken: string,
+  assistantId?: string | null,
+  limit = 24,
+) {
   return restSelect<AgentRunRecord[]>(
-    `agent_runs?select=id,agent_kind,report_id,plan_date,assistant_id,status,input_snapshot,output_summary,created_at,completed_at&order=created_at.desc&limit=${limit}`,
+    `agent_runs?select=id,agent_kind,report_id,plan_date,assistant_id,status,input_snapshot,output_summary,created_at,completed_at${assistantFilter(assistantId)}&order=created_at.desc&limit=${limit}`,
     accessToken,
   );
 }
@@ -120,10 +128,12 @@ export async function loadAgentRuns(accessToken: string, limit = 24) {
 export async function loadAgentRecommendations(
   planDate: string,
   accessToken: string,
+  assistantId?: string | null,
   limit = 60,
 ) {
+  const assignedTo = assistantId ? `&assigned_to=eq.${encodeURIComponent(assistantId)}` : "";
   const rows = await restSelect<AgentRecommendationRecord[]>(
-    `agent_recommendations?select=id,run_id,agent_kind,recommendation_kind,plan_date,report_id,assigned_to,merchant_id,terminal_id,evidence_snapshot_id,score,operational_state,title,rationale,talking_points,suggested_task_type,status,evidence,created_at&plan_date=eq.${encodeURIComponent(planDate)}&status=in.(open,accepted)&order=score.desc.nullslast,created_at.desc&limit=${limit}`,
+    `agent_recommendations?select=id,run_id,agent_kind,recommendation_kind,plan_date,report_id,assigned_to,merchant_id,terminal_id,evidence_snapshot_id,score,operational_state,title,rationale,talking_points,suggested_task_type,status,evidence,created_at&plan_date=eq.${encodeURIComponent(planDate)}${assignedTo}&status=in.(open,accepted)&order=score.desc.nullslast,created_at.desc&limit=${limit}`,
     accessToken,
   );
 
