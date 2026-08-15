@@ -2,6 +2,19 @@
 
 The native mobile companion uses the same Supabase authentication and database as Monie Ops Hub. A meeting acknowledgement on the phone is therefore the same record seen by the web portal.
 
+## Shared portal experience
+
+The Director home reads the existing production tables directly through their current RLS rules. It includes a synchronized portal snapshot for:
+
+- latest official Terminal Activity performance
+- active and assigned terminals
+- today's seven-task/Amina queue when present
+- latest Amina management score and tone
+- latest Amina/Emeka/Zainab/Tunde recommendation
+- upcoming meeting schedule and acknowledgement state
+
+This is deliberately the same data model as the website rather than a copied mobile database.
+
 ## Environment
 
 Copy `.env.example` to `.env` and configure the same Supabase URL and publishable/anon key used by the web portal. Do not place service-role keys or Moniepoint credentials in the mobile app.
@@ -37,6 +50,8 @@ npx expo export --platform android --output-dir dist-android
 npx expo export --platform ios --output-dir dist-ios
 ```
 
-The Phase 7 branch has passed all three checks above. Its server-side acceptance test also proved duplicate suppression, failed-push retry, the 10-minute and 2-minute messages, post-start escalation, Director-only acknowledgement, push-token privacy, and the stop-after-acknowledgement behavior without leaving synthetic production data.
+The Phase 7 branch has passed all three checks above after the portal snapshot integration. Its server-side acceptance test also proved recurrence dates, duplicate suppression, failed-push retry, the 10-minute and 2-minute messages, post-start escalation, Director-only acknowledgement, push-token privacy, and the stop-after-acknowledgement behavior without leaving synthetic production data.
+
+The runtime exercise initially found an ambiguous PL/pgSQL return-column reference inside the notification claim function. That function was hardened, installed live, and the complete lifecycle was rerun successfully.
 
 These source/bundle checks do not by themselves publish an installable app. Native distribution additionally requires the relevant Expo/EAS, Android push, and Apple developer signing/push configuration.
