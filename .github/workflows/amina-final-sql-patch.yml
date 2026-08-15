@@ -1,0 +1,47 @@
+name: Amina Final SQL Patch
+
+on:
+  push:
+    branches: [agent/amina-management-performance-layer]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/amina-management-performance-layer
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Tighten Amina internals
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          migration = Path('supabase/migrations/202608150012_amaina_management_performance.sql')
+          text = migration.read_text()
+          text = text.replace('refresh_amaina_management_scores', 'refresh_amina_management_scores')
+          text = text.replace('agent_runs_amaina_score_after_completion', 'agent_runs_amina_score_after_completion')
+          text = text.replace('v_bonus_span >= v_bonus_days - 1', 'v_bonus_span = v_bonus_days - 1')
+          migration.write_text(text)
+
+          client = Path('src/lib/performance-data.ts')
+          text = client.read_text().replace('refresh_amaina_management_scores', 'refresh_amina_management_scores')
+          client.write_text(text)
+          PY
+      - run: bunx prettier --write src/lib/performance-data.ts
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run build
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/amina-final-sql-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/migrations/202608150012_amaina_management_performance.sql src/lib/performance-data.ts .github/workflows/amina-final-sql-patch.yml
+          git commit -m "Tighten Amina scoring and bonus streak rules"
+          git push origin HEAD:agent/amina-management-performance-layer
