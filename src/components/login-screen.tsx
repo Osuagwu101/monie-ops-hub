@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, LockKeyhole, ShieldCheck, UserPlus } from "lucide-react";
+import { CheckCircle2, Loader2, LockKeyhole, ShieldCheck, UserRoundCog } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { getCloudConfigurationStatus } from "@/lib/cloud-api";
+
+const RESERVED_ADMIN_EMAIL = "nnaemekasolomon31@gmail.com";
 
 export function LoginScreen() {
   const { signIn, signUp } = useAuth();
@@ -34,7 +36,7 @@ export function LoginScreen() {
     }
   }
 
-  async function handleSignUp(event: FormEvent<HTMLFormElement>) {
+  async function handleAdminSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setNotice(null);
@@ -43,17 +45,19 @@ export function LoginScreen() {
 
     try {
       const result = await signUp(
-        String(form.get("email") ?? ""),
+        RESERVED_ADMIN_EMAIL,
         String(form.get("password") ?? ""),
-        String(form.get("fullName") ?? ""),
+        String(form.get("fullName") ?? "Nnaemeka Solomon"),
       );
 
       if (result === "verify_email") {
-        setNotice("Account created. Check your email to confirm it, then return here to sign in.");
+        setNotice(
+          "Admin account created. Check the reserved Admin email to confirm it, then return here to sign in.",
+        );
         setMode("sign-in");
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to create the account.");
+      setError(caught instanceof Error ? caught.message : "Unable to set up the Admin account.");
     } finally {
       setSubmitting(false);
     }
@@ -75,8 +79,8 @@ export function LoginScreen() {
           </div>
 
           <div className="space-y-4 text-sm">
-            <TrustPoint text="Only assigned merchant work is visible to assistants." />
-            <TrustPoint text="Human completion never becomes official verification by itself." />
+            <TrustPoint text="Public account registration is disabled." />
+            <TrustPoint text="Staff accounts are provisioned only by the Admin." />
             <TrustPoint text="Every task outcome is recorded for the audit trail." />
           </div>
         </section>
@@ -87,8 +91,8 @@ export function LoginScreen() {
               <LockKeyhole className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Team access</h2>
-              <p className="text-sm text-muted-foreground">Use your Monie Ops Hub account.</p>
+              <h2 className="text-2xl font-bold tracking-tight">Secure access</h2>
+              <p className="text-sm text-muted-foreground">Admin and Admin-created staff only.</p>
             </div>
           </div>
 
@@ -112,7 +116,7 @@ export function LoginScreen() {
           {notice && (
             <Alert className="mb-5">
               <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>Account created</AlertTitle>
+              <AlertTitle>Admin account created</AlertTitle>
               <AlertDescription>{notice}</AlertDescription>
             </Alert>
           )}
@@ -120,14 +124,16 @@ export function LoginScreen() {
           <Tabs value={mode} onValueChange={setMode}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="sign-in">Sign in</TabsTrigger>
-              <TabsTrigger value="create">Create account</TabsTrigger>
+              <TabsTrigger value="admin-setup">Set up Admin</TabsTrigger>
             </TabsList>
 
             <TabsContent value="sign-in" className="mt-6">
               <Card className="border-0 shadow-none">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle className="text-lg">Welcome back</CardTitle>
-                  <CardDescription>Sign in with your assigned team credentials.</CardDescription>
+                  <CardDescription>
+                    Sign in with your Admin or Admin-created staff credentials.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0">
                   <form className="space-y-4" onSubmit={handleSignIn}>
@@ -147,23 +153,31 @@ export function LoginScreen() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="create" className="mt-6">
+            <TabsContent value="admin-setup" className="mt-6">
               <Card className="border-0 shadow-none">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <UserPlus className="h-4 w-4" /> Create team account
+                    <UserRoundCog className="h-4 w-4" /> One-time Admin setup
                   </CardTitle>
                   <CardDescription>
-                    New registrations always start with Assistant permissions. Director access
-                    cannot be self-selected.
+                    This setup is locked to the reserved Admin identity. No other email can register
+                    from this screen or directly through Auth.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0">
-                  <form className="space-y-4" onSubmit={handleSignUp}>
-                    <Field label="Full name" name="fullName" autoComplete="name" />
-                    <Field label="Email" name="email" type="email" autoComplete="email" />
+                  <form className="space-y-4" onSubmit={handleAdminSetup}>
                     <Field
-                      label="Password"
+                      label="Admin name"
+                      name="fullName"
+                      autoComplete="name"
+                      defaultValue="Nnaemeka Solomon"
+                    />
+                    <div className="space-y-2">
+                      <Label>Reserved Admin email</Label>
+                      <Input value={RESERVED_ADMIN_EMAIL} readOnly disabled />
+                    </div>
+                    <Field
+                      label="Create password"
                       name="password"
                       type="password"
                       autoComplete="new-password"
@@ -171,7 +185,7 @@ export function LoginScreen() {
                     />
                     <Button className="w-full" disabled={submitting || !cloud.configured}>
                       {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create assistant account
+                      Create my Admin account
                     </Button>
                   </form>
                 </CardContent>
@@ -181,8 +195,8 @@ export function LoginScreen() {
 
           <div className="mt-6 flex items-start gap-2 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-            Access is enforced by database Row Level Security, not by hidden buttons or browser-only
-            checks.
+            Public signup is blocked at the Auth database boundary. Future Staff Support Agents are
+            created from the Admin portal only.
           </div>
         </section>
       </div>
@@ -205,12 +219,14 @@ function Field({
   type = "text",
   autoComplete,
   minLength,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type?: string;
   autoComplete?: string;
   minLength?: number;
+  defaultValue?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -221,6 +237,7 @@ function Field({
         type={type}
         autoComplete={autoComplete}
         minLength={minLength}
+        defaultValue={defaultValue}
         required
       />
     </div>
