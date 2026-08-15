@@ -225,7 +225,8 @@ function OperationsTeamPage() {
             </CardTitle>
             <CardDescription>
               Uses the latest successfully processed Moniepoint report. Re-running only replaces
-              untouched Amina-generated tasks; started, completed and manually assigned work is kept.
+              untouched Amina-generated tasks; started, completed and manually assigned work is
+              kept.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-end">
@@ -388,7 +389,7 @@ function OperationsTeamPage() {
   );
 }
 
-function AgentCard({ agent, run }: { agent: AgentKind; run?: AgentRunRecord }) {
+function AgentCard({ agent, run }: { agent: AgentKind; run: AgentRunRecord | undefined }) {
   const meta = agentMeta[agent];
   return (
     <Card>
@@ -471,7 +472,9 @@ function RecommendationRow({ recommendation }: { recommendation: AgentRecommenda
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{agentDisplayName(recommendation.agent_kind)}</Badge>
             {recommendation.operational_state && (
-              <Badge variant={recommendation.operational_state === "critical" ? "default" : "secondary"}>
+              <Badge
+                variant={recommendation.operational_state === "critical" ? "default" : "secondary"}
+              >
                 {humanize(recommendation.operational_state)}
               </Badge>
             )}
@@ -490,7 +493,9 @@ function RecommendationRow({ recommendation }: { recommendation: AgentRecommenda
         {recommendation.score !== null && (
           <div className="text-right">
             <div className="text-lg font-semibold">{Math.round(recommendation.score)}</div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">priority</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              priority
+            </div>
           </div>
         )}
       </div>
@@ -522,7 +527,11 @@ function LoadingState({ label, compact = false }: { label: string; compact?: boo
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{text}</div>;
+  return (
+    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+      {text}
+    </div>
+  );
 }
 
 function numberValue(value: unknown) {

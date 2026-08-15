@@ -10,11 +10,7 @@ export type AgentRecommendationKind =
   | "verification_attention"
   | "operations_brief";
 export type OperationalState =
-  | "healthy"
-  | "watch"
-  | "at_risk"
-  | "critical"
-  | "recovery_in_progress";
+  "healthy" | "watch" | "at_risk" | "critical" | "recovery_in_progress";
 
 export interface AgentRunRecord {
   id: string;
@@ -114,11 +110,7 @@ export async function loadActiveAssistants(accessToken: string) {
   );
 }
 
-export async function loadAgentRuns(
-  accessToken: string,
-  assistantId?: string | null,
-  limit = 24,
-) {
+export async function loadAgentRuns(accessToken: string, assistantId?: string | null, limit = 24) {
   return restSelect<AgentRunRecord[]>(
     `agent_runs?select=id,agent_kind,report_id,plan_date,assistant_id,status,input_snapshot,output_summary,created_at,completed_at${assistantFilter(assistantId)}&order=created_at.desc&limit=${limit}`,
     accessToken,
@@ -137,12 +129,8 @@ export async function loadAgentRecommendations(
     accessToken,
   );
 
-  const merchantIds = [
-    ...new Set(rows.map((row) => row.merchant_id).filter(Boolean)),
-  ] as string[];
-  const terminalIds = [
-    ...new Set(rows.map((row) => row.terminal_id).filter(Boolean)),
-  ] as string[];
+  const merchantIds = [...new Set(rows.map((row) => row.merchant_id).filter(Boolean))] as string[];
+  const terminalIds = [...new Set(rows.map((row) => row.terminal_id).filter(Boolean))] as string[];
 
   const [merchants, terminals] = await Promise.all([
     merchantIds.length
