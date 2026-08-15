@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Activity,
-  BadgeCheck,
-  Database,
-  Gauge,
-  ShieldCheck,
-  Target,
-  Users,
-} from "lucide-react";
+import { Activity, BadgeCheck, Database, Gauge, ShieldCheck, Target, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   COMPANY_TARGET_PERCENT,
   DAILY_CALL_TARGET,
@@ -50,13 +48,17 @@ function OverviewPage() {
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant="outline">Phase 1 foundation</Badge>
-            <Badge variant="secondary">Reference snapshot · {referenceSnapshot.reportDate}</Badge>
+            <Badge variant="secondary">
+              Reference snapshot · {referenceSnapshot.reportDate}
+            </Badge>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Operations Command Centre</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Operations Command Centre
+          </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
             The portal foundation now separates company performance, our internal 77% standard,
-            human work records, and source-of-truth verification. Live report ingestion is intentionally
-            not simulated in this phase.
+            human work records, and source-of-truth verification. Live report ingestion is
+            intentionally not simulated in this phase.
           </p>
         </div>
         <div className="rounded-lg border bg-card px-4 py-3 text-sm shadow-sm">
@@ -136,7 +138,9 @@ function OverviewPage() {
               <Database className="h-5 w-5 text-primary" />
               Phase 1 architecture
             </CardTitle>
-            <CardDescription>Foundation implemented before live automation is connected.</CardDescription>
+            <CardDescription>
+              Foundation implemented before live automation is connected.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <FoundationItem label="Canonical merchant + terminal model" status="Ready" />
@@ -146,7 +150,11 @@ function OverviewPage() {
             <FoundationItem label="RLS security policies" status="Ready" />
             <FoundationItem label="Task outcome + verification separation" status="Ready" />
             <FoundationItem label="Audit event ledger" status="Ready" />
-            <FoundationItem label="Live Supabase project connection" status="Pending connection" muted />
+            <FoundationItem
+              label="Live Supabase project connection"
+              status="Pending connection"
+              muted
+            />
           </CardContent>
         </Card>
       </section>
@@ -158,14 +166,27 @@ function OverviewPage() {
             Reference portfolio snapshot
           </CardTitle>
           <CardDescription>
-            These numbers are explicitly labelled as a reference snapshot and are not presented as live data.
+            These numbers are explicitly labelled as a reference snapshot and are not presented as
+            live data.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SnapshotItem label="Total terminals" value={referenceSnapshot.totalTerminals.toString()} />
-          <SnapshotItem label="Assigned terminals" value={referenceSnapshot.assignedTerminals.toString()} />
-          <SnapshotItem label="Active terminals" value={referenceSnapshot.activeTerminals.toString()} />
-          <SnapshotItem label="Top BO retention" value={`${referenceSnapshot.topBoRetentionRate}%`} />
+          <SnapshotItem
+            label="Total terminals"
+            value={referenceSnapshot.totalTerminals.toString()}
+          />
+          <SnapshotItem
+            label="Assigned terminals"
+            value={referenceSnapshot.assignedTerminals.toString()}
+          />
+          <SnapshotItem
+            label="Active terminals"
+            value={referenceSnapshot.activeTerminals.toString()}
+          />
+          <SnapshotItem
+            label="Top BO retention"
+            value={`${referenceSnapshot.topBoRetentionRate}%`}
+          />
         </CardContent>
       </Card>
     </div>
@@ -201,7 +222,15 @@ function MetricCard({
   );
 }
 
-function WorkflowRow({ step, title, description }: { step: string; title: string; description: string }) {
+function WorkflowRow({
+  step,
+  title,
+  description,
+}: {
+  step: string;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="flex gap-3">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -215,7 +244,15 @@ function WorkflowRow({ step, title, description }: { step: string; title: string
   );
 }
 
-function FoundationItem({ label, status, muted = false }: { label: string; status: string; muted?: boolean }) {
+function FoundationItem({
+  label,
+  status,
+  muted = false,
+}: {
+  label: string;
+  status: string;
+  muted?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
       <span className="text-sm text-foreground">{label}</span>
@@ -227,7 +264,9 @@ function FoundationItem({ label, status, muted = false }: { label: string; statu
 function SnapshotItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-muted/20 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-2 text-2xl font-bold text-foreground">{value}</div>
     </div>
   );
