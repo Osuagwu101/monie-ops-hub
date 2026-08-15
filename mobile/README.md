@@ -14,6 +14,8 @@ The app requests notification permission, creates reminder/alarm channels, regis
 
 The server remains the durable reminder authority and can continue issuing escalation pushes until the shared meeting occurrence is acknowledged. The local backup is intentionally bounded so iOS pending-notification limits are not consumed by months of repeated escalation alarms.
 
+A notification acknowledgement is also recovered on cold start: if the app was closed when `Yes, I have joined` was tapped, the app reads the last notification response, writes the shared acknowledgement, clears the consumed response, and cancels local backup reminders.
+
 ## Native platform notes
 
 - Android exact-timing alarms require the system's Alarms & reminders permission on supported Android versions. The app requests `SCHEDULE_EXACT_ALARM` in its native manifest configuration.
@@ -34,5 +36,7 @@ npm run typecheck
 npx expo export --platform android --output-dir dist-android
 npx expo export --platform ios --output-dir dist-ios
 ```
+
+The Phase 7 branch has passed all three checks above. Its server-side acceptance test also proved duplicate suppression, failed-push retry, the 10-minute and 2-minute messages, post-start escalation, Director-only acknowledgement, push-token privacy, and the stop-after-acknowledgement behavior without leaving synthetic production data.
 
 These source/bundle checks do not by themselves publish an installable app. Native distribution additionally requires the relevant Expo/EAS, Android push, and Apple developer signing/push configuration.
