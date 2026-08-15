@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Moniepoint BRM",
+    "slug": "moniepoint-brm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "moniepointbrm",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.monieopshub.brm"
+    },
+    "android": {
+      "package": "com.monieopshub.brm",
+      "adaptiveIcon": {
+        "backgroundColor": "#0357EE",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0357EE",
+          "sounds": [
+            "./assets/meeting-bing.wav"
+          ],
+          "defaultChannel": "meeting-reminders",
+          "enableBackgroundRemoteNotifications": true
+        }
+      ]
+    ]
+  }
+}

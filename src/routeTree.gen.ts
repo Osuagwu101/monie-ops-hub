@@ -13,10 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AiLogsRouteImport } from './routes/ai-logs'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as DailyTasksRouteImport } from './routes/daily-tasks'
+import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as MerchantListRouteImport } from './routes/merchant-list'
 import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ReportImportsRouteImport } from './routes/report-imports'
 import { Route as ApiAutomationWorkerRouteImport } from './routes/api.automation-worker'
+import { Route as ApiMeetingNotificationsRouteImport } from './routes/api.meeting-notifications'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,6 +38,11 @@ const AutomationRoute = AutomationRouteImport.update({
 const DailyTasksRoute = DailyTasksRouteImport.update({
   id: '/daily-tasks',
   path: '/daily-tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeetingsRoute = MeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MerchantListRoute = MerchantListRouteImport.update({
@@ -58,26 +65,35 @@ const ApiAutomationWorkerRoute = ApiAutomationWorkerRouteImport.update({
   path: '/api/automation-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeetingNotificationsRoute = ApiMeetingNotificationsRouteImport.update({
+  id: '/api/meeting-notifications',
+  path: '/api/meeting-notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-logs': typeof AiLogsRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
+  '/meetings': typeof MeetingsRoute
   '/merchant-list': typeof MerchantListRoute
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
+  '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-logs': typeof AiLogsRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
+  '/meetings': typeof MeetingsRoute
   '/merchant-list': typeof MerchantListRoute
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
+  '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,10 +101,12 @@ export interface FileRoutesById {
   '/ai-logs': typeof AiLogsRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
+  '/meetings': typeof MeetingsRoute
   '/merchant-list': typeof MerchantListRoute
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
+  '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,30 +115,36 @@ export interface FileRouteTypes {
     | '/ai-logs'
     | '/automation'
     | '/daily-tasks'
+    | '/meetings'
     | '/merchant-list'
     | '/readiness'
     | '/report-imports'
     | '/api/automation-worker'
+    | '/api/meeting-notifications'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ai-logs'
     | '/automation'
     | '/daily-tasks'
+    | '/meetings'
     | '/merchant-list'
     | '/readiness'
     | '/report-imports'
     | '/api/automation-worker'
+    | '/api/meeting-notifications'
   id:
     | '__root__'
     | '/'
     | '/ai-logs'
     | '/automation'
     | '/daily-tasks'
+    | '/meetings'
     | '/merchant-list'
     | '/readiness'
     | '/report-imports'
     | '/api/automation-worker'
+    | '/api/meeting-notifications'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,10 +152,12 @@ export interface RootRouteChildren {
   AiLogsRoute: typeof AiLogsRoute
   AutomationRoute: typeof AutomationRoute
   DailyTasksRoute: typeof DailyTasksRoute
+  MeetingsRoute: typeof MeetingsRoute
   MerchantListRoute: typeof MerchantListRoute
   ReadinessRoute: typeof ReadinessRoute
   ReportImportsRoute: typeof ReportImportsRoute
   ApiAutomationWorkerRoute: typeof ApiAutomationWorkerRoute
+  ApiMeetingNotificationsRoute: typeof ApiMeetingNotificationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -164,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DailyTasksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/meetings': {
+      id: '/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof MeetingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/merchant-list': {
       id: '/merchant-list'
       path: '/merchant-list'
@@ -192,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAutomationWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/meeting-notifications': {
+      id: '/api/meeting-notifications'
+      path: '/api/meeting-notifications'
+      fullPath: '/api/meeting-notifications'
+      preLoaderRoute: typeof ApiMeetingNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -200,10 +240,12 @@ const rootRouteChildren: RootRouteChildren = {
   AiLogsRoute: AiLogsRoute,
   AutomationRoute: AutomationRoute,
   DailyTasksRoute: DailyTasksRoute,
+  MeetingsRoute: MeetingsRoute,
   MerchantListRoute: MerchantListRoute,
   ReadinessRoute: ReadinessRoute,
   ReportImportsRoute: ReportImportsRoute,
   ApiAutomationWorkerRoute: ApiAutomationWorkerRoute,
+  ApiMeetingNotificationsRoute: ApiMeetingNotificationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

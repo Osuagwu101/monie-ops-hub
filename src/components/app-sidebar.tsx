@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bot,
+  CalendarClock,
   CheckSquare2,
   ChevronLeft,
   ChevronRight,
@@ -32,6 +33,7 @@ const overviewItem = { title: "Overview", url: "/", icon: LayoutDashboard } as c
 const dailyTasksItem = { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo } as const;
 const merchantsItem = { title: "Merchants", url: "/merchant-list", icon: Store } as const;
 const reportsItem = { title: "Official Reports", url: "/report-imports", icon: FileStack } as const;
+const meetingsItem = { title: "Meetings & Alerts", url: "/meetings", icon: CalendarClock } as const;
 const automationItem = { title: "Automation", url: "/automation", icon: Workflow } as const;
 const readinessItem = { title: "Readiness", url: "/readiness", icon: CheckSquare2 } as const;
 const operationsTeamItem = { title: "Operations Team", url: "/ai-logs", icon: Bot } as const;
@@ -42,6 +44,7 @@ const directorMenuItems = [
   dailyTasksItem,
   merchantsItem,
   reportsItem,
+  meetingsItem,
   automationItem,
   readinessItem,
   operationsTeamItem,
