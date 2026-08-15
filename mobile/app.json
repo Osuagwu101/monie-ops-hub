@@ -31,7 +31,6 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#0357EE",
-          "sounds": ["./assets/meeting-bing.wav"],
           "defaultChannel": "meeting-reminders",
           "enableBackgroundRemoteNotifications": true
         }
