@@ -1,7 +1,9 @@
 export const COMPANY_TARGET_PERCENT = 72 as const;
 export const TEAM_STANDARD_PERCENT = 77 as const;
 export const ROLLING_WEEKLY_TA_TARGET_NAIRA = 100_000 as const;
-export const DAILY_CALL_TARGET = 7 as const;
+export const DAILY_REQUIRED_CONTACTS = 7 as const;
+export const DAILY_CONTACT_CAPACITY = 15 as const;
+export const DAILY_CALL_TARGET = DAILY_REQUIRED_CONTACTS;
 export const TA_CALL_SHARE_MIN = 0.6 as const;
 export const TA_CALL_SHARE_MAX = 0.8 as const;
 
@@ -26,6 +28,7 @@ export interface Merchant {
   id: string;
   businessName: string;
   phoneNumber: string | null;
+  accountNumber: string | null;
   isActive: boolean;
 }
 
