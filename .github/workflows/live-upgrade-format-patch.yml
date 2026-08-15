@@ -1,0 +1,157 @@
+name: Live upgrade patch formatter
+
+on:
+  push:
+    branches: [agent/live-mirror-15-task-production]
+    paths: [.github/workflows/live-upgrade-format-patch.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/live-mirror-15-task-production
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Apply focused source patches
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected source block not found in {path}: {old[:80]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace(
+              'src/routes/daily-tasks.tsx',
+              'import { DAILY_CALL_TARGET, TA_CALL_SHARE_MAX, TA_CALL_SHARE_MIN } from "@/domain/models";',
+              'import {\n  DAILY_CONTACT_CAPACITY,\n  DAILY_REQUIRED_CONTACTS,\n  TA_CALL_SHARE_MAX,\n  TA_CALL_SHARE_MIN,\n} from "@/domain/models";',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '  const tasks = tasksQuery.data ?? [];',
+              '  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '    const progress = DAILY_CALL_TARGET ? Math.min((completed / DAILY_CALL_TARGET) * 100, 100) : 0;',
+              '    const progress = DAILY_REQUIRED_CONTACTS\n      ? Math.min((completed / DAILY_REQUIRED_CONTACTS) * 100, 100)\n      : 0;',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '            Amina keeps the day focused: one next action, seven priority calls, clear outcomes and\n            no self-verification.',
+              '            Amina ranks up to 15 contacts so unreachable BOs do not stop the workday. Seven\n            recorded contacts meet the required daily target; ranks 8–15 remain available as backup.',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '          value={`${stats.completed}/${DAILY_CALL_TARGET}`}\n          detail="Completed human interactions"',
+              '          value={`${stats.completed}/${DAILY_REQUIRED_CONTACTS}`}\n          detail={\n            stats.completed >= DAILY_REQUIRED_CONTACTS\n              ? `Required target met · ${tasks.length}/${DAILY_CONTACT_CAPACITY} contacts available`\n              : `7 required · up to ${DAILY_CONTACT_CAPACITY} ranked contacts available`\n          }',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '                The queue is ordered by priority. Postponed work remains visible with its callback\n                context.',
+              '                The first seven completed contacts satisfy the daily requirement. Amina may rank up\n                to 15 so no-answer and unavailable BOs can be replaced without stopping the day.',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '  const phoneNumber = task.merchant?.phone_number;\n  const started = task.status === "in_progress";',
+              '  const phoneNumber = task.merchant?.phone_number;\n  const started = task.status === "in_progress";\n  const weekly = task.weeklyPerformance;\n  const weeklyActual = weekly ? weekly.payment_value + weekly.transfer_value : null;\n  const weeklyGap =\n    weekly && weeklyActual !== null\n      ? Math.max(0, weekly.official_target_value - weeklyActual)\n      : null;',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '        <div className="grid gap-3 sm:grid-cols-3">\n          <Detail label="Task" value={task.task_type} />\n          <Detail label="Terminal" value={task.terminal?.terminal_id ?? "Not linked"} />\n          <Detail label="Status" value={humanizeStatus(task.status)} />\n        </div>',
+              '        <div className="grid gap-3 sm:grid-cols-3">\n          <Detail label="Task" value={task.task_type} />\n          <Detail label="Terminal ID" value={task.terminal?.terminal_id ?? "Not linked"} />\n          <Detail label="Terminal serial" value={task.terminal?.serial_number ?? "Not supplied"} />\n          <Detail label="BO account" value={task.merchant?.account_number ?? "Not confirmed"} />\n          <Detail label="BO phone" value={phoneNumber ?? "Not confirmed"} />\n          <Detail label="Status" value={humanizeStatus(task.status)} />\n        </div>\n\n        {weekly && weeklyActual !== null && (\n          <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-4">\n            <Detail label="Official weekly target" value={formatMoney(weekly.official_target_value)} />\n            <Detail label="Actual rolling value" value={formatMoney(weeklyActual)} />\n            <Detail label="Remaining gap" value={formatMoney(weeklyGap ?? 0)} />\n            <Detail\n              label="Last transacted"\n              value={`${weekly.days_since_last_transaction} day${weekly.days_since_last_transaction === 1 ? "" : "s"} ago`}\n            />\n          </div>\n        )}',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '  const final = finishedStates.has(task.status);',
+              '  const final = finishedStates.has(task.status);\n  const weekly = task.weeklyPerformance;\n  const weeklyActual = weekly ? weekly.payment_value + weekly.transfer_value : null;',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              '          <span>TID: {task.terminal?.terminal_id ?? "—"}</span>\n          <span>Priority {task.priority}/5</span>',
+              '          <span>TID: {task.terminal?.terminal_id ?? "—"}</span>\n          <span>Serial: {task.terminal?.serial_number ?? "—"}</span>\n          <span>Account: {task.merchant?.account_number ?? "Not confirmed"}</span>\n          {weekly && weeklyActual !== null && (\n            <span>Weekly {formatMoney(weeklyActual)} / {formatMoney(weekly.official_target_value)}</span>\n          )}\n          {weekly && <span>Last txn: {weekly.days_since_last_transaction}d</span>}\n          <span>Priority {task.priority}/5</span>',
+          )
+          replace(
+              'src/routes/daily-tasks.tsx',
+              'function formatDateTime(value: string) {',
+              'function formatMoney(value: number) {\n  return `₦${new Intl.NumberFormat("en-NG", { maximumFractionDigits: 2 }).format(value)}`;\n}\n\nfunction formatDateTime(value: string) {',
+          )
+
+          replace(
+              'src/routes/index.tsx',
+              'import { AminaPerformancePanel } from "@/components/amina-performance-panel";',
+              'import { AminaPerformancePanel } from "@/components/amina-performance-panel";\nimport { LiveMirrorPanel } from "@/components/live-mirror-panel";',
+          )
+          replace(
+              'src/routes/index.tsx',
+              '  DAILY_CALL_TARGET,',
+              '  DAILY_CONTACT_CAPACITY,\n  DAILY_REQUIRED_CONTACTS,',
+          )
+          replace(
+              'src/routes/index.tsx',
+              '            {DAILY_CALL_TARGET} priority calls · 60–80% TA focus · ₦',
+              '            {DAILY_REQUIRED_CONTACTS} required contacts · up to {DAILY_CONTACT_CAPACITY} ranked · 60–80% TA focus · ₦',
+          )
+          replace(
+              'src/routes/index.tsx',
+              '          description={`Amina\'s target is ${DAILY_CALL_TARGET} priority calls`}',
+              '          description={`${DAILY_REQUIRED_CONTACTS} required; up to ${DAILY_CONTACT_CAPACITY} available when BOs are unreachable`}',
+          )
+          replace(
+              'src/routes/index.tsx',
+              '      {profileQuery.data?.role === "assistant" && user?.id && accessToken && (',
+              '      {profileQuery.data?.role === "director" && accessToken && (\n        <LiveMirrorPanel accessToken={accessToken} date={date} />\n      )}\n\n      {profileQuery.data?.role === "assistant" && user?.id && accessToken && (',
+          )
+
+          for path in ['src/components/app-header.tsx', 'src/components/app-sidebar.tsx', 'src/components/login-screen.tsx', 'src/routes/app-download.tsx']:
+              text = Path(path).read_text()
+              if 'MonieBrmMark' not in text:
+                  marker = 'import { Button } from "@/components/ui/button";'
+                  if marker in text:
+                      text = text.replace(marker, 'import { MonieBrmMark } from "@/components/monie-brm-mark";\n' + marker, 1)
+                  else:
+                      marker = 'import { cn } from "@/lib/utils";'
+                      if marker in text:
+                          text = text.replace(marker, 'import { MonieBrmMark } from "@/components/monie-brm-mark";\n' + marker, 1)
+              Path(path).write_text(text)
+
+          replace(
+              'src/components/app-header.tsx',
+              '        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">\n          <span className="text-sm font-bold">M</span>\n        </div>',
+              '        <MonieBrmMark compact />',
+          )
+          replace(
+              'src/components/app-sidebar.tsx',
+              '          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">\n            <span className="text-sm font-bold">M</span>\n          </div>',
+              '          <MonieBrmMark compact />',
+          )
+          replace(
+              'src/components/login-screen.tsx',
+              '            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-foreground/15 text-lg font-bold">\n              M\n            </div>',
+              '            <div className="rounded-xl bg-white p-3">\n              <MonieBrmMark />\n            </div>',
+          )
+          replace(
+              'src/routes/app-download.tsx',
+              '          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">\n            M\n          </div>',
+              '          <div className="w-fit rounded-2xl border bg-white p-3">\n            <MonieBrmMark />\n          </div>',
+          )
+          PY
+      - name: Format upgraded sources
+        run: bunx prettier --write src/routes/api.automation-worker.ts src/lib/assistant-data.ts src/lib/mirror-data.ts src/components/live-mirror-panel.tsx src/components/monie-brm-mark.tsx src/routes/daily-tasks.tsx src/routes/index.tsx src/components/app-header.tsx src/components/app-sidebar.tsx src/components/login-screen.tsx src/routes/app-download.tsx
+      - name: Commit formatted patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src
+          git commit -m "Apply live mirror UI and 15-contact workflow" || exit 0
+          git push origin HEAD:agent/live-mirror-15-task-production
