@@ -1,5 +1,5 @@
-const cloudUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "") ?? "";
-const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+const cloudUrl = import.meta.env["VITE_SUPABASE_URL"]?.replace(/\/$/, "") ?? "";
+const publishableKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
 
 export interface CloudUser {
   id: string;
