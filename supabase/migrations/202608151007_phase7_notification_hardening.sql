@@ -86,12 +86,17 @@ begin
     insert into public.meeting_notification_deliveries(
       occurrence_id,device_id,stage,sequence_no,notification_key,status,last_error,updated_at
     )
-    select occurrence_id,device_id,stage,sequence_no,notification_key,'queued',null,now()
+    select due.occurrence_id,due.device_id,due.stage,due.sequence_no,due.notification_key,'queued',null,now()
     from due
     on conflict(notification_key) do update
       set status='queued',last_error=null,updated_at=now()
       where public.meeting_notification_deliveries.status='failed'
-    returning id,occurrence_id,device_id,stage,notification_key
+    returning
+      public.meeting_notification_deliveries.id,
+      public.meeting_notification_deliveries.occurrence_id,
+      public.meeting_notification_deliveries.device_id,
+      public.meeting_notification_deliveries.stage,
+      public.meeting_notification_deliveries.notification_key
   )
   select i.id,d.expo_push_token,d.platform,x.stage,x.title,x.body,x.meeting_url,x.occurrence_id,x.starts_at
   from inserted i
