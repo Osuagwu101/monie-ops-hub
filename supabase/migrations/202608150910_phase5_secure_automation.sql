@@ -201,10 +201,10 @@ declare v_config public.automation_config;
 begin
   select * into v_config from public.automation_config where id=true;
   perform cron.unschedule(jobname) from cron.job where jobname in ('monie-ops-morning-audit','monie-ops-morning-refresh','monie-ops-evening-refresh','monie-ops-automation-poller');
-  perform cron.schedule('monie-ops-morning-audit',public.lagos_time_to_cron(v_config.morning_audit_time),$$select public.run_scheduled_automation('morning_audit')$$);
-  perform cron.schedule('monie-ops-morning-refresh',public.lagos_time_to_cron(v_config.morning_refresh_time),$$select public.run_scheduled_automation('morning_refresh')$$);
-  perform cron.schedule('monie-ops-evening-refresh',public.lagos_time_to_cron(v_config.evening_refresh_time),$$select public.run_scheduled_automation('evening_refresh')$$);
-  perform cron.schedule('monie-ops-automation-poller',format('*/%s * * * *',v_config.poll_interval_minutes),$$select public.poll_automation_queue()$$);
+  perform cron.schedule('monie-ops-morning-audit',public.lagos_time_to_cron(v_config.morning_audit_time),'select public.run_scheduled_automation(''morning_audit'')');
+  perform cron.schedule('monie-ops-morning-refresh',public.lagos_time_to_cron(v_config.morning_refresh_time),'select public.run_scheduled_automation(''morning_refresh'')');
+  perform cron.schedule('monie-ops-evening-refresh',public.lagos_time_to_cron(v_config.evening_refresh_time),'select public.run_scheduled_automation(''evening_refresh'')');
+  perform cron.schedule('monie-ops-automation-poller',format('*/%s * * * *',v_config.poll_interval_minutes),'select public.poll_automation_queue()');
 end;
 $$;
 revoke all on function public.apply_automation_schedule() from public, anon, authenticated;
