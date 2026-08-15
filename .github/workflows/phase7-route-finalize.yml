@@ -24,12 +24,12 @@ jobs:
         run: bunx prettier --write src/routes/meetings.tsx src/routes/api.meeting-notifications.ts src/lib/meeting-data.ts src/components/app-sidebar.tsx src/routeTree.gen.ts
       - run: bun run typecheck
       - run: bun run lint
-      - run: bun run test:offline
+      - run: bun scripts/phase6-offline-acceptance.ts
       - run: bun run build
       - name: Remove temporary workflow and commit
         run: |
           rm .github/workflows/phase7-route-finalize.yml
-          git config user.name "github-actions[bot]"
+          git config user.name "github-actions[bot]]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/routes/meetings.tsx src/routes/api.meeting-notifications.ts src/lib/meeting-data.ts src/components/app-sidebar.tsx src/routeTree.gen.ts .github/workflows/phase7-route-finalize.yml
           git diff --cached --quiet && exit 0
