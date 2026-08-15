@@ -10,8 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppDownloadRouteImport } from './routes/app-download'
 import { Route as AiLogsRouteImport } from './routes/ai-logs'
+import { Route as AppDownloadRouteImport } from './routes/app-download'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as DailyTasksRouteImport } from './routes/daily-tasks'
 import { Route as MeetingsRouteImport } from './routes/meetings'
@@ -21,20 +21,21 @@ import { Route as ReportImportsRouteImport } from './routes/report-imports'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ApiAutomationWorkerRouteImport } from './routes/api.automation-worker'
 import { Route as ApiMeetingNotificationsRouteImport } from './routes/api.meeting-notifications'
+import { Route as ApiMoniecrmWorkerRouteImport } from './routes/api.moniecrm-worker'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppDownloadRoute = AppDownloadRouteImport.update({
-  id: '/app-download',
-  path: '/app-download',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AiLogsRoute = AiLogsRouteImport.update({
   id: '/ai-logs',
   path: '/ai-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDownloadRoute = AppDownloadRouteImport.update({
+  id: '/app-download',
+  path: '/app-download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AutomationRoute = AutomationRouteImport.update({
@@ -82,11 +83,16 @@ const ApiMeetingNotificationsRoute = ApiMeetingNotificationsRouteImport.update({
   path: '/api/meeting-notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMoniecrmWorkerRoute = ApiMoniecrmWorkerRouteImport.update({
+  id: '/api/moniecrm-worker',
+  path: '/api/moniecrm-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/app-download': typeof AppDownloadRoute
   '/ai-logs': typeof AiLogsRoute
+  '/app-download': typeof AppDownloadRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
   '/meetings': typeof MeetingsRoute
@@ -96,11 +102,12 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
+  '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/app-download': typeof AppDownloadRoute
   '/ai-logs': typeof AiLogsRoute
+  '/app-download': typeof AppDownloadRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
   '/meetings': typeof MeetingsRoute
@@ -110,12 +117,13 @@ export interface FileRoutesByTo {
   '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
+  '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/app-download': typeof AppDownloadRoute
   '/ai-logs': typeof AiLogsRoute
+  '/app-download': typeof AppDownloadRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
   '/meetings': typeof MeetingsRoute
@@ -125,13 +133,14 @@ export interface FileRoutesById {
   '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
+  '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/app-download'
     | '/ai-logs'
+    | '/app-download'
     | '/automation'
     | '/daily-tasks'
     | '/meetings'
@@ -141,11 +150,12 @@ export interface FileRouteTypes {
     | '/staff'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
+    | '/api/moniecrm-worker'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/app-download'
     | '/ai-logs'
+    | '/app-download'
     | '/automation'
     | '/daily-tasks'
     | '/meetings'
@@ -155,11 +165,12 @@ export interface FileRouteTypes {
     | '/staff'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
+    | '/api/moniecrm-worker'
   id:
     | '__root__'
     | '/'
-    | '/app-download'
     | '/ai-logs'
+    | '/app-download'
     | '/automation'
     | '/daily-tasks'
     | '/meetings'
@@ -169,12 +180,13 @@ export interface FileRouteTypes {
     | '/staff'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
+    | '/api/moniecrm-worker'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AppDownloadRoute: typeof AppDownloadRoute
   AiLogsRoute: typeof AiLogsRoute
+  AppDownloadRoute: typeof AppDownloadRoute
   AutomationRoute: typeof AutomationRoute
   DailyTasksRoute: typeof DailyTasksRoute
   MeetingsRoute: typeof MeetingsRoute
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRoute
   ApiAutomationWorkerRoute: typeof ApiAutomationWorkerRoute
   ApiMeetingNotificationsRoute: typeof ApiMeetingNotificationsRoute
+  ApiMoniecrmWorkerRoute: typeof ApiMoniecrmWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -195,18 +208,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app-download': {
-      id: '/app-download'
-      path: '/app-download'
-      fullPath: '/app-download'
-      preLoaderRoute: typeof AppDownloadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ai-logs': {
       id: '/ai-logs'
       path: '/ai-logs'
       fullPath: '/ai-logs'
       preLoaderRoute: typeof AiLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app-download': {
+      id: '/app-download'
+      path: '/app-download'
+      fullPath: '/app-download'
+      preLoaderRoute: typeof AppDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/automation': {
@@ -272,13 +285,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMeetingNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/moniecrm-worker': {
+      id: '/api/moniecrm-worker'
+      path: '/api/moniecrm-worker'
+      fullPath: '/api/moniecrm-worker'
+      preLoaderRoute: typeof ApiMoniecrmWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AppDownloadRoute: AppDownloadRoute,
   AiLogsRoute: AiLogsRoute,
+  AppDownloadRoute: AppDownloadRoute,
   AutomationRoute: AutomationRoute,
   DailyTasksRoute: DailyTasksRoute,
   MeetingsRoute: MeetingsRoute,
@@ -288,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRoute,
   ApiAutomationWorkerRoute: ApiAutomationWorkerRoute,
   ApiMeetingNotificationsRoute: ApiMeetingNotificationsRoute,
+  ApiMoniecrmWorkerRoute: ApiMoniecrmWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
