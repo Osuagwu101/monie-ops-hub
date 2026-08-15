@@ -24,7 +24,7 @@ jobs:
         run: bunx prettier --write src/components/login-screen.tsx src/components/app-sidebar.tsx src/lib/cloud-api.ts src/lib/admin-users.ts src/routes/staff.tsx src/routeTree.gen.ts
       - run: bun run typecheck
       - run: bun run lint
-      - run: bun run test:report
+      - run: bun scripts/phase6-offline-acceptance.ts
       - run: bun run build
       - name: Remove temporary workflow and commit generated output
         run: |
