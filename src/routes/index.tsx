@@ -1,7 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Activity, BadgeCheck, Database, Gauge, ShieldCheck, Target, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import {
+  Activity,
+  ArrowRight,
+  BadgeCheck,
+  Gauge,
+  Loader2,
+  PhoneCall,
+  ShieldCheck,
+  Target,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   COMPANY_TARGET_PERCENT,
@@ -9,6 +20,8 @@ import {
   ROLLING_WEEKLY_TA_TARGET_NAIRA,
   TEAM_STANDARD_PERCENT,
 } from "@/domain/models";
+import { loadAssistantTasks, localDateKey } from "@/lib/assistant-data";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,7 +29,7 @@ export const Route = createFileRoute("/")({
       { title: "Overview — Monie Ops Hub" },
       {
         name: "description",
-        content: "Secure operations mirror for BRM merchant and terminal workflows.",
+        content: "Amina's daily BRM operations brief and team operating standards.",
       },
     ],
   }),
@@ -26,13 +39,31 @@ export const Route = createFileRoute("/")({
 const referenceSnapshot = {
   reportDate: "13 Aug 2026",
   terminalActivityRate: 69,
-  totalTerminals: 125,
-  assignedTerminals: 118,
-  activeTerminals: 40,
-  topBoRetentionRate: 85.4,
 } as const;
 
+const finalStates = new Set([
+  "completed",
+  "pending_verification",
+  "verified",
+  "discrepancy",
+  "deferred",
+  "unverifiable",
+]);
+
 function OverviewPage() {
+  const { session, user } = useAuth();
+  const date = localDateKey();
+  const tasksQuery = useQuery({
+    queryKey: ["assistant-tasks", date, user?.id],
+    queryFn: () => loadAssistantTasks(date, session!.access_token),
+    enabled: Boolean(session?.access_token),
+  });
+
+  const tasks = tasksQuery.data ?? [];
+  const completed = tasks.filter((task) => finalStates.has(task.status)).length;
+  const taTasks = tasks.filter((task) => task.task_type === "TA").length;
+  const unresolved = tasks.filter((task) => !finalStates.has(task.status)).length;
+  const nextTask = tasks.find((task) => !finalStates.has(task.status));
   const companyGap = referenceSnapshot.terminalActivityRate - COMPANY_TARGET_PERCENT;
   const teamGap = referenceSnapshot.terminalActivityRate - TEAM_STANDARD_PERCENT;
 
@@ -41,16 +72,13 @@ function OverviewPage() {
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Phase 1 foundation</Badge>
-            <Badge variant="secondary">Reference snapshot · {referenceSnapshot.reportDate}</Badge>
+            <Badge variant="outline">Phase 2</Badge>
+            <Badge variant="secondary">Amina morning brief</Badge>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Operations Command Centre
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Operations Command Centre</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            The portal foundation now separates company performance, our internal 77% standard,
-            human work records, and source-of-truth verification. Live report ingestion is
-            intentionally not simulated in this phase.
+            Today starts with the work that needs attention now. Human task completion is recorded here;
+            official performance verification remains a separate Tunde-controlled process.
           </p>
         </div>
         <div className="rounded-lg border bg-card px-4 py-3 text-sm shadow-sm">
@@ -64,89 +92,83 @@ function OverviewPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title="Terminal Activity"
-          value={`${referenceSnapshot.terminalActivityRate}%`}
-          description="Official report reference snapshot"
-          icon={Activity}
+          title="Assigned today"
+          value={tasksQuery.isLoading ? "…" : `${tasks.length}`}
+          description={`Amina's target is ${DAILY_CALL_TARGET} priority calls`}
+          icon={PhoneCall}
         />
         <MetricCard
-          title="Company Target"
-          value={`${COMPANY_TARGET_PERCENT}%`}
-          description={`${Math.abs(companyGap).toFixed(1)} pts ${companyGap >= 0 ? "above" : "below"} target`}
-          icon={Gauge}
+          title="Human work completed"
+          value={tasksQuery.isLoading ? "…" : `${completed}`}
+          description={`${unresolved} unresolved task${unresolved === 1 ? "" : "s"} remain`}
+          icon={BadgeCheck}
         />
         <MetricCard
-          title="Team Standard"
-          value={`${TEAM_STANDARD_PERCENT}%`}
-          description={`${Math.abs(teamGap).toFixed(1)} pts ${teamGap >= 0 ? "above" : "below"} our standard`}
+          title="TA allocation"
+          value={tasks.length ? `${Math.round((taTasks / tasks.length) * 100)}%` : "—"}
+          description={`${taTasks} TA task${taTasks === 1 ? "" : "s"} in today's queue`}
           icon={Target}
         />
         <MetricCard
-          title="Assigned Terminals"
-          value={`${referenceSnapshot.assignedTerminals}/${referenceSnapshot.totalTerminals}`}
-          description={`${referenceSnapshot.activeTerminals} currently active in reference report`}
-          icon={Users}
+          title="Team standard"
+          value={`${TEAM_STANDARD_PERCENT}%`}
+          description={`Company benchmark remains ${COMPANY_TARGET_PERCENT}%`}
+          icon={Gauge}
         />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card>
+      <section className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+        <Card className="border-primary/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              Truth & verification model
-            </CardTitle>
-            <CardDescription>
-              Human activity and official terminal performance are deliberately kept separate.
+            <CardDescription className="font-medium uppercase tracking-[0.14em]">
+              Amina's next action
             </CardDescription>
+            <CardTitle>
+              {tasksQuery.isLoading
+                ? "Loading today's priority…"
+                : nextTask?.merchant?.business_name ?? "No unresolved task assigned"}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <WorkflowRow
-              step="1"
-              title="Assistant records the interaction"
-              description="Structured outcome fields and free-text notes record what happened during the merchant contact."
-            />
-            <WorkflowRow
-              step="2"
-              title="Task waits for evidence"
-              description="A completed call does not become a verified performance result merely because a human marked it done."
-            />
-            <WorkflowRow
-              step="3"
-              title="Tunde verifies against official data"
-              description="Official Moniepoint reporting is the source of truth for Verified, Discrepancy, Deferred and Unverifiable states."
-            />
-            <WorkflowRow
-              step="4"
-              title="Audit history remains immutable"
-              description="Report imports, task outcomes and verification decisions are stored as separate auditable records."
-            />
+          <CardContent>
+            {tasksQuery.isLoading ? (
+              <div className="flex items-center gap-2 py-5 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading secure task data…
+              </div>
+            ) : nextTask ? (
+              <div className="space-y-4">
+                <p className="text-sm leading-6 text-muted-foreground">{nextTask.reason}</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge>{nextTask.task_type}</Badge>
+                  <Badge variant="outline">Priority {nextTask.priority}/5</Badge>
+                  <Badge variant="outline">TID {nextTask.terminal?.terminal_id ?? "—"}</Badge>
+                </div>
+                <Button asChild>
+                  <Link to="/daily-tasks">
+                    Open daily workspace <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>Amina has no unresolved work in the current queue.</p>
+                <Button asChild variant="outline">
+                  <Link to="/daily-tasks">View daily workspace</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-primary" />
-              Phase 1 architecture
+              <ShieldCheck className="h-5 w-5 text-primary" /> Accountability rule
             </CardTitle>
-            <CardDescription>
-              Foundation implemented before live automation is connected.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <FoundationItem label="Canonical merchant + terminal model" status="Ready" />
-            <FoundationItem label="72% company / 77% team standards" status="Ready" />
-            <FoundationItem label="Rolling weekly ₦100k TA rule" status="Ready" />
-            <FoundationItem label="Director / assistant role model" status="Ready" />
-            <FoundationItem label="RLS security policies" status="Ready" />
-            <FoundationItem label="Task outcome + verification separation" status="Ready" />
-            <FoundationItem label="Audit event ledger" status="Ready" />
-            <FoundationItem
-              label="Live Supabase project connection"
-              status="Pending connection"
-              muted
-            />
+          <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
+            <p>The assistant records what happened.</p>
+            <p>Tunde records what official data proves.</p>
+            <p>A completed call never self-converts into a Verified performance result.</p>
           </CardContent>
         </Card>
       </section>
@@ -154,30 +176,24 @@ function OverviewPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BadgeCheck className="h-5 w-5 text-primary" />
-            Reference portfolio snapshot
+            <Activity className="h-5 w-5 text-primary" /> Reference performance context
           </CardTitle>
           <CardDescription>
-            These numbers are explicitly labelled as a reference snapshot and are not presented as
-            live data.
+            Phase 3 will replace this reference context with automated official report ingestion. It is
+            intentionally not labelled live.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <SnapshotItem label="Reference date" value={referenceSnapshot.reportDate} />
           <SnapshotItem
-            label="Total terminals"
-            value={referenceSnapshot.totalTerminals.toString()}
+            label="Terminal activity"
+            value={`${referenceSnapshot.terminalActivityRate}%`}
+            detail={`${Math.abs(companyGap)} pts ${companyGap >= 0 ? "above" : "below"} company target`}
           />
           <SnapshotItem
-            label="Assigned terminals"
-            value={referenceSnapshot.assignedTerminals.toString()}
-          />
-          <SnapshotItem
-            label="Active terminals"
-            value={referenceSnapshot.activeTerminals.toString()}
-          />
-          <SnapshotItem
-            label="Top BO retention"
-            value={`${referenceSnapshot.topBoRetentionRate}%`}
+            label="Gap to 77%"
+            value={`${Math.abs(teamGap)} pts`}
+            detail={teamGap >= 0 ? "Team standard reached" : "Internal standard not yet reached"}
           />
         </CardContent>
       </Card>
@@ -214,52 +230,12 @@ function MetricCard({
   );
 }
 
-function WorkflowRow({
-  step,
-  title,
-  description,
-}: {
-  step: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex gap-3">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-        {step}
-      </div>
-      <div>
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function FoundationItem({
-  label,
-  status,
-  muted = false,
-}: {
-  label: string;
-  status: string;
-  muted?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-      <span className="text-sm text-foreground">{label}</span>
-      <Badge variant={muted ? "outline" : "secondary"}>{status}</Badge>
-    </div>
-  );
-}
-
-function SnapshotItem({ label, value }: { label: string; value: string }) {
+function SnapshotItem({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="rounded-lg border bg-muted/20 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-2 text-2xl font-bold text-foreground">{value}</div>
+      {detail && <div className="mt-1 text-xs text-muted-foreground">{detail}</div>}
     </div>
   );
 }
