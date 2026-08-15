@@ -72,6 +72,7 @@ interface AutomationContext {
   runId: string;
   reportId: string | null;
   browserSessionId: string | null;
+  allowedDomains: string[];
   workflowStage: string;
 }
 
@@ -397,6 +398,7 @@ async function stageOfficialReport(
       task: enrichmentTaskPrompt(priorityNames),
       llm: "browser-use-2.0",
       sessionId: context.browserSessionId,
+      allowedDomains: context.allowedDomains,
       maxSteps: Math.max(100, priorityNames.length * 10 + 60),
       structuredOutput: JSON.stringify(enrichmentSchema),
       metadata: {
