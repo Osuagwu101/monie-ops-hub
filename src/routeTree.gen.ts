@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppDownloadRouteImport } from './routes/app-download'
 import { Route as AiLogsRouteImport } from './routes/ai-logs'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as DailyTasksRouteImport } from './routes/daily-tasks'
@@ -24,6 +25,11 @@ import { Route as ApiMeetingNotificationsRouteImport } from './routes/api.meetin
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDownloadRoute = AppDownloadRouteImport.update({
+  id: '/app-download',
+  path: '/app-download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiLogsRoute = AiLogsRouteImport.update({
@@ -79,6 +85,7 @@ const ApiMeetingNotificationsRoute = ApiMeetingNotificationsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app-download': typeof AppDownloadRoute
   '/ai-logs': typeof AiLogsRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app-download': typeof AppDownloadRoute
   '/ai-logs': typeof AiLogsRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app-download': typeof AppDownloadRoute
   '/ai-logs': typeof AiLogsRoute
   '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/app-download'
     | '/ai-logs'
     | '/automation'
     | '/daily-tasks'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/app-download'
     | '/ai-logs'
     | '/automation'
     | '/daily-tasks'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/app-download'
     | '/ai-logs'
     | '/automation'
     | '/daily-tasks'
@@ -161,6 +173,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppDownloadRoute: typeof AppDownloadRoute
   AiLogsRoute: typeof AiLogsRoute
   AutomationRoute: typeof AutomationRoute
   DailyTasksRoute: typeof DailyTasksRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app-download': {
+      id: '/app-download'
+      path: '/app-download'
+      fullPath: '/app-download'
+      preLoaderRoute: typeof AppDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-logs': {
@@ -257,6 +277,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppDownloadRoute: AppDownloadRoute,
   AiLogsRoute: AiLogsRoute,
   AutomationRoute: AutomationRoute,
   DailyTasksRoute: DailyTasksRoute,
