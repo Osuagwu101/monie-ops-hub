@@ -2,24 +2,12 @@ import { callRpc, restSelect } from "@/lib/cloud-api";
 
 export type ManagementMode = "supportive" | "firm" | "strict" | "very_strict" | "critical";
 export type PerformanceRating =
-  | "excellent"
-  | "strong"
-  | "acceptable"
-  | "watch"
-  | "underperforming"
-  | "critical";
+  "excellent" | "strong" | "acceptable" | "watch" | "underperforming" | "critical";
 export type PerformanceSubjectKind = "assistant" | "emeka" | "zainab" | "tunde";
 export type CompensationRecommendationType =
-  | "performance_warning"
-  | "improvement_plan"
-  | "penalty_review"
-  | "bonus"
-  | "recognition";
+  "performance_warning" | "improvement_plan" | "penalty_review" | "bonus" | "recognition";
 export type CompensationRecommendationStatus =
-  | "pending_director"
-  | "approved"
-  | "rejected"
-  | "cancelled";
+  "pending_director" | "approved" | "rejected" | "cancelled";
 
 export interface PerformanceScorecardRecord {
   id: string;
@@ -102,11 +90,7 @@ export async function loadPerformanceScorecards(
   );
 }
 
-export async function loadMyPerformanceHistory(
-  userId: string,
-  accessToken: string,
-  limit = 30,
-) {
+export async function loadMyPerformanceHistory(userId: string, accessToken: string, limit = 30) {
   return restSelect<PerformanceScorecardRecord[]>(
     `performance_scorecards?select=id,report_id,score_date,subject_kind,subject_key,subject_user_id,scope_assistant_id,team_performance_percent,individual_score_percent,management_mode,rating,amina_message,evidence,created_at,updated_at&subject_kind=eq.assistant&subject_user_id=eq.${encodeURIComponent(userId)}&order=score_date.desc,created_at.desc&limit=${limit}`,
     accessToken,

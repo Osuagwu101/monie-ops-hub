@@ -12,6 +12,7 @@ import {
   Target,
 } from "lucide-react";
 
+import { AminaPerformancePanel } from "@/components/amina-performance-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,7 @@ import {
   ROLLING_WEEKLY_TA_TARGET_NAIRA,
   TEAM_STANDARD_PERCENT,
 } from "@/domain/models";
-import { loadAssistantTasks, localDateKey } from "@/lib/assistant-data";
+import { loadAssistantProfile, loadAssistantTasks, localDateKey } from "@/lib/assistant-data";
 import { useAuth } from "@/lib/auth-context";
 import { loadLatestPortfolioPerformance } from "@/lib/report-data";
 
@@ -50,14 +51,20 @@ const finalStates = new Set([
 function OverviewPage() {
   const { session, user } = useAuth();
   const date = localDateKey();
+  const accessToken = session?.access_token ?? "";
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => loadAssistantProfile(user!.id, accessToken),
+    enabled: Boolean(user?.id && accessToken),
+  });
   const tasksQuery = useQuery({
     queryKey: ["assistant-tasks", date, user?.id],
-    queryFn: () => loadAssistantTasks(date, session!.access_token),
+    queryFn: () => loadAssistantTasks(date, accessToken),
     enabled: Boolean(session?.access_token),
   });
   const performanceQuery = useQuery({
     queryKey: ["portfolio-performance"],
-    queryFn: () => loadLatestPortfolioPerformance(session!.access_token),
+    queryFn: () => loadLatestPortfolioPerformance(accessToken),
     enabled: Boolean(session?.access_token),
   });
 
@@ -78,7 +85,7 @@ function OverviewPage() {
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Phase 3</Badge>
+            <Badge variant="outline">Phase 4</Badge>
             <Badge variant="secondary">Amina morning brief</Badge>
             {performance && <Badge>Official report · {performance.report_date}</Badge>}
           </div>
@@ -136,6 +143,15 @@ function OverviewPage() {
           icon={Gauge}
         />
       </section>
+
+      {profileQuery.data?.role === "assistant" && user?.id && accessToken && (
+        <AminaPerformancePanel
+          assistantId={user.id}
+          accessToken={accessToken}
+          isDirector={false}
+          compact
+        />
+      )}
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
         <Card className="border-primary/20">

@@ -76,13 +76,8 @@ export function AminaPerformancePanel({
   });
 
   const reviewMutation = useMutation({
-    mutationFn: ({
-      id,
-      status,
-    }: {
-      id: string;
-      status: "approved" | "rejected" | "cancelled";
-    }) => reviewCompensationRecommendation(id, status, accessToken),
+    mutationFn: ({ id, status }: { id: string; status: "approved" | "rejected" | "cancelled" }) =>
+      reviewCompensationRecommendation(id, status, accessToken),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["compensation-recommendations", assistantId],
@@ -141,7 +136,9 @@ export function AminaPerformancePanel({
           <CardTitle className="flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" /> Amina — Level 2 Manager
           </CardTitle>
-          <CardDescription>Individual scorecards begin after an official report and team run.</CardDescription>
+          <CardDescription>
+            Individual scorecards begin after an official report and team run.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
@@ -162,7 +159,9 @@ export function AminaPerformancePanel({
               <CardTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-primary" /> My performance
               </CardTitle>
-              <CardDescription>Amina's evidence-backed personal score, separate from team performance.</CardDescription>
+              <CardDescription>
+                Amina's evidence-backed personal score, separate from team performance.
+              </CardDescription>
             </div>
             <ManagementModeBadge mode={assistantScore.management_mode} />
           </div>
@@ -190,7 +189,9 @@ export function AminaPerformancePanel({
           {pendingRecommendations.length > 0 && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Amina has {pendingRecommendations.length} recommendation(s) pending</AlertTitle>
+              <AlertTitle>
+                Amina has {pendingRecommendations.length} recommendation(s) pending
+              </AlertTitle>
               <AlertDescription>
                 You can see the recommendation, but only the Director can approve or reject a
                 financial consequence or reward.
@@ -234,7 +235,10 @@ export function AminaPerformancePanel({
               label="Human Assistant"
               value={`${assistantScore.individual_score_percent}%`}
             />
-            <ScoreMiniStat label="Warning line" value={`< ${config.management_warning_threshold_percent}%`} />
+            <ScoreMiniStat
+              label="Warning line"
+              value={`< ${config.management_warning_threshold_percent}%`}
+            />
             <ScoreMiniStat label="Penalty review" value={`< ${config.penalty_trigger_percent}%`} />
           </div>
           <AminaMessage scorecard={assistantScore} />
@@ -289,9 +293,7 @@ export function AminaPerformancePanel({
                   recommendation={recommendation}
                   isDirector={isDirector}
                   busy={reviewMutation.isPending}
-                  onReview={(status) =>
-                    reviewMutation.mutate({ id: recommendation.id, status })
-                  }
+                  onReview={(status) => reviewMutation.mutate({ id: recommendation.id, status })}
                 />
               ))}
             </div>
