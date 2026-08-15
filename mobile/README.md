@@ -8,7 +8,9 @@ The Director home reads the existing production tables directly through their cu
 
 - latest official Terminal Activity performance
 - active and assigned terminals
-- today's seven-task/Amina queue when present
+- today's Amina queue with up to 15 ranked contacts when present
+- a seven-contact required daily completion threshold
+- BO name, confirmed phone/account, terminal ID/serial and official rolling-weekly target context
 - latest Amina management score and tone
 - latest Amina/Emeka/Zainab/Tunde recommendation
 - upcoming meeting schedule and acknowledgement state
@@ -32,12 +34,13 @@ A notification acknowledgement is also recovered on cold start: if the app was c
 ## Native platform notes
 
 - Android exact-timing alarms require the system's Alarms & reminders permission on supported Android versions. The app requests `SCHEDULE_EXACT_ALARM` in its native manifest configuration.
+- Android reminder channels use the native default notification sound so Expo prebuild produces valid Android resources.
 - iOS uses Time Sensitive notifications. Sounding through mute/Focus as a Critical Alert requires Apple's separately approved Critical Alerts entitlement; this app does not claim that entitlement by default.
 - Remote push must be tested in a native development/production build on a physical device. The app handles missing native push credentials by retaining local reminder functionality.
 
 ## Branding
 
-The current blue `M` launcher/splash icon is a temporary development asset generated for the Phase 7 build. Before public App Store/Play Store distribution, replace it with the official Moniepoint logo/icon asset that the account owner is authorised to use.
+The Android launcher, adaptive icon and splash assets are generated from the Moniepoint logo with `BRM` presented underneath on a clean white canvas. The web portal uses the same Moniepoint + BRM identity treatment.
 
 ## Quality checks
 
@@ -50,8 +53,6 @@ npx expo export --platform android --output-dir dist-android
 npx expo export --platform ios --output-dir dist-ios
 ```
 
-The Phase 7 branch has passed all three checks above after the portal snapshot integration. Its server-side acceptance test also proved recurrence dates, duplicate suppression, failed-push retry, the 10-minute and 2-minute messages, post-start escalation, Director-only acknowledgement, push-token privacy, and the stop-after-acknowledgement behavior without leaving synthetic production data.
+The permanent Mobile Quality workflow runs these source/export checks. The controlled Android release workflow additionally performs an Expo native prebuild and Gradle APK build before publishing the internal installer to the website download location.
 
-The runtime exercise initially found an ambiguous PL/pgSQL return-column reference inside the notification claim function. That function was hardened, installed live, and the complete lifecycle was rerun successfully.
-
-These source/bundle checks do not by themselves publish an installable app. Native distribution additionally requires the relevant Expo/EAS, Android push, and Apple developer signing/push configuration.
+The server-side acceptance suite also covers recurrence dates, duplicate suppression, failed-push retry, the 10-minute and 2-minute messages, post-start escalation, Director-only acknowledgement, push-token privacy, and the stop-after-acknowledgement behavior without leaving synthetic production data.
