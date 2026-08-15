@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Store,
+  UsersRound,
   Workflow,
 } from "lucide-react";
 
@@ -34,6 +35,7 @@ const dailyTasksItem = { title: "Daily Tasks", url: "/daily-tasks", icon: ListTo
 const merchantsItem = { title: "Merchants", url: "/merchant-list", icon: Store } as const;
 const reportsItem = { title: "Official Reports", url: "/report-imports", icon: FileStack } as const;
 const meetingsItem = { title: "Meetings & Alerts", url: "/meetings", icon: CalendarClock } as const;
+const staffItem = { title: "Staff Accounts", url: "/staff", icon: UsersRound } as const;
 const automationItem = { title: "Automation", url: "/automation", icon: Workflow } as const;
 const readinessItem = { title: "Readiness", url: "/readiness", icon: CheckSquare2 } as const;
 const operationsTeamItem = { title: "Operations Team", url: "/ai-logs", icon: Bot } as const;
@@ -45,6 +47,7 @@ const directorMenuItems = [
   merchantsItem,
   reportsItem,
   meetingsItem,
+  staffItem,
   automationItem,
   readinessItem,
   operationsTeamItem,
