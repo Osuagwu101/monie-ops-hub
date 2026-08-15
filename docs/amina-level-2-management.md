@@ -39,6 +39,7 @@ Specialist scorecards are scoped to the Human Assistant context so multiple assi
 - Below the configurable warning line (default **75%**), Amina creates a performance warning where the team or Human Assistant execution is below the line.
 - A financial **penalty review** can be recommended only when **both** official team performance and the Human Assistant's attributable score are below the configurable company benchmark trigger (default **72%**).
 - A penalty recommendation is **not an automatic wage deduction**. It remains `pending_director` until the Director approves or rejects it.
+- If an unreviewed score is recalculated and the evidence improves, Amina automatically cancels a stale pending penalty or reward that is no longer justified. A Director decision that has already been approved or rejected is never changed automatically.
 
 ## Reward rule
 
@@ -48,10 +49,12 @@ Amina recommends a **5% performance bonus** when:
 
 1. team performance is at or above the configured bonus threshold (default **77%**),
 2. the Human Assistant's own score is also at or above that threshold,
-3. both conditions are maintained for **14 consecutive report days**.
+3. both conditions are maintained for **14 distinct consecutive report dates**.
 
-The bonus is a recommendation, not an automatic permanent salary increase. The Director approves or rejects it.
+Duplicate imports for the same report date cannot be used to manufacture the streak. The bonus is a recommendation, not an automatic permanent salary increase. The Director approves or rejects it.
 
 ## Auditability
 
 Every score refresh and Director decision is written to the audit ledger. The Human Assistant can read their own scorecards and compensation recommendations but cannot approve, reject, or alter them. The Director can review all scorecards and make the final compensation decision.
+
+Runtime verification also covers recalculation: a synthetic 69% portfolio first generated a pending penalty for weak attributable execution; after the Human Assistant's evidence-backed score improved to 100% on the same date, the stale penalty was cancelled while the portfolio-level warning correctly remained pending. All synthetic records were rolled back.
