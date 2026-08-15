@@ -549,9 +549,9 @@ begin
         'healthy',
         'Responsible lending conversation candidate',
         format(
-          'Observed across %s report days with a %.0f%% Target Met rate and average rolling terminal value of ₦%s. This is a conversation signal only, not a credit decision.',
+          'Observed across %s report days with a %s%% Target Met rate and average rolling terminal value of ₦%s. This is a conversation signal only, not a credit decision.',
           v_candidate.report_days,
-          v_candidate.target_met_rate * 100,
+          round(v_candidate.target_met_rate * 100),
           trim(to_char(v_candidate.avg_rolling_value, 'FM999,999,999,990.00'))
         ),
         'Zainab: Ask whether working capital would solve a real business need. Explain that this is not an approval or promise of credit; eligibility, pricing and terms must come from the official Moniepoint lending process. Do not pressure the merchant to borrow.',
