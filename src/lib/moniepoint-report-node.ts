@@ -1,15 +1,12 @@
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { createHash } from "node:crypto";
+
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import {
   parseMoniepointExtractedLines,
   pushCanonicalLine,
   type ParsedMoniepointReport,
 } from "@/lib/moniepoint-report-core";
-
-export * from "@/lib/moniepoint-report-core";
-
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface PdfTextItemLike {
   str: string;
@@ -20,8 +17,16 @@ function isTextItem(item: unknown): item is PdfTextItemLike {
   return Boolean(item && typeof item === "object" && "str" in item);
 }
 
-async function extractRawLines(file: File) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
+export async function parseMoniepointReportBytes(
+  bytes: Uint8Array,
+): Promise<ParsedMoniepointReport> {
+  if (bytes.byteLength > 15 * 1024 * 1024) {
+    throw new Error("The report is larger than the 15 MB import limit.");
+  }
+  if (bytes.byteLength < 5 || new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") {
+    throw new Error("The retrieved file is not a PDF report.");
+  }
+
   const pdf = await getDocument({ data: bytes }).promise;
   const lines: string[] = [];
 
@@ -48,22 +53,9 @@ async function extractRawLines(file: File) {
     lines.push(`__PAGE_BREAK_${pageNumber}__`);
   }
 
-  return { lines, pageCount: pdf.numPages };
+  return parseMoniepointExtractedLines(lines, pdf.numPages);
 }
 
-export async function parseMoniepointReport(file: File): Promise<ParsedMoniepointReport> {
-  if (file.type && file.type !== "application/pdf") {
-    throw new Error("Please choose a PDF report.");
-  }
-  if (file.size > 15 * 1024 * 1024) {
-    throw new Error("The report is larger than the 15 MB import limit.");
-  }
-
-  const { lines, pageCount } = await extractRawLines(file);
-  return parseMoniepointExtractedLines(lines, pageCount);
-}
-
-export async function sha256File(file: File) {
-  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+export function sha256Bytes(bytes: Uint8Array) {
+  return createHash("sha256").update(bytes).digest("hex");
 }

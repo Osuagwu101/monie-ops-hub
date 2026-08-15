@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AiLogsRouteImport } from './routes/ai-logs'
+import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as DailyTasksRouteImport } from './routes/daily-tasks'
 import { Route as MerchantListRouteImport } from './routes/merchant-list'
 import { Route as ReportImportsRouteImport } from './routes/report-imports'
+import { Route as ApiAutomationWorkerRouteImport } from './routes/api.automation-worker'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AiLogsRoute = AiLogsRouteImport.update({
   id: '/ai-logs',
   path: '/ai-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationRoute = AutomationRouteImport.update({
+  id: '/automation',
+  path: '/automation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DailyTasksRoute = DailyTasksRouteImport.update({
@@ -40,50 +47,78 @@ const ReportImportsRoute = ReportImportsRouteImport.update({
   path: '/report-imports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAutomationWorkerRoute = ApiAutomationWorkerRouteImport.update({
+  id: '/api/automation-worker',
+  path: '/api/automation-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-logs': typeof AiLogsRoute
+  '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
   '/merchant-list': typeof MerchantListRoute
   '/report-imports': typeof ReportImportsRoute
+  '/api/automation-worker': typeof ApiAutomationWorkerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-logs': typeof AiLogsRoute
+  '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
   '/merchant-list': typeof MerchantListRoute
   '/report-imports': typeof ReportImportsRoute
+  '/api/automation-worker': typeof ApiAutomationWorkerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai-logs': typeof AiLogsRoute
+  '/automation': typeof AutomationRoute
   '/daily-tasks': typeof DailyTasksRoute
   '/merchant-list': typeof MerchantListRoute
   '/report-imports': typeof ReportImportsRoute
+  '/api/automation-worker': typeof ApiAutomationWorkerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list' | '/report-imports'
+    | '/'
+    | '/ai-logs'
+    | '/automation'
+    | '/daily-tasks'
+    | '/merchant-list'
+    | '/report-imports'
+    | '/api/automation-worker'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ai-logs' | '/daily-tasks' | '/merchant-list' | '/report-imports'
+  to:
+    | '/'
+    | '/ai-logs'
+    | '/automation'
+    | '/daily-tasks'
+    | '/merchant-list'
+    | '/report-imports'
+    | '/api/automation-worker'
   id:
     | '__root__'
     | '/'
     | '/ai-logs'
+    | '/automation'
     | '/daily-tasks'
     | '/merchant-list'
     | '/report-imports'
+    | '/api/automation-worker'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiLogsRoute: typeof AiLogsRoute
+  AutomationRoute: typeof AutomationRoute
   DailyTasksRoute: typeof DailyTasksRoute
   MerchantListRoute: typeof MerchantListRoute
   ReportImportsRoute: typeof ReportImportsRoute
+  ApiAutomationWorkerRoute: typeof ApiAutomationWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -100,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/ai-logs'
       fullPath: '/ai-logs'
       preLoaderRoute: typeof AiLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automation': {
+      id: '/automation'
+      path: '/automation'
+      fullPath: '/automation'
+      preLoaderRoute: typeof AutomationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/daily-tasks': {
@@ -123,15 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportImportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/automation-worker': {
+      id: '/api/automation-worker'
+      path: '/api/automation-worker'
+      fullPath: '/api/automation-worker'
+      preLoaderRoute: typeof ApiAutomationWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiLogsRoute: AiLogsRoute,
+  AutomationRoute: AutomationRoute,
   DailyTasksRoute: DailyTasksRoute,
   MerchantListRoute: MerchantListRoute,
   ReportImportsRoute: ReportImportsRoute,
+  ApiAutomationWorkerRoute: ApiAutomationWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

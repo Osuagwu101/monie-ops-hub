@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Store,
+  Workflow,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ const overviewItem = { title: "Overview", url: "/", icon: LayoutDashboard } as c
 const dailyTasksItem = { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo } as const;
 const merchantsItem = { title: "Merchants", url: "/merchant-list", icon: Store } as const;
 const reportsItem = { title: "Official Reports", url: "/report-imports", icon: FileStack } as const;
+const automationItem = { title: "Automation", url: "/automation", icon: Workflow } as const;
 const operationsTeamItem = { title: "Operations Team", url: "/ai-logs", icon: Bot } as const;
 
 const assistantMenuItems = [overviewItem, dailyTasksItem, merchantsItem, operationsTeamItem];
@@ -38,6 +40,7 @@ const directorMenuItems = [
   dailyTasksItem,
   merchantsItem,
   reportsItem,
+  automationItem,
   operationsTeamItem,
 ];
 
