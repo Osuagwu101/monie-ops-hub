@@ -1,0 +1,44 @@
+name: Publish built APK
+
+on:
+  push:
+    branches: [agent/live-mirror-15-task-production]
+    paths: [.github/workflows/publish-built-apk.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/live-mirror-15-task-production
+      - name: Download verified APK artifact from successful build stage
+        uses: actions/download-artifact@v4
+        with:
+          name: moniepoint-brm-android-apk
+          run-id: 31895391132
+          github-token: ${{ github.token }}
+          path: built-apk
+      - name: Verify APK integrity
+        run: |
+          test -f built-apk/moniepoint-brm-1.0.0-internal.apk
+          echo "1c2fe76fcccc1f185d4bba88a93000ecc99a0a988b1c3f334a15070bd786573c  built-apk/moniepoint-brm-1.0.0-internal.apk" | sha256sum -c -
+      - name: Publish APK to website download storage
+        run: |
+          curl --fail-with-body --request POST \
+            --header "apikey: sb_publishable_EtiaAjDKKyM0jV54jpTuXQ_sdAVic5H" \
+            --header "Content-Type: application/vnd.android.package-archive" \
+            --header "x-upsert: false" \
+            --data-binary @built-apk/moniepoint-brm-1.0.0-internal.apk \
+            "https://maajpydeugszipsbilgh.supabase.co/storage/v1/object/app-downloads/moniepoint-brm-1.0.0-internal.apk"
+      - name: Remove one-time helper workflow
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/publish-built-apk.yml
+          git commit -m "Remove one-time APK publisher"
+          git push origin HEAD:agent/live-mirror-15-task-production
