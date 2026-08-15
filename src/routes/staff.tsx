@@ -43,13 +43,13 @@ function StaffAccountsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (input: { fullName: string; email: string; password?: string }) =>
+    mutationFn: (input: { fullName: string; email: string; temporaryPassword: string }) =>
       createStaffAccount(input, accessToken),
     onSuccess: async (result) => {
       setNotice(
-        result.mode === "invited"
-          ? "Staff account created. The staff member can set their password from the generated recovery link."
-          : "Staff account created successfully.",
+        result.requiresEmailConfirmation
+          ? `Staff account created for ${result.email}. They must confirm the email before first sign-in.`
+          : `Staff account created for ${result.email}. They can sign in with the temporary password.`,
       );
       await queryClient.invalidateQueries({ queryKey: ["staff-accounts"] });
     },
@@ -62,9 +62,8 @@ function StaffAccountsPage() {
     createMutation.mutate({
       fullName: String(form.get("fullName") ?? ""),
       email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? "") || undefined,
+      temporaryPassword: String(form.get("temporaryPassword") ?? ""),
     });
-    event.currentTarget.reset();
   }
 
   if (profileQuery.isLoading) {
@@ -92,9 +91,9 @@ function StaffAccountsPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Staff Accounts</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Staff Support Agent accounts are created here by the Admin. The public login screen does
-          not offer account registration, and direct public signup is blocked at the Auth database
-          boundary.
+          Staff Support Agent accounts are created here by the Admin. There is no public account
+          registration. The backend rejects every non-Admin signup unless it carries a fresh,
+          single-use invitation created from this page.
         </p>
       </section>
 
@@ -119,7 +118,8 @@ function StaffAccountsPage() {
               <UserPlus className="h-5 w-5 text-primary" /> Create Staff Support Agent
             </CardTitle>
             <CardDescription>
-              Create the current support person now; add more staff later from the same Admin page.
+              Create the current support person now. If more staff are needed later, create them
+              here the same way.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -127,11 +127,18 @@ function StaffAccountsPage() {
               <Field label="Full name" name="fullName" autoComplete="name" />
               <Field label="Email" name="email" type="email" autoComplete="email" />
               <div className="space-y-2">
-                <Label htmlFor="password">Temporary password (optional)</Label>
-                <Input id="password" name="password" type="password" minLength={8} />
+                <Label htmlFor="temporaryPassword">Temporary password</Label>
+                <Input
+                  id="temporaryPassword"
+                  name="temporaryPassword"
+                  type="password"
+                  minLength={8}
+                  autoComplete="new-password"
+                  required
+                />
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Leave this blank if the staff member should set their own password. The account is
-                  still created by Admin; it is not a public signup.
+                  Give this temporary password to the staff member securely. They cannot create an
+                  account for themselves from the public login screen.
                 </p>
               </div>
               <Button disabled={createMutation.isPending}>
@@ -155,7 +162,10 @@ function StaffAccountsPage() {
             ) : staffQuery.data?.length ? (
               <div className="space-y-3">
                 {staffQuery.data.map((staff) => (
-                  <div key={staff.id} className="flex items-center justify-between gap-3 rounded-lg border p-4">
+                  <div
+                    key={staff.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border p-4"
+                  >
                     <div>
                       <div className="font-medium">{staff.full_name}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
