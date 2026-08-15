@@ -150,11 +150,16 @@ function MeetingCentrePage() {
   });
 
   const nextOccurrence = useMemo(
-    () => occurrencesQuery.data?.find((item) => item.status === "scheduled" && new Date(item.starts_at) > new Date()),
+    () =>
+      occurrencesQuery.data?.find(
+        (item) => item.status === "scheduled" && new Date(item.starts_at) > new Date(),
+      ),
     [occurrencesQuery.data],
   );
-  const activeDevices = devicesQuery.data?.filter((device) => device.enabled && device.notifications_granted) ?? [];
-  const recentFailures = deliveriesQuery.data?.filter((delivery) => delivery.status === "failed").slice(0, 5) ?? [];
+  const activeDevices =
+    devicesQuery.data?.filter((device) => device.enabled && device.notifications_granted) ?? [];
+  const recentFailures =
+    deliveriesQuery.data?.filter((delivery) => delivery.status === "failed").slice(0, 5) ?? [];
 
   if (profileQuery.isLoading) return <LoadingState label="Checking Director access…" />;
 
@@ -188,7 +193,11 @@ function MeetingCentrePage() {
             alerts until the Director acknowledges joining.
           </p>
         </div>
-        <Button variant="outline" onClick={() => refreshMutation.mutate()} disabled={refreshMutation.isPending}>
+        <Button
+          variant="outline"
+          onClick={() => refreshMutation.mutate()}
+          disabled={refreshMutation.isPending}
+        >
           {refreshMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -231,7 +240,8 @@ function MeetingCentrePage() {
           <AlertTitle>No alert-ready phone is registered yet</AlertTitle>
           <AlertDescription>
             The schedules are active in the shared backend, but push alerts begin only after the
-            Moniepoint BRM mobile app is installed, signed in, and notification permission is granted.
+            Moniepoint BRM mobile app is installed, signed in, and notification permission is
+            granted.
           </AlertDescription>
         </Alert>
       )}
@@ -314,22 +324,36 @@ function MeetingCentrePage() {
         <Card>
           <CardHeader>
             <CardTitle>Registered phones</CardTitle>
-            <CardDescription>Push tokens are never displayed. Only safe device health is shown.</CardDescription>
+            <CardDescription>
+              Push tokens are never displayed. Only safe device health is shown.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {devicesQuery.data?.length ? (
               <div className="space-y-3">
                 {devicesQuery.data.map((device) => (
-                  <div key={device.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div
+                    key={device.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                  >
                     <div>
-                      <div className="font-medium">{device.device_label ?? `${device.platform} device`}</div>
+                      <div className="font-medium">
+                        {device.device_label ?? `${device.platform} device`}
+                      </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {device.platform.toUpperCase()} · App {device.app_version ?? "unknown"} · Last seen {formatLong(device.last_seen_at)}
+                        {device.platform.toUpperCase()} · App {device.app_version ?? "unknown"} ·
+                        Last seen {formatLong(device.last_seen_at)}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant={device.enabled && device.notifications_granted ? "secondary" : "outline"}>
-                        {device.enabled && device.notifications_granted ? "Alert ready" : "Needs attention"}
+                      <Badge
+                        variant={
+                          device.enabled && device.notifications_granted ? "secondary" : "outline"
+                        }
+                      >
+                        {device.enabled && device.notifications_granted
+                          ? "Alert ready"
+                          : "Needs attention"}
                       </Badge>
                       {device.platform === "android" && (
                         <span className="text-[10px] text-muted-foreground">
@@ -349,22 +373,41 @@ function MeetingCentrePage() {
         <Card>
           <CardHeader>
             <CardTitle>Recent notification delivery</CardTitle>
-            <CardDescription>Server push attempts for meeting reminders and escalation alarms.</CardDescription>
+            <CardDescription>
+              Server push attempts for meeting reminders and escalation alarms.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {deliveriesQuery.data?.length ? (
               <div className="space-y-3">
                 {deliveriesQuery.data.slice(0, 12).map((delivery) => (
-                  <div key={delivery.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div
+                    key={delivery.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                  >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{delivery.stage}</span>
-                        {delivery.stage === "escalation" && <Badge variant="outline">#{delivery.sequence_no + 1}</Badge>}
+                        {delivery.stage === "escalation" && (
+                          <Badge variant="outline">#{delivery.sequence_no + 1}</Badge>
+                        )}
                       </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{formatLong(delivery.queued_at)}</div>
-                      {delivery.last_error && <div className="mt-1 text-xs text-destructive">{delivery.last_error}</div>}
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {formatLong(delivery.queued_at)}
+                      </div>
+                      {delivery.last_error && (
+                        <div className="mt-1 text-xs text-destructive">{delivery.last_error}</div>
+                      )}
                     </div>
-                    <Badge variant={delivery.status === "sent" ? "secondary" : delivery.status === "failed" ? "destructive" : "outline"}>
+                    <Badge
+                      variant={
+                        delivery.status === "sent"
+                          ? "secondary"
+                          : delivery.status === "failed"
+                            ? "destructive"
+                            : "outline"
+                      }
+                    >
                       {delivery.status}
                     </Badge>
                   </div>
@@ -381,9 +424,9 @@ function MeetingCentrePage() {
         <TriangleAlert className="h-4 w-4" />
         <AlertTitle>Phone operating-system rules still apply</AlertTitle>
         <AlertDescription>
-          Android exact alarms require the phone’s Alarms & reminders permission. iPhone notifications
-          use Time Sensitive delivery; bypassing mute/Focus as a true critical alarm requires Apple’s
-          separately approved Critical Alerts entitlement.
+          Android exact alarms require the phone’s Alarms & reminders permission. iPhone
+          notifications use Time Sensitive delivery; bypassing mute/Focus as a true critical alarm
+          requires Apple’s separately approved Critical Alerts entitlement.
         </AlertDescription>
       </Alert>
     </div>
@@ -411,7 +454,10 @@ function SeriesCard({
             <CardTitle>{series.name}</CardTitle>
             <CardDescription className="mt-1">{recurrenceLabel(series)}</CardDescription>
           </div>
-          <Switch checked={draft.enabled} onCheckedChange={(enabled) => onDraft({ ...draft, enabled })} />
+          <Switch
+            checked={draft.enabled}
+            onCheckedChange={(enabled) => onDraft({ ...draft, enabled })}
+          />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -461,7 +507,9 @@ function SeriesCard({
               min={1}
               max={30}
               value={draft.escalationAfterMinutes}
-              onChange={(event) => onDraft({ ...draft, escalationAfterMinutes: Number(event.target.value) })}
+              onChange={(event) =>
+                onDraft({ ...draft, escalationAfterMinutes: Number(event.target.value) })
+              }
             />
           </div>
           <div className="space-y-2">
@@ -472,17 +520,24 @@ function SeriesCard({
               min={1}
               max={30}
               value={draft.escalationRepeatMinutes}
-              onChange={(event) => onDraft({ ...draft, escalationRepeatMinutes: Number(event.target.value) })}
+              onChange={(event) =>
+                onDraft({ ...draft, escalationRepeatMinutes: Number(event.target.value) })
+              }
             />
           </div>
         </div>
 
         <div className="rounded-lg bg-muted/60 p-3 text-xs leading-5 text-muted-foreground">
-          Default escalation: {draft.escalationAfterMinutes} minutes after start, then every {draft.escalationRepeatMinutes} minutes until “Yes, I have joined” is acknowledged.
+          Default escalation: {draft.escalationAfterMinutes} minutes after start, then every{" "}
+          {draft.escalationRepeatMinutes} minutes until “Yes, I have joined” is acknowledged.
         </div>
 
         <Button onClick={onSave} disabled={saving} className="w-full sm:w-auto">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+          {saving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+          )}
           Save {series.name}
         </Button>
       </CardContent>
@@ -583,12 +638,18 @@ function formatShort(value: string) {
 
 function LoadingState({ label, compact = false }: { label: string; compact?: boolean }) {
   return (
-    <div className={`flex items-center justify-center gap-2 text-sm text-muted-foreground ${compact ? "py-8" : "min-h-[280px]"}`}>
+    <div
+      className={`flex items-center justify-center gap-2 text-sm text-muted-foreground ${compact ? "py-8" : "min-h-[280px]"}`}
+    >
       <Loader2 className="h-4 w-4 animate-spin" /> {label}
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{text}</div>;
+  return (
+    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+      {text}
+    </div>
+  );
 }
