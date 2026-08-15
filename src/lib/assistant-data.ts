@@ -20,6 +20,17 @@ export interface AssistantProfile {
   is_active: boolean;
 }
 
+export interface WeeklyTaskPerformance {
+  report_date: string;
+  period_start: string;
+  period_end: string;
+  payment_value: number;
+  transfer_value: number;
+  official_target_value: number;
+  official_target_met: boolean;
+  days_since_last_transaction: number;
+}
+
 export interface AssistantTask {
   id: string;
   task_date: string;
@@ -42,6 +53,9 @@ export interface AssistantTask {
         id: string;
         business_name: string;
         phone_number: string | null;
+        account_number: string | null;
+        contact_source: string | null;
+        contact_synced_at: string | null;
       }
     | undefined;
   terminal?:
@@ -51,6 +65,7 @@ export interface AssistantTask {
         serial_number: string | null;
       }
     | undefined;
+  weeklyPerformance?: WeeklyTaskPerformance | undefined;
   latestOutcome?:
     | {
         outcome_code: TaskOutcomeCode | null;
@@ -110,24 +125,37 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
 
   if (!tasks.length) return tasks;
 
-  const merchantIds = [
-    ...new Set(tasks.map((task) => task.merchant_id).filter(Boolean)),
-  ] as string[];
-  const terminalIds = [
-    ...new Set(tasks.map((task) => task.terminal_id).filter(Boolean)),
-  ] as string[];
+  const merchantIds = [...new Set(tasks.map((task) => task.merchant_id).filter(Boolean))] as string[];
+  const terminalIds = [...new Set(tasks.map((task) => task.terminal_id).filter(Boolean))] as string[];
   const taskIds = tasks.map((task) => task.id);
 
-  const [merchants, terminals, outcomes, verifications] = await Promise.all([
+  const [merchants, terminals, weeklySnapshots, outcomes, verifications] = await Promise.all([
     merchantIds.length
-      ? restSelect<Array<{ id: string; business_name: string; phone_number: string | null }>>(
-          `merchants?select=id,business_name,phone_number&id=${encodeURIComponent(inFilter(merchantIds))}`,
+      ? restSelect<
+          Array<{
+            id: string;
+            business_name: string;
+            phone_number: string | null;
+            account_number: string | null;
+            contact_source: string | null;
+            contact_synced_at: string | null;
+          }>
+        >(
+          `merchants?select=id,business_name,phone_number,account_number,contact_source,contact_synced_at&id=${encodeURIComponent(inFilter(merchantIds))}`,
           accessToken,
         )
       : Promise.resolve([]),
     terminalIds.length
       ? restSelect<Array<{ id: string; terminal_id: string; serial_number: string | null }>>(
           `terminals?select=id,terminal_id,serial_number&id=${encodeURIComponent(inFilter(terminalIds))}`,
+          accessToken,
+        )
+      : Promise.resolve([]),
+    terminalIds.length
+      ? restSelect<
+          Array<WeeklyTaskPerformance & { terminal_id: string }>
+        >(
+          `terminal_performance_snapshots?select=terminal_id,report_date,period_start,period_end,payment_value,transfer_value,official_target_value,official_target_met,days_since_last_transaction&terminal_id=${encodeURIComponent(inFilter(terminalIds))}&period_kind=eq.rolling_7_day&order=report_date.desc`,
           accessToken,
         )
       : Promise.resolve([]),
@@ -160,6 +188,13 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
 
   const merchantMap = new Map(merchants.map((merchant) => [merchant.id, merchant]));
   const terminalMap = new Map(terminals.map((terminal) => [terminal.id, terminal]));
+  const weeklyMap = new Map<string, WeeklyTaskPerformance>();
+  weeklySnapshots.forEach((snapshot) => {
+    if (!weeklyMap.has(snapshot.terminal_id)) {
+      const { terminal_id: _terminalId, ...performance } = snapshot;
+      weeklyMap.set(snapshot.terminal_id, performance);
+    }
+  });
   const outcomeMap = new Map<string, (typeof outcomes)[number]>();
   const verificationMap = new Map<string, (typeof verifications)[number]>();
 
@@ -167,15 +202,14 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
     if (!outcomeMap.has(outcome.task_id)) outcomeMap.set(outcome.task_id, outcome);
   });
   verifications.forEach((verification) => {
-    if (!verificationMap.has(verification.task_id)) {
-      verificationMap.set(verification.task_id, verification);
-    }
+    if (!verificationMap.has(verification.task_id)) verificationMap.set(verification.task_id, verification);
   });
 
   return tasks.map((task) => ({
     ...task,
     merchant: task.merchant_id ? merchantMap.get(task.merchant_id) : undefined,
     terminal: task.terminal_id ? terminalMap.get(task.terminal_id) : undefined,
+    weeklyPerformance: task.terminal_id ? weeklyMap.get(task.terminal_id) : undefined,
     latestOutcome: outcomeMap.get(task.id),
     verification: verificationMap.get(task.id),
   }));
