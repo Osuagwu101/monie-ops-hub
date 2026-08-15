@@ -1,7 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ListTodo, Store, Bot, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, ListTodo, Store } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -14,12 +13,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo },
-  { title: "Merchant List", url: "/merchant-list", icon: Store },
-  { title: "AI Logs", url: "/ai-logs", icon: Bot },
+  { title: "Merchants", url: "/merchant-list", icon: Store },
+  { title: "Audit & Agents", url: "/ai-logs", icon: Bot },
 ];
 
 export function AppSidebar() {
@@ -34,16 +34,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="flex h-16 items-center justify-between border-b px-4">
-        <div
-          className={cn("flex items-center gap-2 overflow-hidden", collapsed && "justify-center")}
-        >
+        <div className={cn("flex items-center gap-2 overflow-hidden", collapsed && "justify-center")}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-sm font-bold">M</span>
           </div>
           {!collapsed && (
-            <span className="truncate text-sm font-semibold text-sidebar-foreground">
-              BRM Portal
-            </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-sidebar-foreground">Monie Ops Hub</div>
+              <div className="truncate text-[10px] text-muted-foreground">77% operating standard</div>
+            </div>
           )}
         </div>
       </SidebarHeader>
