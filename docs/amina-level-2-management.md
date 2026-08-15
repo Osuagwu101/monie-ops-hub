@@ -12,7 +12,7 @@ The current defaults are configurable in `operating_config`:
 - **70%–71.99% — Very strict:** below the 72% company benchmark; operational warning and immediate recovery actions.
 - **Below 70% — Critical:** no padding or excuses; measurable failures must have owners and corrective actions.
 
-For an individual, Amina applies the stricter pressure level of the team result and that individual's score. A strong team result therefore does not hide weak individual execution.
+For an individual, Amina applies the stricter pressure level of the team result and that individual's score. A strong team result therefore does not hide weak individual execution. Very Strict and Critical modes are also rendered with urgent visual treatment in the portal so the screen matches the management severity.
 
 ## Human Operations Assistant score
 
@@ -51,7 +51,7 @@ Amina recommends a **5% performance bonus** when:
 2. the Human Assistant's own score is also at or above that threshold,
 3. both conditions are maintained for **14 distinct consecutive report dates**.
 
-Duplicate imports for the same report date cannot be used to manufacture the streak. The bonus is a recommendation, not an automatic permanent salary increase. The Director approves or rejects it.
+Duplicate imports for the same report date cannot be used to manufacture the streak. The visible bonus-streak counter follows the same rule: it de-duplicates score dates and stops when a calendar-day gap or below-threshold result appears. The bonus is a recommendation, not an automatic permanent salary increase. The Director approves or rejects it.
 
 ## Auditability
 
