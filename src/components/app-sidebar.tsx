@@ -1,5 +1,14 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, ListTodo, Store } from "lucide-react";
+import {
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  FileStack,
+  LayoutDashboard,
+  ListTodo,
+  Store,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +22,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { loadAssistantProfile } from "@/lib/assistant-data";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
-const menuItems = [
+const baseMenuItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Daily Tasks", url: "/daily-tasks", icon: ListTodo },
   { title: "Merchants", url: "/merchant-list", icon: Store },
@@ -24,10 +35,25 @@ const menuItems = [
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
+  const { session, user } = useAuth();
   const collapsed = state === "collapsed";
   const currentPath = useRouterState({
     select: (router) => router.location.pathname,
   });
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => loadAssistantProfile(user!.id, session!.access_token),
+    enabled: Boolean(user?.id && session?.access_token),
+  });
+
+  const menuItems =
+    profileQuery.data?.role === "director"
+      ? [
+          ...baseMenuItems.slice(0, 3),
+          { title: "Official Reports", url: "/report-imports", icon: FileStack },
+          baseMenuItems[3],
+        ]
+      : baseMenuItems;
 
   const isActive = (path: string) => currentPath === path;
 
@@ -87,7 +113,11 @@ export function AppSidebar() {
           className="h-8 w-8"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </Sidebar>
