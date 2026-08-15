@@ -125,8 +125,12 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
 
   if (!tasks.length) return tasks;
 
-  const merchantIds = [...new Set(tasks.map((task) => task.merchant_id).filter(Boolean))] as string[];
-  const terminalIds = [...new Set(tasks.map((task) => task.terminal_id).filter(Boolean))] as string[];
+  const merchantIds = [
+    ...new Set(tasks.map((task) => task.merchant_id).filter(Boolean)),
+  ] as string[];
+  const terminalIds = [
+    ...new Set(tasks.map((task) => task.terminal_id).filter(Boolean)),
+  ] as string[];
   const taskIds = tasks.map((task) => task.id);
 
   const [merchants, terminals, weeklySnapshots, outcomes, verifications] = await Promise.all([
@@ -152,9 +156,7 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
         )
       : Promise.resolve([]),
     terminalIds.length
-      ? restSelect<
-          Array<WeeklyTaskPerformance & { terminal_id: string }>
-        >(
+      ? restSelect<Array<WeeklyTaskPerformance & { terminal_id: string }>>(
           `terminal_performance_snapshots?select=terminal_id,report_date,period_start,period_end,payment_value,transfer_value,official_target_value,official_target_met,days_since_last_transaction&terminal_id=${encodeURIComponent(inFilter(terminalIds))}&period_kind=eq.rolling_7_day&order=report_date.desc`,
           accessToken,
         )
@@ -191,8 +193,16 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
   const weeklyMap = new Map<string, WeeklyTaskPerformance>();
   weeklySnapshots.forEach((snapshot) => {
     if (!weeklyMap.has(snapshot.terminal_id)) {
-      const { terminal_id: _terminalId, ...performance } = snapshot;
-      weeklyMap.set(snapshot.terminal_id, performance);
+      weeklyMap.set(snapshot.terminal_id, {
+        report_date: snapshot.report_date,
+        period_start: snapshot.period_start,
+        period_end: snapshot.period_end,
+        payment_value: snapshot.payment_value,
+        transfer_value: snapshot.transfer_value,
+        official_target_value: snapshot.official_target_value,
+        official_target_met: snapshot.official_target_met,
+        days_since_last_transaction: snapshot.days_since_last_transaction,
+      });
     }
   });
   const outcomeMap = new Map<string, (typeof outcomes)[number]>();
@@ -202,7 +212,9 @@ export async function loadAssistantTasks(date: string, accessToken: string) {
     if (!outcomeMap.has(outcome.task_id)) outcomeMap.set(outcome.task_id, outcome);
   });
   verifications.forEach((verification) => {
-    if (!verificationMap.has(verification.task_id)) verificationMap.set(verification.task_id, verification);
+    if (!verificationMap.has(verification.task_id)) {
+      verificationMap.set(verification.task_id, verification);
+    }
   });
 
   return tasks.map((task) => ({
