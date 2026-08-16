@@ -5,6 +5,8 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 const browserUseBaseUrl = "https://api.browser-use.com/api/v2";
 const monieCrmHost = "v2.mab.console.teamapt.com";
+// Authenticated BRM dashboard anchor used after login and by the mirroring stage.
+const monieCrmDashboardUrl = `https://${monieCrmHost}`;
 
 interface WorkerRequest {
   runId?: string;
