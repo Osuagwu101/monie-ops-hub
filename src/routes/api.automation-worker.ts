@@ -5,6 +5,9 @@ import type { ParsedMoniepointReport, ParsedTerminalRow } from "@/lib/moniepoint
 const cloudUrl = import.meta.env["VITE_SUPABASE_URL"]?.replace(/\/$/, "") ?? "";
 const publishableKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
 const browserUseBaseUrl = "https://api.browser-use.com/api/v2";
+// Authenticated BRM dashboard anchor. The mirroring stage starts here explicitly instead of
+// relying on natural-language "return to dashboard" navigation.
+const monieCrmDashboardUrl = "https://v2.mab.console.teamapt.com";
 const reportBucket = "moniepoint-reports";
 
 interface WorkerRequest {
