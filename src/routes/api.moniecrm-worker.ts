@@ -229,7 +229,8 @@ function reportTaskPrompt(triggerKind: string) {
   return [
     `Start at the configured MonieCRM login on ${monieCrmHost}.`,
     "Authenticate using the supplied domain-scoped credentials exactly once, following the mandatory authentication safety rules.",
-    "After authentication, navigate inside MonieCRM to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
+    `After authentication, go to ${monieCrmDashboardUrl} in the same session and confirm the authenticated BRM dashboard is loaded.`,
+    "Then navigate inside MonieCRM to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
     timing,
     "Do not summarize, rewrite, calculate, or fabricate any metric. The task is complete only after the original official PDF has been downloaded as an output file.",
   ].join(" ");
