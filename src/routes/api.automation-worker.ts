@@ -873,6 +873,7 @@ function sanitizeError(error: unknown) {
       code?: unknown;
       retryable?: unknown;
       httpStatus?: unknown;
+      diagnostics?: unknown;
     };
     return {
       code:
@@ -890,6 +891,10 @@ function sanitizeError(error: unknown) {
         candidate.httpStatus <= 599
           ? candidate.httpStatus
           : 500,
+      diagnostics:
+        candidate.diagnostics && typeof candidate.diagnostics === "object"
+          ? (candidate.diagnostics as Record<string, unknown>)
+          : null,
     };
   }
   return {
@@ -897,8 +902,10 @@ function sanitizeError(error: unknown) {
     message: "Automation worker failed.",
     retryable: false,
     httpStatus: 500,
+    diagnostics: null,
   };
 }
+
 
 function json(payload: unknown, status: number) {
   return new Response(JSON.stringify(payload), {
