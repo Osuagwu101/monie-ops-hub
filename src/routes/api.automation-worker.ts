@@ -400,6 +400,8 @@ async function stageOfficialReport(
     body: JSON.stringify({
       task: enrichmentTaskPrompt(priorityNames),
       llm: "browser-use-2.0",
+      // Anchor the mirroring stage on the authenticated BRM dashboard in the same session.
+      startUrl: monieCrmDashboardUrl,
       sessionId: context.browserSessionId,
       allowedDomains: context.allowedDomains,
       maxSteps: Math.max(100, priorityNames.length * 10 + 60),
