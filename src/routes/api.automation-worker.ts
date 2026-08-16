@@ -255,11 +255,13 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
   }
 
   if (status.status === "failed" || status.status === "stopped") {
+    const diagnostics = await collectFailureDiagnostics(claim, context, status);
     throw workerError(
       `browser_${status.status}`,
-      `Browser retrieval ended with status ${status.status}.`,
+      failureMessage(`Browser retrieval ended with status ${status.status}.`, diagnostics),
       true,
       502,
+      diagnostics,
     );
   }
 
@@ -269,17 +271,21 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
       "Browser Use returned an unknown task status.",
       true,
       502,
+      { browserStatus: String(status.status).slice(0, 40), workflowStage: context.workflowStage },
     );
   }
 
   if (status.isSuccess === false) {
+    const diagnostics = await collectFailureDiagnostics(claim, context, status);
     throw workerError(
       "browser_unsuccessful",
-      "Browser retrieval finished without a successful result.",
+      failureMessage("Browser retrieval finished without a successful result.", diagnostics),
       true,
       502,
+      diagnostics,
     );
   }
+
 
   const detail = await browserFetch<BrowserTaskDetail>(
     `/tasks/${encodeURIComponent(claim.browserTaskId)}`,
