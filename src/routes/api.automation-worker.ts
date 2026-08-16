@@ -286,7 +286,6 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     );
   }
 
-
   const detail = await browserFetch<BrowserTaskDetail>(
     `/tasks/${encodeURIComponent(claim.browserTaskId)}`,
     claim.browserUseApiKey,
@@ -866,7 +865,6 @@ function failureMessage(prefix: string, diagnostics: Record<string, unknown>) {
   return parts.join(" ").slice(0, 800);
 }
 
-
 function sanitizeError(error: unknown) {
   if (error && typeof error === "object") {
     const candidate = error as Partial<Error> & {
@@ -905,7 +903,6 @@ function sanitizeError(error: unknown) {
     diagnostics: null,
   };
 }
-
 
 function json(payload: unknown, status: number) {
   return new Response(JSON.stringify(payload), {
