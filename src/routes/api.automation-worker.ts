@@ -475,8 +475,11 @@ function reportTaskPrompt(triggerKind: string) {
 function enrichmentTaskPrompt(priorityNames: string[]) {
   const names = JSON.stringify(priorityNames);
   return [
-    "Continue in the already authenticated Moniepoint BRM session.",
-    "First return to the primary BRM dashboard. Capture every visible summary/KPI card exactly as displayed as label/value pairs. Do not calculate, rename, infer, or invent fields.",
+    "Continue in the already authenticated Moniepoint BRM session. Do not sign in again and never submit credentials in this task.",
+    `The session already opens at ${monieCrmDashboardUrl}. Confirm the authenticated BRM dashboard is loaded on that exact host before capturing anything.`,
+    `If you are redirected to a login page, see an authentication error, an MFA/approval challenge, or cannot confirm the session is authenticated, STOP and report the failure. Never fabricate dashboard values.`,
+    "Capture every visible summary/KPI card exactly as displayed as label/value pairs. Do not calculate, rename, infer, or invent fields.",
+    "Set sourceUrl to the exact MonieCRM URL of the dashboard page you captured.",
     `Then open Team Management > Business and search each of these exact BO/business names from the official report: ${names}.`,
     "For each requested name, return the confirmed business name, BO phone number and terminal/business account number shown in that area.",
     "Use status matched only when one clear business result corresponds to the requested name. Use ambiguous when multiple plausible results exist and not_found when there is no confirmed result. Leave unconfirmed phone/account fields null.",
