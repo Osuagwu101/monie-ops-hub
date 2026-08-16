@@ -5,6 +5,8 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 const browserUseBaseUrl = "https://api.browser-use.com/api/v2";
 const monieCrmHost = "v2.mab.console.teamapt.com";
+// Authenticated BRM dashboard anchor used after login and by the mirroring stage.
+const monieCrmDashboardUrl = `https://${monieCrmHost}`;
 
 interface WorkerRequest {
   runId?: string;
@@ -214,7 +216,9 @@ const authSafetyPrompt = [
   "Wait for the password field. Enter the domain-scoped password secret, then submit with Enter or the button whose exact text is Login.",
   "NEVER click Forgot Username, Forgot password, Recover username, account recovery, or any recovery link.",
   "Submit the username/password pair at most ONCE in this task. If Login Failed, invalid credentials, temporarily suspended, an MFA challenge that cannot be completed, or any authentication error appears, STOP immediately. Do not retry credentials.",
-  "After a successful login, continue with the requested report workflow in the same session.",
+  `After a successful login, navigate this same authenticated session to ${monieCrmDashboardUrl} and confirm the authenticated BRM dashboard is loaded before doing anything else.`,
+  "If that dashboard redirects back to login, shows an authentication error, or cannot be confirmed as authenticated, STOP and report the failure. Do not retry credentials and do not invent any data.",
+  "After the dashboard is confirmed, continue with the requested report workflow in the same session.",
 ].join(" ");
 
 function reportTaskPrompt(triggerKind: string) {
@@ -225,7 +229,8 @@ function reportTaskPrompt(triggerKind: string) {
   return [
     `Start at the configured MonieCRM login on ${monieCrmHost}.`,
     "Authenticate using the supplied domain-scoped credentials exactly once, following the mandatory authentication safety rules.",
-    "After authentication, navigate inside MonieCRM to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
+    `After authentication, go to ${monieCrmDashboardUrl} in the same session and confirm the authenticated BRM dashboard is loaded.`,
+    "Then navigate inside MonieCRM to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
     timing,
     "Do not summarize, rewrite, calculate, or fabricate any metric. The task is complete only after the original official PDF has been downloaded as an output file.",
   ].join(" ");

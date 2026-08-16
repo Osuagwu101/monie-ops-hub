@@ -5,6 +5,9 @@ import type { ParsedMoniepointReport, ParsedTerminalRow } from "@/lib/moniepoint
 const cloudUrl = import.meta.env["VITE_SUPABASE_URL"]?.replace(/\/$/, "") ?? "";
 const publishableKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
 const browserUseBaseUrl = "https://api.browser-use.com/api/v2";
+// Authenticated BRM dashboard anchor. The mirroring stage starts here explicitly instead of
+// relying on natural-language "return to dashboard" navigation.
+const monieCrmDashboardUrl = "https://v2.mab.console.teamapt.com";
 const reportBucket = "moniepoint-reports";
 
 interface WorkerRequest {
@@ -397,6 +400,8 @@ async function stageOfficialReport(
     body: JSON.stringify({
       task: enrichmentTaskPrompt(priorityNames),
       llm: "browser-use-2.0",
+      // Anchor the mirroring stage on the authenticated BRM dashboard in the same session.
+      startUrl: monieCrmDashboardUrl,
       sessionId: context.browserSessionId,
       allowedDomains: context.allowedDomains,
       maxSteps: Math.max(100, priorityNames.length * 10 + 60),
@@ -470,8 +475,11 @@ function reportTaskPrompt(triggerKind: string) {
 function enrichmentTaskPrompt(priorityNames: string[]) {
   const names = JSON.stringify(priorityNames);
   return [
-    "Continue in the already authenticated Moniepoint BRM session.",
-    "First return to the primary BRM dashboard. Capture every visible summary/KPI card exactly as displayed as label/value pairs. Do not calculate, rename, infer, or invent fields.",
+    "Continue in the already authenticated Moniepoint BRM session. Do not sign in again and never submit credentials in this task.",
+    `The session already opens at ${monieCrmDashboardUrl}. Confirm the authenticated BRM dashboard is loaded on that exact host before capturing anything.`,
+    `If you are redirected to a login page, see an authentication error, an MFA/approval challenge, or cannot confirm the session is authenticated, STOP and report the failure. Never fabricate dashboard values.`,
+    "Capture every visible summary/KPI card exactly as displayed as label/value pairs. Do not calculate, rename, infer, or invent fields.",
+    "Set sourceUrl to the exact MonieCRM URL of the dashboard page you captured.",
     `Then open Team Management > Business and search each of these exact BO/business names from the official report: ${names}.`,
     "For each requested name, return the confirmed business name, BO phone number and terminal/business account number shown in that area.",
     "Use status matched only when one clear business result corresponds to the requested name. Use ambiguous when multiple plausible results exist and not_found when there is no confirmed result. Leave unconfirmed phone/account fields null.",
