@@ -152,7 +152,7 @@ async function handleWorkerRequest(request: Request) {
         p_error_code: safe.code,
         p_error_message: safe.message,
         p_retryable: safe.retryable,
-        p_diagnostics: { stage: body.action },
+        p_diagnostics: safe.diagnostics ?? { stage: body.action },
       });
     } catch (markError) {
       console.error("Could not persist automation failure", {
