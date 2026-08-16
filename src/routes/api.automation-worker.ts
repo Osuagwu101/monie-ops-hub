@@ -765,9 +765,107 @@ function isUuid(value: unknown): value is string {
   );
 }
 
-function workerError(code: string, message: string, retryable: boolean, httpStatus: number) {
-  return Object.assign(new Error(message), { code, retryable, httpStatus });
+function workerError(
+  code: string,
+  message: string,
+  retryable: boolean,
+  httpStatus: number,
+  diagnostics?: Record<string, unknown>,
+) {
+  return Object.assign(new Error(message), { code, retryable, httpStatus, diagnostics });
 }
+
+// Sanitized, non-secret text: collapse whitespace, drop anything that looks like a
+// credential/token/key value, and hard-truncate. Never store DOM field values.
+function safeText(value: unknown, limit: number) {
+  if (typeof value !== "string") return null;
+  const cleaned = value
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\b[A-Za-z0-9._-]{40,}\b/g, "[redacted]")
+    .replace(/(password|passwd|secret|token|api[_-]?key|bearer)\s*[:=]?\s*\S+/gi, "$1 [redacted]")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return cleaned ? cleaned.slice(0, limit) : null;
+}
+
+function safeUrl(value: unknown) {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    // Path only: query strings can carry tokens.
+    return `${url.origin}${url.pathname}`.slice(0, 200);
+  } catch {
+    return null;
+  }
+}
+
+interface BrowserTaskStep {
+  number?: number;
+  url?: string;
+  evaluationPreviousGoal?: string;
+  nextGoal?: string;
+}
+
+// Fetches the Browser Use task detail for an unsuccessful/failed/stopped task so the
+// final reason is preserved instead of being discarded. Screenshots, action payloads
+// (which contain typed field values) and secrets are deliberately never read.
+async function collectFailureDiagnostics(
+  claim: PollClaim,
+  context: AutomationContext,
+  status: BrowserTaskStatus,
+): Promise<Record<string, unknown>> {
+  const base: Record<string, unknown> = {
+    stage: "poll",
+    workflowStage: context.workflowStage,
+    browserStatus: status.status,
+    browserIsSuccess: status.isSuccess,
+    browserFinishedAt: status.finishedAt,
+    browserCost: status.cost,
+    browserTaskId: claim.browserTaskId,
+    browserSessionId: context.browserSessionId,
+  };
+
+  try {
+    const detail = await browserFetch<BrowserTaskDetail & { steps?: BrowserTaskStep[] }>(
+      `/tasks/${encodeURIComponent(claim.browserTaskId)}`,
+      claim.browserUseApiKey,
+    );
+    const steps = Array.isArray(detail.steps) ? detail.steps : [];
+    const lastStep = [...steps]
+      .reverse()
+      .find((step) => safeText(step.nextGoal ?? step.evaluationPreviousGoal, 1) !== null);
+
+    base["browserFinalOutput"] = safeText(detail.output ?? status.output, 600);
+    base["browserStepCount"] = steps.length;
+    base["browserLastUrl"] = safeUrl(lastStep?.url ?? steps[steps.length - 1]?.url);
+    base["browserLastStepNumber"] =
+      typeof lastStep?.number === "number" ? lastStep.number : steps.length || null;
+    base["browserLastStepSummary"] = safeText(
+      lastStep?.evaluationPreviousGoal ?? lastStep?.nextGoal,
+      400,
+    );
+    base["browserOutputFileCount"] = Array.isArray(detail.outputFiles)
+      ? detail.outputFiles.length
+      : 0;
+    base["browserDiagnosticsCaptured"] = true;
+  } catch (error) {
+    base["browserFinalOutput"] = safeText(status.output, 600);
+    base["browserDiagnosticsCaptured"] = false;
+    base["browserDiagnosticsError"] = safeText(sanitizeError(error).code, 100);
+  }
+
+  return base;
+}
+
+function failureMessage(prefix: string, diagnostics: Record<string, unknown>) {
+  const reason = diagnostics["browserFinalOutput"] ?? diagnostics["browserLastStepSummary"];
+  const url = diagnostics["browserLastUrl"];
+  const parts = [prefix];
+  if (typeof reason === "string" && reason) parts.push(`Reason: ${reason}`);
+  if (typeof url === "string" && url) parts.push(`Last page: ${url}`);
+  return parts.join(" ").slice(0, 800);
+}
+
 
 function sanitizeError(error: unknown) {
   if (error && typeof error === "object") {
