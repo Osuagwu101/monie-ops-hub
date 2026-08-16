@@ -214,7 +214,9 @@ const authSafetyPrompt = [
   "Wait for the password field. Enter the domain-scoped password secret, then submit with Enter or the button whose exact text is Login.",
   "NEVER click Forgot Username, Forgot password, Recover username, account recovery, or any recovery link.",
   "Submit the username/password pair at most ONCE in this task. If Login Failed, invalid credentials, temporarily suspended, an MFA challenge that cannot be completed, or any authentication error appears, STOP immediately. Do not retry credentials.",
-  "After a successful login, continue with the requested report workflow in the same session.",
+  `After a successful login, navigate this same authenticated session to ${monieCrmDashboardUrl} and confirm the authenticated BRM dashboard is loaded before doing anything else.`,
+  "If that dashboard redirects back to login, shows an authentication error, or cannot be confirmed as authenticated, STOP and report the failure. Do not retry credentials and do not invent any data.",
+  "After the dashboard is confirmed, continue with the requested report workflow in the same session.",
 ].join(" ");
 
 function reportTaskPrompt(triggerKind: string) {
