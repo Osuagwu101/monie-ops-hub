@@ -1,0 +1,47 @@
+name: Build BRM Report Enricher Extension
+
+on:
+  push:
+    branches:
+      - feature/brm-report-enricher-extension
+    paths:
+      - 'brm-report-enricher-extension/**'
+      - '.github/workflows/brm-extension-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: brm-report-enricher-extension/package.json
+      - name: Install dependencies
+        working-directory: brm-report-enricher-extension
+        run: npm install --no-audit --no-fund
+      - name: Static checks and unit tests
+        working-directory: brm-report-enricher-extension
+        run: |
+          npm run check
+          npm test
+      - name: Build extension variants
+        working-directory: brm-report-enricher-extension
+        run: npm run build
+      - name: Package Chromium
+        working-directory: brm-report-enricher-extension/dist/chromium
+        run: zip -r ../BRM-Report-Enricher-Chromium.zip .
+      - name: Package Firefox
+        working-directory: brm-report-enricher-extension/dist/firefox
+        run: zip -r ../BRM-Report-Enricher-Firefox-Unsigned.zip .
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: BRM-Report-Enricher-Extension
+          path: |
+            brm-report-enricher-extension/dist/BRM-Report-Enricher-Chromium.zip
+            brm-report-enricher-extension/dist/BRM-Report-Enricher-Firefox-Unsigned.zip
+          if-no-files-found: error
