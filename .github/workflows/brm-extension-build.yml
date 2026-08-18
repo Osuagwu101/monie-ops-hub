@@ -7,6 +7,12 @@ on:
     paths:
       - 'brm-report-enricher-extension/**'
       - '.github/workflows/brm-extension-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'brm-report-enricher-extension/**'
+      - '.github/workflows/brm-extension-build.yml'
   workflow_dispatch:
 
 jobs:
