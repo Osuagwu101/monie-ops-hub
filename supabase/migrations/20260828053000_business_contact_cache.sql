@@ -143,4 +143,5 @@ begin
 end;
 $$;
 
+revoke all on function public.upsert_verified_business_contacts(jsonb, date, text) from public, anon, authenticated;
 grant execute on function public.upsert_verified_business_contacts(jsonb, date, text) to service_role;
