@@ -1,4 +1,4 @@
-export const MONIEPOINT_PARSER_VERSION = "brm-daily-report-v2";
+export const MONIEPOINT_PARSER_VERSION = "brm-daily-report-v3";
 
 export type ReportTerminalSection = "daily" | "rolling_7_day" | "non_transacting";
 
@@ -508,16 +508,16 @@ function buildChecks(summary: MoniepointReportSummary, rows: ParsedTerminalRow[]
   if (dailyRows.length === summary.assignedTerminalCount) {
     pass(`Daily section contains all ${dailyRows.length} assigned terminals.`);
   } else {
-    error(
-      `Daily section has ${dailyRows.length} rows but the report summary says ${summary.assignedTerminalCount} assigned terminals.`,
+    warning(
+      `Reconciliation review: Daily section has ${dailyRows.length} rows but the report summary says ${summary.assignedTerminalCount} assigned terminals. Parsed terminal records will be imported; missing identities are not fabricated.`,
     );
   }
 
   if (rollingRows.length === summary.assignedTerminalCount) {
     pass(`Rolling 7-day section contains all ${rollingRows.length} assigned terminals.`);
   } else {
-    error(
-      `Rolling 7-day section has ${rollingRows.length} rows but the report summary says ${summary.assignedTerminalCount} assigned terminals.`,
+    warning(
+      `Reconciliation review: Rolling 7-day section has ${rollingRows.length} rows but the report summary says ${summary.assignedTerminalCount} assigned terminals. Parsed terminal records will be imported; missing identities are not fabricated.`,
     );
   }
 
@@ -535,7 +535,7 @@ function buildChecks(summary: MoniepointReportSummary, rows: ParsedTerminalRow[]
   if (sameTerminalSet) {
     pass("Daily and rolling sections cover the same terminal set.");
   } else {
-    error("Daily and rolling sections do not contain the same terminal IDs.");
+    warning("Reconciliation review: daily and rolling sections do not contain the same terminal IDs. Tasks use only the relevant verified report section.");
   }
 
   if (rollingTargetMetCount === summary.activeAssignedSevenPlusDaysCount) {
