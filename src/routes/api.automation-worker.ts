@@ -447,20 +447,25 @@ async function finishEnrichment(
   context: AutomationContext,
   bridgeToken: string,
 ) {
-  const output = parseEnrichmentOutput(detail.output);
-  await rpc("finalize_moniepoint_enrichment", {
-    p_token: bridgeToken,
-    p_run_id: claim.runId,
-    p_contacts: output.businesses,
-    p_dashboard: {
-      capturedAt: output.capturedAt,
-      metrics: output.dashboard.metrics,
-    },
-    p_source_url: output.sourceUrl,
-  });
-
-  if (context.browserSessionId) {
-    await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+  // The profile's cookies and local storage are persisted only when the Browser Use session
+  // ends cleanly. Always stop the session after a terminal enrichment attempt, including
+  // when database finalisation fails, so the next profile-first run can reuse the session.
+  try {
+    const output = parseEnrichmentOutput(detail.output);
+    await rpc("finalize_moniepoint_enrichment", {
+      p_token: bridgeToken,
+      p_run_id: claim.runId,
+      p_contacts: output.businesses,
+      p_dashboard: {
+        capturedAt: output.capturedAt,
+        metrics: output.dashboard.metrics,
+      },
+      p_source_url: output.sourceUrl,
+    });
+  } finally {
+    if (context.browserSessionId) {
+      await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+    }
   }
 }
 
