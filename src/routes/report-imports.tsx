@@ -87,6 +87,10 @@ function ReportImportsPage() {
     () => parsed?.report.rollingRows.filter((row) => row.officialTargetMet).length ?? 0,
     [parsed],
   );
+  const hasReconciliationWarning = useMemo(
+    () => parsed?.report.checks.some((check) => check.level === "warning") ?? false,
+    [parsed],
+  );
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -218,8 +222,8 @@ function ReportImportsPage() {
               <FileUp className="h-5 w-5 text-primary" /> Import official PDF
             </CardTitle>
             <CardDescription>
-              Maximum 15 MB. The parser will refuse import if the terminal sections do not reconcile
-              with the report summary.
+              Maximum 15 MB. The parser preserves valid rows and flags any source-section mismatch for
+              reconciliation review; it never fabricates missing terminal identities.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -255,8 +259,12 @@ function ReportImportsPage() {
               <div className="space-y-3 rounded-lg border bg-muted/20 p-4 text-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">{parsed.file.name}</span>
-                  <Badge variant={parsed.report.canImport ? "secondary" : "destructive"}>
-                    {parsed.report.canImport ? "Validated" : "Blocked"}
+                  <Badge variant={parsed.report.canImport ? (hasReconciliationWarning ? "outline" : "secondary") : "destructive"}>
+                    {parsed.report.canImport
+                      ? hasReconciliationWarning
+                        ? "Reconciliation review"
+                        : "Validated"
+                      : "Blocked"}
                   </Badge>
                 </div>
                 <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
