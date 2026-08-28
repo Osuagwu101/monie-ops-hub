@@ -296,7 +296,16 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     return;
   }
 
-  await stageOfficialReport(detail, claim, context, bridgeToken);
+  try {
+    await stageOfficialReport(detail, claim, context, bridgeToken);
+  } catch (error) {
+    // A report-stage failure is terminal for this run. Stop the session so Browser Use
+    // commits the persistent profile state instead of leaving a stale active session.
+    if (context.browserSessionId) {
+      await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+    }
+    throw error;
+  }
 }
 
 async function stageOfficialReport(
