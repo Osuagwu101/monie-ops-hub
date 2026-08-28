@@ -51,8 +51,6 @@ alter table public.business_contact_lookup_audit enable row level security;
 
 revoke all on public.business_contacts, public.business_contact_terminal_links,
   public.business_contact_lookup_audit from anon, authenticated;
-revoke all on function public.upsert_verified_business_contacts(jsonb, date, text) from public, anon, authenticated;
-
 create or replace function public.business_contacts_set_updated_at()
 returns trigger
 language plpgsql
