@@ -251,6 +251,8 @@ function AutomationPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
+      <ReportBootstrapPanel />
       {message && !error && (
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
