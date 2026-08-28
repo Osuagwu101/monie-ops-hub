@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1117,6 +1117,79 @@ export type Database = {
           },
         ]
       }
+      report_contact_resolutions: {
+        Row: {
+          account_number: string | null
+          business_name: string
+          created_at: string
+          id: string
+          merchant_id: string | null
+          phone_number: string | null
+          report_id: string
+          resolution_reason: string
+          resolution_status: string
+          task_created: boolean
+          terminal_external_id: string
+          terminal_id: string | null
+          terminal_serial: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          business_name: string
+          created_at?: string
+          id?: string
+          merchant_id?: string | null
+          phone_number?: string | null
+          report_id: string
+          resolution_reason: string
+          resolution_status: string
+          task_created?: boolean
+          terminal_external_id: string
+          terminal_id?: string | null
+          terminal_serial?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          business_name?: string
+          created_at?: string
+          id?: string
+          merchant_id?: string | null
+          phone_number?: string | null
+          report_id?: string
+          resolution_reason?: string
+          resolution_status?: string
+          task_created?: boolean
+          terminal_external_id?: string
+          terminal_id?: string | null
+          terminal_serial?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_contact_resolutions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_contact_resolutions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_contact_resolutions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_imports: {
         Row: {
           brm_name: string | null
@@ -1785,6 +1858,10 @@ export type Database = {
         }
         Returns: Json
       }
+      bootstrap_manual_report: {
+        Args: { p_assigned_to?: string; p_report_id: string }
+        Returns: Json
+      }
       create_staff_invite: {
         Args: { p_email: string; p_full_name: string }
         Returns: Json
@@ -1822,6 +1899,7 @@ export type Database = {
         Returns: boolean
       }
       lagos_time_to_cron: { Args: { p_time: string }; Returns: string }
+      manual_report_bootstrap_status: { Args: never; Returns: Json }
       materialize_meeting_occurrences: {
         Args: { p_days?: number; p_start_date?: string }
         Returns: number
