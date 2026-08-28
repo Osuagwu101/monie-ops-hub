@@ -5,7 +5,6 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 const browserUseBaseUrl = "https://api.browser-use.com/api/v2";
 const monieCrmHost = "v2.mab.console.teamapt.com";
-// Authenticated BRM dashboard anchor used after login and by the mirroring stage.
 const monieCrmDashboardUrl = `https://${monieCrmHost}`;
 
 interface WorkerRequest {
@@ -68,7 +67,7 @@ async function handleRequest(request: Request) {
   }
 
   // The established worker owns polling, immutable PDF import and Team Management enrichment.
-  // This route only replaces the fragile login/dispatch stage.
+  // This route owns only the safer profile-first login/dispatch stage.
   if (body.action === "poll") {
     return proxyLegacyPoll(request, bridgeToken, body.runId);
   }
@@ -95,7 +94,7 @@ async function handleRequest(request: Request) {
         p_error_code: safe.code,
         p_error_message: safe.message,
         p_retryable: false,
-        p_diagnostics: { stage: "execute", authSafety: "single_attempt" },
+        p_diagnostics: { stage: "execute", authSafety: "profile_first_single_attempt" },
       });
     } catch (markError) {
       console.error("Could not persist MonieCRM dispatch failure", {
@@ -134,17 +133,17 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
     });
   }
 
+  // Start from the authenticated destination, not /login. If the stored profile is still valid,
+  // MonieCRM opens directly. Only an expired/missing session should redirect the browser to login.
   const session = await browserFetch<BrowserSessionCreated>("/sessions", claim.browserUseApiKey, {
     method: "POST",
     body: JSON.stringify({
-      startUrl: claim.loginUrl,
+      startUrl: monieCrmDashboardUrl,
       profileId,
       persistMemory: true,
       keepAlive: true,
       enableRecording: false,
-      // Explicitly pass the configured location. Omitting this field makes Browser Use default
-      // to a US proxy, which is inappropriate for this Nigeria-based MonieCRM account.
-      proxyCountryCode: claim.proxyCountryCode,
+      proxyCountryCode: claim.proxyCountryCode ?? "ng",
     }),
   });
   if (!isUuid(session.id)) {
@@ -156,10 +155,12 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
     );
   }
 
-  const credentialValue = `${claim.moniepointUsername}:${claim.moniepointPassword}`;
-  const secrets = Object.fromEntries(
-    claim.allowedDomains.map((domain) => [domain.replace(/^\*\./, ""), credentialValue]),
-  );
+  // Browser Use secrets are named values. Keeping username and password separate lets the agent
+  // inject each value into the correct field without exposing either value in the prompt/logs.
+  const secrets = {
+    MONIECRM_USERNAME: claim.moniepointUsername,
+    MONIECRM_PASSWORD: claim.moniepointPassword,
+  };
 
   try {
     const task = await browserFetch<BrowserTaskCreated>("/tasks", claim.browserUseApiKey, {
@@ -167,14 +168,14 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
       body: JSON.stringify({
         task: reportTaskPrompt(claim.triggerKind),
         llm: "browser-use-2.0",
-        startUrl: claim.loginUrl,
+        startUrl: monieCrmDashboardUrl,
         sessionId: session.id,
         maxSteps: claim.maxSteps,
         metadata: {
           source: "monie-ops-hub",
           runId: claim.runId,
           trigger: claim.triggerKind,
-          authMode: "moniecrm-single-attempt-profile",
+          authMode: "moniecrm-profile-first-single-attempt",
         },
         secrets,
         allowedDomains: claim.allowedDomains,
@@ -203,6 +204,7 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
       p_browser_session_id: session.id,
     });
   } catch (error) {
+    // Browser Use persists profile cookies/local storage when the session is stopped.
     await stopBrowserSession(session.id, claim.browserUseApiKey);
     throw error;
   }
@@ -211,13 +213,16 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
 const authSafetyPrompt = [
   "MONIECRM AUTHENTICATION SAFETY RULES ARE MANDATORY.",
   `Use only https://${monieCrmHost} and its allowed subpaths. Never search the web and never navigate to atm.moniepoint.com, moniepoint.com, or another login realm.`,
+  `Begin at ${monieCrmDashboardUrl}. First determine whether the saved browser profile is already authenticated.`,
+  "If the BRM dashboard is already visible, DO NOT navigate to login and DO NOT enter credentials. Continue directly to the report workflow.",
+  "Only if MonieCRM itself redirects this session to its login page may you authenticate.",
   "If a location-access page appears, continue to the login page without leaving the configured host.",
-  "Choose the Username login tab. Enter the domain-scoped username secret, then submit with Enter or the button whose exact text is Next.",
-  "Wait for the password field. Enter the domain-scoped password secret, then submit with Enter or the button whose exact text is Login.",
+  "Choose the Username login tab. Enter the secret named MONIECRM_USERNAME, then submit with Enter or the button whose exact text is Next.",
+  "Wait for the password field. Enter the secret named MONIECRM_PASSWORD, then submit with Enter or the button whose exact text is Login.",
   "NEVER click Forgot Username, Forgot password, Recover username, account recovery, or any recovery link.",
   "Submit the username/password pair at most ONCE in this task. If Login Failed, invalid credentials, temporarily suspended, an MFA challenge that cannot be completed, or any authentication error appears, STOP immediately. Do not retry credentials.",
-  `After a successful login, navigate this same authenticated session to ${monieCrmDashboardUrl} and confirm the authenticated BRM dashboard is loaded before doing anything else.`,
-  "If that dashboard redirects back to login, shows an authentication error, or cannot be confirmed as authenticated, STOP and report the failure. Do not retry credentials and do not invent any data.",
+  `After login, confirm ${monieCrmDashboardUrl} is authenticated before doing anything else.`,
+  "If the dashboard redirects back to login, shows an authentication error, or cannot be confirmed as authenticated, STOP and report the failure. Do not retry credentials and do not invent any data.",
   "After the dashboard is confirmed, continue with the requested report workflow in the same session.",
 ].join(" ");
 
@@ -227,9 +232,9 @@ function reportTaskPrompt(triggerKind: string) {
       ? "Use the latest completed report appropriate for closing the previous day's verification window."
       : "Use the latest official BRM performance report available at this moment.";
   return [
-    `Start at the configured MonieCRM login on ${monieCrmHost}.`,
-    "Authenticate using the supplied domain-scoped credentials exactly once, following the mandatory authentication safety rules.",
-    `After authentication, go to ${monieCrmDashboardUrl} in the same session and confirm the authenticated BRM dashboard is loaded.`,
+    `Begin at ${monieCrmDashboardUrl} using the persistent browser profile.`,
+    "If the profile is already authenticated, do not sign in again. If MonieCRM redirects to login, authenticate exactly once with the named MONIECRM_USERNAME and MONIECRM_PASSWORD secrets and the mandatory safety rules.",
+    `Confirm the authenticated BRM dashboard is loaded on ${monieCrmHost}.`,
     "Then navigate inside MonieCRM to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
     timing,
     "Do not summarize, rewrite, calculate, or fabricate any metric. The task is complete only after the original official PDF has been downloaded as an output file.",
