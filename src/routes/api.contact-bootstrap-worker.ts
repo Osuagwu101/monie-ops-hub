@@ -100,7 +100,7 @@ interface ApplyResult {
   nextBatch: BatchItem[];
 }
 
-export const Route = createFileRoute("/api/contact-bootstrap-worker")({
+export const Route = createFileRoute("/api/contact-bootstrap-worker" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => handleRequest(request),
