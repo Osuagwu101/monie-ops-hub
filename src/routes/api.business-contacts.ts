@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const cloudUrl = process.env.SUPABASE_URL?.replace(/\/$/, "") ?? import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "") ?? "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const importToken = process.env.MONIE_CONTACT_IMPORT_TOKEN ?? "";
+const cloudUrl = process.env["SUPABASE_URL"]?.replace(/\/$/, "") ?? import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "") ?? "";
+const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
+const importToken = process.env["MONIE_CONTACT_IMPORT_TOKEN"] ?? "";
 
 type MatchMethod = "EXACT_NAME_AND_TERMINAL" | "EXACT_NAME_SINGLE_POS" | "MANUAL_VERIFIED";
 
