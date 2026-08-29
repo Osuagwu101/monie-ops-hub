@@ -313,7 +313,7 @@ async function createBatchTask(
       allowedDomains,
       maxSteps: Math.min(320, Math.max(120, batch.length * 10 + 80)),
       structuredOutput: JSON.stringify(batchSchema),
-      metadata: { source: "monie-ops-hub", runId, stage: "contact-vault-bootstrap", offset },
+      metadata: { source: "monie-ops-hub", runId, stage: "contact-vault-bootstrap", offset: String(offset) },
       highlightElements: false,
       flashMode: false,
       thinking: false,
