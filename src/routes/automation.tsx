@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ReportBootstrapPanel } from "@/components/report-bootstrap-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -264,6 +265,7 @@ function AutomationPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+      <ReportBootstrapPanel />
       {message && !error && (
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
