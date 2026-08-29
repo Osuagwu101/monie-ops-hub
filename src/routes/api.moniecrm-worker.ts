@@ -203,6 +203,11 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
       p_browser_task_id: task.id,
       p_browser_session_id: session.id,
     });
+    await updateAutomationAuthState(
+      bridgeToken,
+      "checking",
+      "Checking the saved MonieCRM browser session.",
+    );
   } catch (error) {
     // Browser Use persists profile cookies/local storage when the session is stopped.
     await stopBrowserSession(session.id, claim.browserUseApiKey);
@@ -291,6 +296,25 @@ function assertMonieCrmScope(loginUrl: string, allowedDomains: string[]) {
       false,
       422,
     );
+  }
+}
+
+async function updateAutomationAuthState(
+  bridgeToken: string,
+  state: "checking" | "authenticated" | "reauth_required" | "blocked",
+  message: string,
+) {
+  try {
+    await rpc("automation_set_auth_state", {
+      p_token: bridgeToken,
+      p_state: state,
+      p_message: message,
+    });
+  } catch (error) {
+    console.warn("Could not update MonieCRM authentication state", {
+      state,
+      message: sanitizeError(error).message,
+    });
   }
 }
 

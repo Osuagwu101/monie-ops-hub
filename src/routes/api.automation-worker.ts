@@ -138,6 +138,14 @@ async function handleWorkerRequest(request: Request) {
     return json({ ok: true, runId: body.runId, action: body.action }, 202);
   } catch (error) {
     const safe = sanitizeError(error);
+    const authFailure = authStateFromFailure(safe);
+    if (authFailure) {
+      await updateAutomationAuthState(
+        bridgeToken,
+        authFailure.state,
+        authFailure.message,
+      );
+    }
     console.error("Automation worker failed", {
       runId: body.runId,
       action: body.action,
@@ -324,6 +332,12 @@ async function stageOfficialReport(
     );
   }
 
+  await updateAutomationAuthState(
+    bridgeToken,
+    "authenticated",
+    "MonieCRM session verified by a successful official PDF retrieval.",
+  );
+
   const output = await browserFetch<BrowserOutputFile>(
     `/files/tasks/${encodeURIComponent(claim.browserTaskId)}/output-files/${encodeURIComponent(pdf.id)}`,
     claim.browserUseApiKey,
@@ -471,6 +485,11 @@ async function finishEnrichment(
       },
       p_source_url: output.sourceUrl,
     });
+    await updateAutomationAuthState(
+      bridgeToken,
+      "authenticated",
+      "MonieCRM session verified and Team Management enrichment completed.",
+    );
   } finally {
     if (context.browserSessionId) {
       await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
@@ -868,6 +887,68 @@ async function collectFailureDiagnostics(
   }
 
   return base;
+}
+
+type AutomationAuthState = "checking" | "authenticated" | "reauth_required" | "blocked";
+
+function authStateFromFailure(error: {
+  code: string;
+  message: string;
+  diagnostics: Record<string, unknown> | null;
+}) {
+  const evidence = `${error.code} ${error.message} ${JSON.stringify(error.diagnostics ?? {})}`.toLowerCase();
+  const blocked = [
+    "temporarily suspended",
+    "account suspended",
+    "account locked",
+    "temporarily locked",
+    "account blocked",
+  ].some((marker) => evidence.includes(marker));
+  if (blocked) {
+    return {
+      state: "blocked" as const,
+      message: "MonieCRM reported that the account is suspended, locked or blocked. Scheduled retrieval was paused to prevent further attempts.",
+    };
+  }
+
+  const reauth = [
+    "auth-v2/login",
+    "/login",
+    "sign in",
+    "log in",
+    "login page",
+    "authentication error",
+    "session expired",
+    "mfa",
+    "verification challenge",
+    "credentials",
+  ].some((marker) => evidence.includes(marker));
+  if (reauth) {
+    return {
+      state: "reauth_required" as const,
+      message: "The saved MonieCRM session has expired or requires interactive verification. Scheduled retrieval was paused after the single safe attempt.",
+    };
+  }
+  return null;
+}
+
+async function updateAutomationAuthState(
+  bridgeToken: string,
+  state: AutomationAuthState,
+  message: string,
+) {
+  try {
+    await rpc("automation_set_auth_state", {
+      p_token: bridgeToken,
+      p_state: state,
+      p_message: message,
+    });
+  } catch (error) {
+    console.warn("Could not update MonieCRM authentication state", {
+      state,
+      message: sanitizeError(error).message,
+    });
+  }
 }
 
 function failureMessage(prefix: string, diagnostics: Record<string, unknown>) {
