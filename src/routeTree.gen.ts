@@ -20,6 +20,7 @@ import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ReportImportsRouteImport } from './routes/report-imports'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ApiAutomationWorkerRouteImport } from './routes/api.automation-worker'
+import { Route as ApiBusinessContactsRouteImport } from './routes/api.business-contacts'
 import { Route as ApiMeetingNotificationsRouteImport } from './routes/api.meeting-notifications'
 import { Route as ApiMoniecrmWorkerRouteImport } from './routes/api.moniecrm-worker'
 
@@ -73,6 +74,11 @@ const StaffRoute = StaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBusinessContactsRoute = ApiBusinessContactsRouteImport.update({
+  id: '/api/business-contacts',
+  path: '/api/business-contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAutomationWorkerRoute = ApiAutomationWorkerRouteImport.update({
   id: '/api/automation-worker',
   path: '/api/automation-worker',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
   '/staff': typeof StaffRoute
+  '/api/business-contacts': typeof ApiBusinessContactsRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
   '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
   '/staff': typeof StaffRoute
+  '/api/business-contacts': typeof ApiBusinessContactsRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
   '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/readiness': typeof ReadinessRoute
   '/report-imports': typeof ReportImportsRoute
   '/staff': typeof StaffRoute
+  '/api/business-contacts': typeof ApiBusinessContactsRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
   '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/report-imports'
     | '/staff'
+    | '/api/business-contacts'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
     | '/api/moniecrm-worker'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/report-imports'
     | '/staff'
+    | '/api/business-contacts'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
     | '/api/moniecrm-worker'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/report-imports'
     | '/staff'
+    | '/api/business-contacts'
     | '/api/automation-worker'
     | '/api/meeting-notifications'
     | '/api/moniecrm-worker'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   ReadinessRoute: typeof ReadinessRoute
   ReportImportsRoute: typeof ReportImportsRoute
   StaffRoute: typeof StaffRoute
+  ApiBusinessContactsRoute: typeof ApiBusinessContactsRoute
   ApiAutomationWorkerRoute: typeof ApiAutomationWorkerRoute
   ApiMeetingNotificationsRoute: typeof ApiMeetingNotificationsRoute
   ApiMoniecrmWorkerRoute: typeof ApiMoniecrmWorkerRoute
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/business-contacts': {
+      id: '/api/business-contacts'
+      path: '/api/business-contacts'
+      fullPath: '/api/business-contacts'
+      preLoaderRoute: typeof ApiBusinessContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/automation-worker': {
       id: '/api/automation-worker'
       path: '/api/automation-worker'
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReadinessRoute: ReadinessRoute,
   ReportImportsRoute: ReportImportsRoute,
   StaffRoute: StaffRoute,
+  ApiBusinessContactsRoute: ApiBusinessContactsRoute,
   ApiAutomationWorkerRoute: ApiAutomationWorkerRoute,
   ApiMeetingNotificationsRoute: ApiMeetingNotificationsRoute,
   ApiMoniecrmWorkerRoute: ApiMoniecrmWorkerRoute,

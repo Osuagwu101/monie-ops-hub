@@ -35,3 +35,22 @@ depending on natural-language "return to dashboard" navigation.
 
 - `src/routes/api.moniecrm-worker.ts`
 - `src/routes/api.automation-worker.ts`
+
+
+## Production report route captured — 29 Aug 2026
+
+The authenticated production report page and its download contract were verified from the live
+MonieCRM UI and the production MonieCRM application bundle:
+
+- report page: `/main-app/moniecrm/reports/overview`;
+- exact UI control: `Download Report`;
+- request path: `/report/api/v1/reports/daily/download`;
+- query parameter: `report_date` formatted as `DD-MM-YYYY`;
+- the page supplies the previous day's date automatically;
+- the control remains disabled until 8:30 a.m. and the worker must stop cleanly when it is not yet
+  available.
+
+The Browser Use task now opens the exact report page after dashboard authentication and clicks only
+the exact Download Report control once. It does not navigate directly to an API host or construct
+the authenticated request itself, so session headers remain inside MonieCRM and the wrong ATM login
+realm is still excluded from agent navigation.

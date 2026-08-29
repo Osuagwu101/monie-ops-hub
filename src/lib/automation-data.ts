@@ -7,6 +7,10 @@ export interface AutomationConfigRecord {
   moniepoint_login_url: string | null;
   allowed_domains: string[];
   proxy_country_code: string | null;
+  browser_profile_id: string | null;
+  auth_state: "unknown" | "checking" | "authenticated" | "reauth_required" | "blocked";
+  auth_state_checked_at: string | null;
+  auth_state_message: string | null;
   max_steps: number;
   max_attempts: number;
   retry_backoff_minutes: number;
