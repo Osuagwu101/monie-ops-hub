@@ -275,7 +275,9 @@ function AutomationPage() {
       {authNeedsAttention && (
         <Alert variant="destructive">
           <KeyRound className="h-4 w-4" />
-          <AlertTitle>{authState === "blocked" ? "MonieCRM account blocked" : "MonieCRM sign-in required"}</AlertTitle>
+          <AlertTitle>
+            {authState === "blocked" ? "MonieCRM account blocked" : "MonieCRM sign-in required"}
+          </AlertTitle>
           <AlertDescription>
             {configQuery.data?.auth_state_message ??
               "The saved MonieCRM session is no longer usable. Scheduled retrieval has been paused to protect the account. Sign in once, then run retrieval again."}

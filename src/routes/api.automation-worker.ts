@@ -140,11 +140,7 @@ async function handleWorkerRequest(request: Request) {
     const safe = sanitizeError(error);
     const authFailure = authStateFromFailure(safe);
     if (authFailure) {
-      await updateAutomationAuthState(
-        bridgeToken,
-        authFailure.state,
-        authFailure.message,
-      );
+      await updateAutomationAuthState(bridgeToken, authFailure.state, authFailure.message);
     }
     console.error("Automation worker failed", {
       runId: body.runId,
@@ -896,7 +892,8 @@ function authStateFromFailure(error: {
   message: string;
   diagnostics: Record<string, unknown> | null;
 }) {
-  const evidence = `${error.code} ${error.message} ${JSON.stringify(error.diagnostics ?? {})}`.toLowerCase();
+  const evidence =
+    `${error.code} ${error.message} ${JSON.stringify(error.diagnostics ?? {})}`.toLowerCase();
   const blocked = [
     "temporarily suspended",
     "account suspended",
@@ -907,7 +904,8 @@ function authStateFromFailure(error: {
   if (blocked) {
     return {
       state: "blocked" as const,
-      message: "MonieCRM reported that the account is suspended, locked or blocked. Scheduled retrieval was paused to prevent further attempts.",
+      message:
+        "MonieCRM reported that the account is suspended, locked or blocked. Scheduled retrieval was paused to prevent further attempts.",
     };
   }
 
@@ -926,7 +924,8 @@ function authStateFromFailure(error: {
   if (reauth) {
     return {
       state: "reauth_required" as const,
-      message: "The saved MonieCRM session has expired or requires interactive verification. Scheduled retrieval was paused after the single safe attempt.",
+      message:
+        "The saved MonieCRM session has expired or requires interactive verification. Scheduled retrieval was paused after the single safe attempt.",
     };
   }
   return null;
