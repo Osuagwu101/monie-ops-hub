@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
 
 const cloudUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "") ?? "";
@@ -100,7 +101,7 @@ interface ApplyResult {
   nextBatch: BatchItem[];
 }
 
-export const Route = createFileRoute("/api/contact-bootstrap-worker" as any)({
+export const Route = createFileRoute("/api/contact-bootstrap-worker")({
   server: {
     handlers: {
       POST: async ({ request }) => handleRequest(request),
