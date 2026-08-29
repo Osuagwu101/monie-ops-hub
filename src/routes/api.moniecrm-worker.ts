@@ -5,7 +5,9 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 const browserUseBaseUrl = "https://api.browser-use.com/api/v2";
 const monieCrmHost = "v2.mab.console.teamapt.com";
-const monieCrmDashboardUrl = `https://${monieCrmHost}`;
+const monieCrmDashboardUrl = `https://${monieCrmHost}/main-app/moniecrm/dashboard`;
+const monieCrmReportUrl = `https://${monieCrmHost}/main-app/moniecrm/reports/overview`;
+const monieCrmReportDownloadPath = "/report/api/v1/reports/daily/download";
 
 interface WorkerRequest {
   runId?: string;
@@ -176,6 +178,8 @@ async function dispatchMonieCrmTask(claim: ExecuteClaim, bridgeToken: string) {
           runId: claim.runId,
           trigger: claim.triggerKind,
           authMode: "moniecrm-profile-first-single-attempt",
+          reportPage: monieCrmReportUrl,
+          reportDownloadPath: monieCrmReportDownloadPath,
         },
         secrets,
         allowedDomains: claim.allowedDomains,
@@ -240,8 +244,12 @@ function reportTaskPrompt(triggerKind: string) {
     `Begin at ${monieCrmDashboardUrl} using the persistent browser profile.`,
     "If the profile is already authenticated, do not sign in again. If MonieCRM redirects to login, authenticate exactly once with the named MONIECRM_USERNAME and MONIECRM_PASSWORD secrets and the mandatory safety rules.",
     `Confirm the authenticated BRM dashboard is loaded on ${monieCrmHost}.`,
-    "Then navigate inside MonieCRM to the BRM performance/report area and download the original official BRM daily performance report as a PDF output file.",
+    `Open the exact MonieCRM report page ${monieCrmReportUrl} in this same authenticated session.`,
+    "Confirm the page heading is Overview and the page shows the Download Report control.",
+    "Click the button whose exact text is Download Report exactly once. Do not open an API host directly and do not construct a download URL yourself.",
+    `The page uses the official request path ${monieCrmReportDownloadPath} and supplies report_date in DD-MM-YYYY format. Let the MonieCRM page choose the report date and complete the browser download.`,
     timing,
+    "If Download Report is disabled or the page says new reports are unavailable until 8:30am, stop and report report_not_available_yet without clicking another control.",
     "Do not summarize, rewrite, calculate, or fabricate any metric. The task is complete only after the original official PDF has been downloaded as an output file.",
   ].join(" ");
 }
