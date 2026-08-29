@@ -20,6 +20,7 @@ import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ReportImportsRouteImport } from './routes/report-imports'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ApiAutomationWorkerRouteImport } from './routes/api.automation-worker'
+import { Route as ApiContactBootstrapWorkerRouteImport } from './routes/api.contact-bootstrap-worker'
 import { Route as ApiMeetingNotificationsRouteImport } from './routes/api.meeting-notifications'
 import { Route as ApiMoniecrmWorkerRouteImport } from './routes/api.moniecrm-worker'
 
@@ -78,6 +79,11 @@ const ApiAutomationWorkerRoute = ApiAutomationWorkerRouteImport.update({
   path: '/api/automation-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiContactBootstrapWorkerRoute = ApiContactBootstrapWorkerRouteImport.update({
+  id: '/api/contact-bootstrap-worker',
+  path: '/api/contact-bootstrap-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeetingNotificationsRoute = ApiMeetingNotificationsRouteImport.update({
   id: '/api/meeting-notifications',
   path: '/api/meeting-notifications',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/report-imports': typeof ReportImportsRoute
   '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
+  '/api/contact-bootstrap-worker': typeof ApiContactBootstrapWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
   '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/report-imports': typeof ReportImportsRoute
   '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
+  '/api/contact-bootstrap-worker': typeof ApiContactBootstrapWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
   '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/report-imports': typeof ReportImportsRoute
   '/staff': typeof StaffRoute
   '/api/automation-worker': typeof ApiAutomationWorkerRoute
+  '/api/contact-bootstrap-worker': typeof ApiContactBootstrapWorkerRoute
   '/api/meeting-notifications': typeof ApiMeetingNotificationsRoute
   '/api/moniecrm-worker': typeof ApiMoniecrmWorkerRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/report-imports'
     | '/staff'
     | '/api/automation-worker'
+    | '/api/contact-bootstrap-worker'
     | '/api/meeting-notifications'
     | '/api/moniecrm-worker'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/report-imports'
     | '/staff'
     | '/api/automation-worker'
+    | '/api/contact-bootstrap-worker'
     | '/api/meeting-notifications'
     | '/api/moniecrm-worker'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/report-imports'
     | '/staff'
     | '/api/automation-worker'
+    | '/api/contact-bootstrap-worker'
     | '/api/meeting-notifications'
     | '/api/moniecrm-worker'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   ReportImportsRoute: typeof ReportImportsRoute
   StaffRoute: typeof StaffRoute
   ApiAutomationWorkerRoute: typeof ApiAutomationWorkerRoute
+  ApiContactBootstrapWorkerRoute: typeof ApiContactBootstrapWorkerRoute
   ApiMeetingNotificationsRoute: typeof ApiMeetingNotificationsRoute
   ApiMoniecrmWorkerRoute: typeof ApiMoniecrmWorkerRoute
 }
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAutomationWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/contact-bootstrap-worker': {
+      id: '/api/contact-bootstrap-worker'
+      path: '/api/contact-bootstrap-worker'
+      fullPath: '/api/contact-bootstrap-worker'
+      preLoaderRoute: typeof ApiContactBootstrapWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/meeting-notifications': {
       id: '/api/meeting-notifications'
       path: '/api/meeting-notifications'
@@ -307,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportImportsRoute: ReportImportsRoute,
   StaffRoute: StaffRoute,
   ApiAutomationWorkerRoute: ApiAutomationWorkerRoute,
+  ApiContactBootstrapWorkerRoute: ApiContactBootstrapWorkerRoute,
   ApiMeetingNotificationsRoute: ApiMeetingNotificationsRoute,
   ApiMoniecrmWorkerRoute: ApiMoniecrmWorkerRoute,
 }
