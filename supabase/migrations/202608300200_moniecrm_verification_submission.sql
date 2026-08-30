@@ -238,3 +238,71 @@ end;
 $$;
 revoke all on function public.automation_verification_challenge_status() from public, anon;
 grant execute on function public.automation_verification_challenge_status() to authenticated;
+
+-- Future worker-side handoff. This is deliberately the only path that can
+-- retrieve the submitted code: it requires the existing bridge token, locks the
+-- exact challenge, deletes its Vault secret, and marks it consumed in one
+-- transaction. It does not call Browser Use or change auth state; Phase 5 owns
+-- those actions after receiving this one-time payload.
+create or replace function public.automation_take_verification_code(
+  p_token text,
+  p_challenge_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, vault
+as $$
+declare
+  v_row public.automation_verification_challenges;
+  v_code text;
+  v_secret_name text;
+begin
+  if not public.automation_bridge_valid(p_token) then
+    raise exception 'Invalid automation token';
+  end if;
+
+  select * into v_row
+  from public.automation_verification_challenges
+  where id = p_challenge_id
+  for update;
+
+  if v_row.id is null then
+    raise exception 'Verification challenge not found';
+  end if;
+  if v_row.status <> 'submitted' or v_row.expires_at <= now() then
+    raise exception 'Verification handoff is not available';
+  end if;
+
+  v_secret_name := public.automation_verification_secret_name(p_challenge_id);
+  select decrypted_secret into v_code
+  from vault.decrypted_secrets
+  where name = v_secret_name
+  limit 1;
+  if v_code is null then
+    raise exception 'Verification handoff is unavailable';
+  end if;
+
+  delete from vault.secrets where name = v_secret_name;
+
+  update public.automation_verification_challenges
+  set status = 'consumed', resolved_at = now(),
+      resolution_reason = 'Verification handoff consumed by the automation worker.',
+      updated_at = now()
+  where id = p_challenge_id;
+
+  return jsonb_build_object(
+    'ok', true,
+    'challengeId', v_row.id,
+    'runId', v_row.run_id,
+    'browserSessionId', v_row.browser_session_id,
+    'browserTaskId', v_row.browser_task_id,
+    'challengeType', v_row.challenge_type,
+    'code', v_code
+  );
+end;
+$$;
+revoke all on function public.automation_take_verification_code(text, uuid)
+  from public;
+grant execute on function public.automation_take_verification_code(text, uuid)
+  to anon, authenticated;
