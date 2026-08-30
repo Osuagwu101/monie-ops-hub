@@ -138,6 +138,10 @@ async function handleWorkerRequest(request: Request) {
     return json({ ok: true, runId: body.runId, action: body.action }, 202);
   } catch (error) {
     const safe = sanitizeError(error);
+    const authFailure = authStateFromFailure(safe);
+    if (authFailure) {
+      await updateAutomationAuthState(bridgeToken, authFailure.state, authFailure.message);
+    }
     console.error("Automation worker failed", {
       runId: body.runId,
       action: body.action,
@@ -296,7 +300,16 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     return;
   }
 
-  await stageOfficialReport(detail, claim, context, bridgeToken);
+  try {
+    await stageOfficialReport(detail, claim, context, bridgeToken);
+  } catch (error) {
+    // A report-stage failure is terminal for this run. Stop the session so Browser Use
+    // commits the persistent profile state instead of leaving a stale active session.
+    if (context.browserSessionId) {
+      await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+    }
+    throw error;
+  }
 }
 
 async function stageOfficialReport(
@@ -314,6 +327,12 @@ async function stageOfficialReport(
       502,
     );
   }
+
+  await updateAutomationAuthState(
+    bridgeToken,
+    "authenticated",
+    "MonieCRM session verified by a successful official PDF retrieval.",
+  );
 
   const output = await browserFetch<BrowserOutputFile>(
     `/files/tasks/${encodeURIComponent(claim.browserTaskId)}/output-files/${encodeURIComponent(pdf.id)}`,
@@ -447,20 +466,30 @@ async function finishEnrichment(
   context: AutomationContext,
   bridgeToken: string,
 ) {
-  const output = parseEnrichmentOutput(detail.output);
-  await rpc("finalize_moniepoint_enrichment", {
-    p_token: bridgeToken,
-    p_run_id: claim.runId,
-    p_contacts: output.businesses,
-    p_dashboard: {
-      capturedAt: output.capturedAt,
-      metrics: output.dashboard.metrics,
-    },
-    p_source_url: output.sourceUrl,
-  });
-
-  if (context.browserSessionId) {
-    await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+  // The profile's cookies and local storage are persisted only when the Browser Use session
+  // ends cleanly. Always stop the session after a terminal enrichment attempt, including
+  // when database finalisation fails, so the next profile-first run can reuse the session.
+  try {
+    const output = parseEnrichmentOutput(detail.output);
+    await rpc("finalize_moniepoint_enrichment", {
+      p_token: bridgeToken,
+      p_run_id: claim.runId,
+      p_contacts: output.businesses,
+      p_dashboard: {
+        capturedAt: output.capturedAt,
+        metrics: output.dashboard.metrics,
+      },
+      p_source_url: output.sourceUrl,
+    });
+    await updateAutomationAuthState(
+      bridgeToken,
+      "authenticated",
+      "MonieCRM session verified and Team Management enrichment completed.",
+    );
+  } finally {
+    if (context.browserSessionId) {
+      await stopBrowserSession(context.browserSessionId, claim.browserUseApiKey);
+    }
   }
 }
 
@@ -854,6 +883,71 @@ async function collectFailureDiagnostics(
   }
 
   return base;
+}
+
+type AutomationAuthState = "checking" | "authenticated" | "reauth_required" | "blocked";
+
+function authStateFromFailure(error: {
+  code: string;
+  message: string;
+  diagnostics: Record<string, unknown> | null;
+}) {
+  const evidence =
+    `${error.code} ${error.message} ${JSON.stringify(error.diagnostics ?? {})}`.toLowerCase();
+  const blocked = [
+    "temporarily suspended",
+    "account suspended",
+    "account locked",
+    "temporarily locked",
+    "account blocked",
+  ].some((marker) => evidence.includes(marker));
+  if (blocked) {
+    return {
+      state: "blocked" as const,
+      message:
+        "MonieCRM reported that the account is suspended, locked or blocked. Scheduled retrieval was paused to prevent further attempts.",
+    };
+  }
+
+  const reauth = [
+    "auth-v2/login",
+    "/login",
+    "sign in",
+    "log in",
+    "login page",
+    "authentication error",
+    "session expired",
+    "mfa",
+    "verification challenge",
+    "credentials",
+  ].some((marker) => evidence.includes(marker));
+  if (reauth) {
+    return {
+      state: "reauth_required" as const,
+      message:
+        "The saved MonieCRM session has expired or requires interactive verification. Scheduled retrieval was paused after the single safe attempt.",
+    };
+  }
+  return null;
+}
+
+async function updateAutomationAuthState(
+  bridgeToken: string,
+  state: AutomationAuthState,
+  message: string,
+) {
+  try {
+    await rpc("automation_set_auth_state", {
+      p_token: bridgeToken,
+      p_state: state,
+      p_message: message,
+    });
+  } catch (error) {
+    console.warn("Could not update MonieCRM authentication state", {
+      state,
+      message: sanitizeError(error).message,
+    });
+  }
 }
 
 function failureMessage(prefix: string, diagnostics: Record<string, unknown>) {

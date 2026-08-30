@@ -63,7 +63,7 @@ const defaultForm: AutomationConfigInput = {
   allowedDomains: [],
   proxyCountryCode: "ng",
   maxSteps: 100,
-  maxAttempts: 3,
+  maxAttempts: 1,
   retryBackoffMinutes: 10,
   morningAuditTime: "08:30",
   morningRefreshTime: "09:00",
@@ -136,6 +136,19 @@ function AutomationPage() {
       ) ?? null,
     [runsQuery.data],
   );
+
+  const authState = configQuery.data?.auth_state ?? "unknown";
+  const authStateLabel =
+    authState === "authenticated"
+      ? "Authenticated"
+      : authState === "checking"
+        ? "Checking session"
+        : authState === "reauth_required"
+          ? "Sign-in required"
+          : authState === "blocked"
+            ? "Account blocked"
+            : "Not checked";
+  const authNeedsAttention = authState === "reauth_required" || authState === "blocked";
 
   const saveConfigMutation = useMutation({
     mutationFn: () => {
@@ -252,7 +265,6 @@ function AutomationPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
       <ReportBootstrapPanel />
       {message && !error && (
         <Alert>
@@ -262,7 +274,20 @@ function AutomationPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      {authNeedsAttention && (
+        <Alert variant="destructive">
+          <KeyRound className="h-4 w-4" />
+          <AlertTitle>
+            {authState === "blocked" ? "MonieCRM account blocked" : "MonieCRM sign-in required"}
+          </AlertTitle>
+          <AlertDescription>
+            {configQuery.data?.auth_state_message ??
+              "The saved MonieCRM session is no longer usable. Scheduled retrieval has been paused to protect the account. Sign in once, then run retrieval again."}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-4">
         <StatusCard
           title="Credential vault"
           value={secretsReady ? "Ready" : "Setup required"}
@@ -284,6 +309,16 @@ function AutomationPage() {
               : "Only one report retrieval can run at a time."
           }
           ready={!activeRun}
+        />
+        <StatusCard
+          title="MonieCRM session"
+          value={authStateLabel}
+          detail={
+            configQuery.data?.auth_state_checked_at
+              ? `Last checked ${new Date(configQuery.data.auth_state_checked_at).toLocaleString()}`
+              : "The next retrieval will verify the saved browser session."
+          }
+          ready={authState === "authenticated"}
         />
       </div>
 
@@ -413,7 +448,7 @@ function AutomationPage() {
                 label="Max attempts"
                 value={form.maxAttempts}
                 min={1}
-                max={5}
+                max={1}
                 onChange={(value) => setForm((c) => ({ ...c, maxAttempts: value }))}
               />
               <NumberField
