@@ -147,8 +147,11 @@ function AutomationPage() {
           ? "Sign-in required"
           : authState === "blocked"
             ? "Account blocked"
-            : "Not checked";
-  const authNeedsAttention = authState === "reauth_required" || authState === "blocked";
+            : authState === "verification_required"
+              ? "Verification code needed"
+              : "Not checked";
+  const authNeedsAttention =
+    authState === "reauth_required" || authState === "blocked" || authState === "verification_required";
 
   const saveConfigMutation = useMutation({
     mutationFn: () => {
@@ -278,11 +281,17 @@ function AutomationPage() {
         <Alert variant="destructive">
           <KeyRound className="h-4 w-4" />
           <AlertTitle>
-            {authState === "blocked" ? "MonieCRM account blocked" : "MonieCRM sign-in required"}
+            {authState === "blocked"
+              ? "MonieCRM account blocked"
+              : authState === "verification_required"
+                ? "MonieCRM verification code needed"
+                : "MonieCRM sign-in required"}
           </AlertTitle>
           <AlertDescription>
             {configQuery.data?.auth_state_message ??
-              "The saved MonieCRM session is no longer usable. Scheduled retrieval has been paused to protect the account. Sign in once, then run retrieval again."}
+              (authState === "verification_required"
+                ? "MonieCRM is asking for a verification code. Scheduled retrieval has been paused until this is resolved."
+                : "The saved MonieCRM session is no longer usable. Scheduled retrieval has been paused to protect the account. Sign in once, then run retrieval again.")}
           </AlertDescription>
         </Alert>
       )}
