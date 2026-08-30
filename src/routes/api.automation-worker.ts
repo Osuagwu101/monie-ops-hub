@@ -245,7 +245,40 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     claim.browserUseApiKey,
   );
 
-  if (status.status === "created" || status.status === "started") {
+  // Computed unconditionally, before any status is acted on, using the same
+  // sanitized diagnostics collected below.
+  const signal = await collectTaskSignal(claim, context, status);
+  const hasVerificationEvidence = isVerificationPrompt(signal.diagnostics);
+  const isActive = status.status === "created" || status.status === "started";
+  const isTerminal =
+    status.status === "finished" || status.status === "failed" || status.status === "stopped";
+
+  // Pause-and-open-a-challenge only applies while the exact task can still be
+  // paused. If the task already reached a terminal state by the time this poll
+  // saw the evidence (a race with the agent itself finishing/stopping, or with
+  // Browser Use ending the task for another reason), there is no live task left
+  // to preserve -- pretending otherwise would open a "resumable" challenge for a
+  // task that is already dead. That fallback is handled separately below as a
+  // non-retryable reauthentication failure, without opening a challenge.
+  if (hasVerificationEvidence && isActive) {
+    await handleVerificationDetected(claim, context, bridgeToken, signal.diagnostics);
+    return;
+  }
+
+  if (hasVerificationEvidence && isTerminal) {
+    throw workerError(
+      "browser_verification_terminal",
+      "MonieCRM requested verification after the Browser Use task had already ended. Scheduled retrieval remains paused; sign in again to continue.",
+      false,
+      502,
+      sanitizeVerificationDiagnostics(signal.diagnostics, {
+        verificationDetected: true,
+        browserTaskResumable: false,
+      }),
+    );
+  }
+
+  if (isActive) {
     await rpc("automation_mark_pending", {
       p_token: bridgeToken,
       p_run_id: claim.runId,
@@ -259,13 +292,12 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
   }
 
   if (status.status === "failed" || status.status === "stopped") {
-    const diagnostics = await collectFailureDiagnostics(claim, context, status);
     throw workerError(
       `browser_${status.status}`,
-      failureMessage(`Browser retrieval ended with status ${status.status}.`, diagnostics),
+      failureMessage(`Browser retrieval ended with status ${status.status}.`, signal.diagnostics),
       true,
       502,
-      diagnostics,
+      signal.diagnostics,
     );
   }
 
@@ -279,21 +311,28 @@ async function pollBrowserTask(claim: PollClaim, bridgeToken: string) {
     );
   }
 
-  if (status.isSuccess === false) {
-    const diagnostics = await collectFailureDiagnostics(claim, context, status);
+  // A "finished" task that still carries the verification marker/keywords in its
+  // output or step trace is never a real success, even when Browser Use itself
+  // reports isSuccess=true -- it means the task ended (or was reported as ended)
+  // right as/after the verification screen appeared, too late to be paused. Route
+  // it through the same unsuccessful-result handling as an ordinary failed finish
+  // rather than opening a challenge for a task that is already over.
+  if (status.isSuccess === false || hasVerificationEvidence) {
     throw workerError(
       "browser_unsuccessful",
-      failureMessage("Browser retrieval finished without a successful result.", diagnostics),
+      failureMessage("Browser retrieval finished without a successful result.", signal.diagnostics),
       true,
       502,
-      diagnostics,
+      signal.diagnostics,
     );
   }
 
-  const detail = await browserFetch<BrowserTaskDetail>(
-    `/tasks/${encodeURIComponent(claim.browserTaskId)}`,
-    claim.browserUseApiKey,
-  );
+  const detail =
+    signal.detail ??
+    (await browserFetch<BrowserTaskDetail>(
+      `/tasks/${encodeURIComponent(claim.browserTaskId)}`,
+      claim.browserUseApiKey,
+    ));
 
   if (context.reportId || context.workflowStage === "enrichment") {
     await finishEnrichment(detail, claim, context, bridgeToken);
@@ -834,15 +873,22 @@ interface BrowserTaskStep {
   nextGoal?: string;
 }
 
-// Fetches the Browser Use task detail for an unsuccessful/failed/stopped task so the
-// final reason is preserved instead of being discarded. Screenshots, action payloads
-// (which contain typed field values) and secrets are deliberately never read.
-async function collectFailureDiagnostics(
+// Fetches the Browser Use task detail (including its step trace) and turns it into
+// the same sanitized diagnostics shape used for failure reporting. Called on EVERY
+// poll -- active, failed, stopped, or finished -- because verification detection
+// below must run before any of those outcomes is acted on, not only after a task
+// has already terminated. Screenshots, action payloads (which contain typed field
+// values) and secrets are deliberately never read. `detail` is returned alongside
+// the diagnostics so a finished/successful poll can reuse it instead of re-fetching.
+async function collectTaskSignal(
   claim: PollClaim,
   context: AutomationContext,
   status: BrowserTaskStatus,
-): Promise<Record<string, unknown>> {
-  const base: Record<string, unknown> = {
+): Promise<{
+  diagnostics: Record<string, unknown>;
+  detail: (BrowserTaskDetail & { steps?: BrowserTaskStep[] }) | null;
+}> {
+  const diagnostics: Record<string, unknown> = {
     stage: "poll",
     workflowStage: context.workflowStage,
     browserStatus: status.status,
@@ -863,26 +909,142 @@ async function collectFailureDiagnostics(
       .reverse()
       .find((step) => safeText(step.nextGoal ?? step.evaluationPreviousGoal, 1) !== null);
 
-    base["browserFinalOutput"] = safeText(detail.output ?? status.output, 600);
-    base["browserStepCount"] = steps.length;
-    base["browserLastUrl"] = safeUrl(lastStep?.url ?? steps[steps.length - 1]?.url);
-    base["browserLastStepNumber"] =
+    diagnostics["browserFinalOutput"] = safeText(detail.output ?? status.output, 600);
+    diagnostics["browserStepCount"] = steps.length;
+    diagnostics["browserLastUrl"] = safeUrl(lastStep?.url ?? steps[steps.length - 1]?.url);
+    diagnostics["browserLastStepNumber"] =
       typeof lastStep?.number === "number" ? lastStep.number : steps.length || null;
-    base["browserLastStepSummary"] = safeText(
+    diagnostics["browserLastStepSummary"] = safeText(
       lastStep?.evaluationPreviousGoal ?? lastStep?.nextGoal,
       400,
     );
-    base["browserOutputFileCount"] = Array.isArray(detail.outputFiles)
+    diagnostics["browserOutputFileCount"] = Array.isArray(detail.outputFiles)
       ? detail.outputFiles.length
       : 0;
-    base["browserDiagnosticsCaptured"] = true;
+    diagnostics["browserDiagnosticsCaptured"] = true;
+    return { diagnostics, detail };
   } catch (error) {
-    base["browserFinalOutput"] = safeText(status.output, 600);
-    base["browserDiagnosticsCaptured"] = false;
-    base["browserDiagnosticsError"] = safeText(sanitizeError(error).code, 100);
+    diagnostics["browserFinalOutput"] = safeText(status.output, 600);
+    diagnostics["browserDiagnosticsCaptured"] = false;
+    diagnostics["browserDiagnosticsError"] = safeText(sanitizeError(error).code, 100);
+    return { diagnostics, detail: null };
   }
+}
 
-  return base;
+// Detect a MonieCRM OTP/verification-code prompt from the same sanitized
+// diagnostics text collected above -- no new signal source, no screenshot/DOM
+// inspection. The task prompt (see api.moniecrm-worker.ts) deliberately does NOT
+// tell the agent to finish/end the task on this screen -- ending it would hand
+// Browser Use a terminal task before this worker gets a chance to pause it.
+// Instead the agent is told to stay on the screen and repeat this exact marker in
+// its per-step goal/reasoning text, which is exactly what collectTaskSignal()
+// reads while the task is still "created"/"started". The keyword list is a
+// fallback for step text that hasn't reached that instruction yet. Deliberately
+// distinct from authStateFromFailure()'s generic reauth keywords below so a
+// verification prompt is never misclassified as an ordinary expired session. This
+// is checked on every poll, before any status is acted on, so it can catch the
+// prompt while the task is still active and also stop a finished/"successful"
+// task from slipping past it (see pollBrowserTask).
+const MONIECRM_VERIFICATION_MARKER = "MONIECRM_VERIFICATION_REQUIRED";
+
+function isVerificationPrompt(diagnostics: Record<string, unknown>): boolean {
+  const text = [diagnostics["browserFinalOutput"], diagnostics["browserLastStepSummary"]]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+  if (!text) return false;
+  if (text.includes(MONIECRM_VERIFICATION_MARKER.toLowerCase())) return true;
+  return [
+    "otp",
+    "one-time password",
+    "one time password",
+    "one-time code",
+    "one time code",
+    "verification code",
+    "authentication code",
+    "authenticator app",
+    "two-factor",
+    "2fa",
+    "mfa challenge",
+    "enter the code",
+  ].some((marker) => text.includes(marker));
+}
+
+// Never store the OTP value itself: strip any 4-8 digit run (the shape of every
+// code MonieCRM could show) before this text reaches a challenge message, an
+// error message, or diagnostics. The agent is instructed never to output the
+// code, but this is a deliberate second layer, not a substitute for that rule.
+function scrubPossibleCode(text: string): string {
+  return text.replace(/\b\d{4,8}\b/g, "[redacted]");
+}
+
+function sanitizeVerificationDiagnostics(
+  diagnostics: Record<string, unknown>,
+  extra: Record<string, unknown>,
+) {
+  return {
+    ...diagnostics,
+    browserFinalOutput:
+      typeof diagnostics["browserFinalOutput"] === "string"
+        ? scrubPossibleCode(diagnostics["browserFinalOutput"])
+        : diagnostics["browserFinalOutput"],
+    browserLastStepSummary:
+      typeof diagnostics["browserLastStepSummary"] === "string"
+        ? scrubPossibleCode(diagnostics["browserLastStepSummary"])
+        : diagnostics["browserLastStepSummary"],
+    ...extra,
+  };
+}
+
+// Preserves the exact Browser Use task instead of ending it: pauses the task via
+// the documented v2 PATCH /tasks/{id} {action:"pause"} endpoint, and only once that
+// succeeds opens (or reuses) the Phase 2 verification challenge for this exact
+// run/session/task. automation_open_verification_challenge already moves
+// automation_config.auth_state to verification_required and pauses scheduled
+// retrieval. The run itself is kept pollable via automation_mark_pending, the same
+// RPC already used for an ordinary active poll -- automation_fail_run is
+// deliberately never called here, since failing the run would treat it as
+// terminal, but the task, its Browser Use session, and this run all need to
+// survive for a later phase to resume once a Director supplies the code.
+// automation_open_verification_challenge is idempotent per run (returns the
+// existing pending challenge on a repeat call), so a later poll that still sees
+// the same evidence -- because the task remains paused -- safely reuses it
+// instead of opening a second one.
+async function handleVerificationDetected(
+  claim: PollClaim,
+  context: AutomationContext,
+  bridgeToken: string,
+  diagnostics: Record<string, unknown>,
+) {
+  const rawReason =
+    (diagnostics["browserLastStepSummary"] as string | null) ??
+    (diagnostics["browserFinalOutput"] as string | null) ??
+    "MonieCRM is asking for a verification code.";
+  const message = scrubPossibleCode(rawReason).slice(0, 500);
+  const safeDiagnostics = sanitizeVerificationDiagnostics(diagnostics, {
+    verificationDetected: true,
+    browserTaskPaused: true,
+  });
+
+  await browserFetch(`/tasks/${encodeURIComponent(claim.browserTaskId)}`, claim.browserUseApiKey, {
+    method: "PATCH",
+    body: JSON.stringify({ action: "pause" }),
+  });
+
+  await rpc("automation_open_verification_challenge", {
+    p_token: bridgeToken,
+    p_run_id: claim.runId,
+    p_browser_session_id: context.browserSessionId,
+    p_browser_task_id: claim.browserTaskId,
+    p_challenge_type: "otp",
+    p_message: message,
+  });
+
+  await rpc("automation_mark_pending", {
+    p_token: bridgeToken,
+    p_run_id: claim.runId,
+    p_diagnostics: safeDiagnostics,
+  });
 }
 
 type AutomationAuthState = "checking" | "authenticated" | "reauth_required" | "blocked";
@@ -906,6 +1068,14 @@ function authStateFromFailure(error: {
       state: "blocked" as const,
       message:
         "MonieCRM reported that the account is suspended, locked or blocked. Scheduled retrieval was paused to prevent further attempts.",
+    };
+  }
+
+  if (error.code === "browser_verification_terminal") {
+    return {
+      state: "reauth_required" as const,
+      message:
+        "MonieCRM requested verification after the Browser Use task had already ended. Scheduled retrieval remains paused; sign in again to continue.",
     };
   }
 
