@@ -262,6 +262,8 @@ begin
     raise exception 'Invalid automation token';
   end if;
 
+  perform public.automation_expire_verification_challenges();
+
   select * into v_row
   from public.automation_verification_challenges
   where id = p_challenge_id
