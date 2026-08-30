@@ -151,7 +151,9 @@ function AutomationPage() {
               ? "Verification code needed"
               : "Not checked";
   const authNeedsAttention =
-    authState === "reauth_required" || authState === "blocked" || authState === "verification_required";
+    authState === "reauth_required" ||
+    authState === "blocked" ||
+    authState === "verification_required";
 
   const saveConfigMutation = useMutation({
     mutationFn: () => {
