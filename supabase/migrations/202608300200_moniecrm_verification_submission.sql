@@ -41,6 +41,46 @@ $$;
 revoke all on function public.automation_clear_verification_secret(uuid)
   from public, anon, authenticated;
 
+-- A submitted handoff is still waiting for the later worker phase. Keep the
+-- global verification-required/paused state until that handoff is consumed or
+-- expires; resolving another challenge must not make it look authenticated.
+create or replace function public.automation_resolve_verification_auth_state(
+  p_state text,
+  p_message text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_current text;
+begin
+  if p_state not in ('reauth_required', 'blocked') then
+    raise exception 'Invalid terminal verification auth state';
+  end if;
+  select auth_state into v_current from public.automation_config where id = true;
+  if v_current is distinct from 'verification_required' then
+    return;
+  end if;
+  if exists (
+    select 1 from public.automation_verification_challenges
+    where status in ('pending', 'submitted')
+  ) then
+    return;
+  end if;
+  update public.automation_config
+  set auth_state = p_state,
+      auth_state_checked_at = now(),
+      auth_state_message = nullif(left(btrim(coalesce(p_message, '')), 500), ''),
+      enabled = false,
+      updated_at = now()
+  where id = true;
+  perform public.apply_automation_schedule();
+end;
+$$;
+revoke all on function public.automation_resolve_verification_auth_state(text, text)
+  from public, anon, authenticated;
+
 -- Extend the existing opportunistic expiry sweep to erase submitted handoffs
 -- when their challenge window closes. No new scheduled job is introduced.
 create or replace function public.automation_expire_verification_challenges()
