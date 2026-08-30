@@ -35,9 +35,11 @@ import {
   loadAutomationConfig,
   loadAutomationRuns,
   loadAutomationSecretStatus,
+  loadAutomationVerificationChallenge,
   queueAutomationRun,
   rotateAutomationBridgeToken,
   setAutomationSecret,
+  submitAutomationVerificationCode,
   updateAutomationConfig,
   type AutomationConfigInput,
   type AutomationRunRecord,
@@ -78,6 +80,7 @@ function AutomationPage() {
   const [browserUseKey, setBrowserUseKey] = useState("");
   const [moniepointUsername, setMoniepointUsername] = useState("");
   const [moniepointPassword, setMoniepointPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +106,12 @@ function AutomationPage() {
     queryFn: () => loadAutomationRuns(session!.access_token),
     enabled: Boolean(isDirector && session?.access_token),
     refetchInterval: 15_000,
+  });
+  const verificationQuery = useQuery({
+    queryKey: ["automation-verification-challenge"],
+    queryFn: () => loadAutomationVerificationChallenge(session!.access_token),
+    enabled: Boolean(isDirector && session?.access_token),
+    refetchInterval: 10_000,
   });
 
   useEffect(() => {
@@ -229,6 +238,21 @@ function AutomationPage() {
     onError: (caught) => setError(errorText(caught)),
   });
 
+  const verificationMutation = useMutation({
+    mutationFn: () => {
+      const challengeId = verificationQuery.data?.challengeId;
+      if (!challengeId || !verificationCode) throw new Error("Enter the verification code.");
+      return submitAutomationVerificationCode(challengeId, verificationCode, session!.access_token);
+    },
+    onSuccess: async () => {
+      setVerificationCode("");
+      setError(null);
+      setMessage("Verification code accepted for secure handoff. Browser Use has not been resumed.");
+      await queryClient.invalidateQueries({ queryKey: ["automation-verification-challenge"] });
+    },
+    onError: (caught) => setError(errorText(caught)),
+  });
+
   if (profileQuery.isLoading) return <LoadingState label="Checking Director access…" />;
   if (!isDirector) {
     return (
@@ -296,6 +320,57 @@ function AutomationPage() {
                 : "The saved MonieCRM session is no longer usable. Scheduled retrieval has been paused to protect the account. Sign in once, then run retrieval again.")}
           </AlertDescription>
         </Alert>
+      )}
+
+      {verificationQuery.data?.status && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" /> MonieCRM verification
+            </CardTitle>
+            <CardDescription>
+              {verificationQuery.data.pending
+                ? "Verification code required"
+                : `Verification ${humanize(verificationQuery.data.status)}`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+              <span>Type: {humanize(verificationQuery.data.challengeType ?? "unknown")}</span>
+              <span>
+                Requested: {formatDateTime(verificationQuery.data.requestedAt)}
+              </span>
+              <span>Expires: {formatDateTime(verificationQuery.data.expiresAt)}</span>
+            </div>
+            {verificationQuery.data.pending ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-56 space-y-2">
+                  <Label htmlFor="moniecrm-verification-code">Verification code</Label>
+                  <Input
+                    id="moniecrm-verification-code"
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={8}
+                    placeholder="Enter code"
+                  />
+                </div>
+                <Button
+                  onClick={() => verificationMutation.mutate()}
+                  disabled={verificationMutation.isPending || verificationCode.length < 4}
+                >
+                  {verificationMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Submit code
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                This challenge is no longer accepting input. Browser Use has not been resumed.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid gap-4 lg:grid-cols-4">
@@ -727,6 +802,10 @@ function LoadingState({ label }: { label: string }) {
 
 function humanize(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatDateTime(value: string | null) {
+  return value ? new Date(value).toLocaleString() : "—";
 }
 
 function errorText(caught: unknown) {

@@ -59,6 +59,21 @@ export interface AutomationSecretStatus {
   bridgeConfigured: boolean;
 }
 
+export interface AutomationVerificationChallenge {
+  pending: boolean;
+  challengeId: string | null;
+  runId: string | null;
+  triggerKind: string | null;
+  browserSessionId: string | null;
+  browserTaskId: string | null;
+  challengeType: "otp" | "mfa_app" | "unknown" | null;
+  status: "pending" | "submitted" | "consumed" | "expired" | "cancelled" | "failed" | null;
+  message: string | null;
+  requestedAt: string | null;
+  expiresAt: string | null;
+  submittedAt: string | null;
+}
+
 export interface AutomationConfigInput {
   enabled: boolean;
   moniepointLoginUrl: string | null;
@@ -99,6 +114,26 @@ export function setAutomationSecret(
   return callRpc<AutomationSecretStatus>(
     "set_automation_secret",
     { p_kind: kind, p_value: value },
+    accessToken,
+  );
+}
+
+export function loadAutomationVerificationChallenge(accessToken: string) {
+  return callRpc<AutomationVerificationChallenge>(
+    "automation_verification_challenge_status",
+    {},
+    accessToken,
+  );
+}
+
+export function submitAutomationVerificationCode(
+  challengeId: string,
+  code: string,
+  accessToken: string,
+) {
+  return callRpc<{ ok: boolean; challengeId: string; status: "submitted" }>(
+    "automation_submit_verification_code",
+    { p_challenge_id: challengeId, p_code: code },
     accessToken,
   );
 }
