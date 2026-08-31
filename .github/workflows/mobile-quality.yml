@@ -31,34 +31,8 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - name: Diagnose mobile lockfile on runner
-        run: |
-          pwd
-          node --version
-          npm --version
-          ls -la
-          ls -la package.json package-lock.json
-          file package-lock.json
-          wc -c package-lock.json
-          sha256sum package.json package-lock.json
-          node - <<'NODE'
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-          console.log('first100=', JSON.stringify(fs.readFileSync('package-lock.json', 'utf8').slice(0, 100)));
-          console.log('lockfileVersion=', lock.lockfileVersion);
-          console.log('packagesPresent=', Boolean(lock.packages));
-          console.log('rootPackagePresent=', Boolean(lock.packages && lock.packages['']));
-          console.log('rootPackage=', JSON.stringify(lock.packages && lock.packages['']));
-          console.log('packageJsonDependencies=', JSON.stringify(pkg.dependencies || {}));
-          console.log('lockfileRootDependencies=', JSON.stringify((lock.packages && lock.packages[''] && lock.packages[''].dependencies) || {}));
-          for (const name of ['expo-crypto', 'expo-document-picker', 'expo-file-system', 'expo-pdf-text-extract']) {
-            const entry = lock.packages && lock.packages['node_modules/' + name];
-            console.log(name, entry ? JSON.stringify({version: entry.version}) : 'MISSING');
-          }
-          NODE
       - name: Install dependencies
-        run: npm ci --loglevel verbose
+        run: cd "$GITHUB_WORKSPACE/mobile" && npm ci
       - name: Typecheck
         run: npm run typecheck
       - name: Phase 1 human-agent acceptance
