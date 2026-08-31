@@ -2060,6 +2060,10 @@ export type Database = {
         Returns: Json
       }
       automation_bridge_valid: { Args: { p_token: string }; Returns: boolean }
+      automation_browser_session_context: {
+        Args: { p_run_id: string; p_token: string }
+        Returns: Json
+      }
       automation_claim_run: {
         Args: { p_action: string; p_run_id: string; p_token: string }
         Returns: Json
