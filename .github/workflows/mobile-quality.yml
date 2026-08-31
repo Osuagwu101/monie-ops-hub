@@ -35,6 +35,8 @@ jobs:
         run: npm run typecheck
       - name: Phase 1 human-agent acceptance
         run: npm run test:phase1
+      - name: Phase 2 Director operations acceptance
+        run: npm run test:phase2
       - name: Export Android bundle
         run: npx expo export --platform android --output-dir dist-android
       - name: Export iOS bundle
