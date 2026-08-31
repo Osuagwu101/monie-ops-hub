@@ -33,6 +33,8 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
       - name: Install dependencies
         run: cd "$GITHUB_WORKSPACE/mobile" && npm ci
+        env:
+          NPM_CONFIG_PACKAGE_LOCK: "true"
       - name: Typecheck
         run: npm run typecheck
       - name: Phase 1 human-agent acceptance
