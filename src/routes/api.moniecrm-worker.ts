@@ -65,15 +65,19 @@ async function handleRequest(request: Request) {
   } catch {
     return json({ ok: false, error: "invalid_json" }, 400);
   }
-  if (!isUuid(body.runId) || (body.action !== "execute" && body.action !== "poll")) {
+  if (
+    !isUuid(body.runId) ||
+    (body.action !== "execute" && body.action !== "poll" && body.action !== "cdp_probe")
+  ) {
     return json({ ok: false, error: "invalid_request" }, 400);
   }
 
   // The established worker owns polling, immutable PDF import and Team Management enrichment.
   // This route owns only the safer profile-first login/dispatch stage.
-  if (body.action === "poll") {
-    return proxyLegacyPoll(request, bridgeToken, body.runId);
+  if (body.action === "poll" || body.action === "cdp_probe") {
+    return proxyLegacyWorker(request, bridgeToken, body.runId, body.action);
   }
+
 
   try {
     const claim = await rpc<ExecuteClaim>("automation_claim_run", {
