@@ -2,7 +2,7 @@ import {
   activateInvitedStaffAccount,
   callRpc,
   restSelect,
-  type CloudSession,
+  type CloudSignUpResult,\n  type CloudSession,
   type CloudUser,
 } from "@/lib/cloud-api";
 
@@ -74,3 +74,4 @@ function isCloudSession(
 ): value is CloudSession {
   return "access_token" in value;
 }
+\nfunction isWrappedSignUpResult(\n  value: CloudSignUpResult,\n): value is { user: CloudUser; session: CloudSession | null } {\n  return "user" in value && !isCloudSession(value);\n}\n
