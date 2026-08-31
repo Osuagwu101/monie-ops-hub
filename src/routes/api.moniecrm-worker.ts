@@ -14,7 +14,6 @@ interface WorkerRequest {
   action?: "execute" | "poll" | "cdp_probe";
 }
 
-
 interface ExecuteClaim {
   runId: string;
   action: "execute";
@@ -77,7 +76,6 @@ async function handleRequest(request: Request) {
   if (body.action === "poll" || body.action === "cdp_probe") {
     return proxyLegacyWorker(request, bridgeToken, body.runId, body.action);
   }
-
 
   try {
     const claim = await rpc<ExecuteClaim>("automation_claim_run", {
@@ -260,7 +258,12 @@ function reportTaskPrompt(triggerKind: string) {
   ].join(" ");
 }
 
-async function proxyLegacyPoll(request: Request, bridgeToken: string, runId: string) {
+async function proxyLegacyWorker(
+  request: Request,
+  bridgeToken: string,
+  runId: string,
+  action: "poll" | "cdp_probe",
+) {
   const url = new URL("/api/automation-worker", request.url);
   const response = await fetch(url, {
     method: "POST",
@@ -268,7 +271,7 @@ async function proxyLegacyPoll(request: Request, bridgeToken: string, runId: str
       "content-type": "application/json",
       "x-monie-automation-token": bridgeToken,
     },
-    body: JSON.stringify({ runId, action: "poll" }),
+    body: JSON.stringify({ runId, action }),
   });
   return new Response(await response.arrayBuffer(), {
     status: response.status,
