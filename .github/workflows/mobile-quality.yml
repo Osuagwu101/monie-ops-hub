@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - phase1-mobile-human-agent-workspace
+      - phase2/mobile-director-operations
     paths:
       - mobile/**
       - .github/workflows/mobile-quality.yml
@@ -39,6 +40,8 @@ jobs:
         run: npm run test:phase1
       - name: Phase 2 Director operations acceptance
         run: npm run test:phase2
+      - name: Phase 3 Director task-assignment acceptance
+        run: npm run test:phase3
       - name: Export Android bundle
         run: npx expo export --platform android --output-dir dist-android
       - name: Export iOS bundle
