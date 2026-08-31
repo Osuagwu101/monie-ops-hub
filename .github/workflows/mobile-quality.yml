@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - phase1-mobile-human-agent-workspace
+      - phase2/mobile-director-operations
     paths:
       - mobile/**
       - .github/workflows/mobile-quality.yml
