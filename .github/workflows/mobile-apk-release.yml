@@ -47,7 +47,7 @@ jobs:
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
           test -f "$APK"
-          unzip -l "$APK" | grep -qE 'assets/index\\.android\\.bundle$|assets/[^ ]+\\.bundle$'
+          unzip -l "$APK" | grep -qE 'assets/index\.android\.bundle$|assets/[^ ]+\.bundle$'
       - name: Stage release APK
         run: |
           mkdir -p dist
