@@ -30,8 +30,8 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - name: Install dependencies
-        run: npm ci
-        working-directory: mobile
+        run: npm ci --prefix mobile
+        working-directory: .
       - name: Typecheck
         run: npm run typecheck
       - name: Phase 1 human-agent acceptance
