@@ -9,7 +9,9 @@ on:
       - mobile/**
       - .github/workflows/mobile-quality.yml
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - phase1-mobile-human-agent-workspace
     paths:
       - mobile/**
       - .github/workflows/mobile-quality.yml
