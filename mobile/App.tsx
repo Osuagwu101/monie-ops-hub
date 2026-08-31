@@ -20,6 +20,12 @@ import {
 } from "react-native";
 
 import { AgentWorkspace } from "./src/components/AgentWorkspace";
+import {
+  DirectorMerchantsTerminals,
+  DirectorOverviewStatus,
+  DirectorReports,
+} from "./src/components/DirectorOperations";
+import { DirectorTaskAssignment } from "./src/components/DirectorTaskAssignment";
 import { OperationsSnapshot } from "./src/components/OperationsSnapshot";
 import {
   acknowledgeJoined,
@@ -44,6 +50,8 @@ const INK = "#111827";
 const MUTED = "#667085";
 const BORDER = "#E4E7EC";
 const SURFACE = "#F7F9FC";
+
+type DirectorSection = "overview" | "reports" | "merchants" | "assignments" | "meetings" | "profile";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -247,6 +255,7 @@ function DirectorHome({
   onAcknowledge: (id: string) => void;
   onSignOut: () => void;
 }) {
+  const [section, setSection] = useState<DirectorSection>("overview");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
@@ -296,6 +305,43 @@ function DirectorHome({
           Your operations and meeting alerts stay synced with the web portal.
         </Text>
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.directorNavContent}
+        >
+          <DirectorNavButton
+            label="Overview"
+            active={section === "overview"}
+            onPress={() => setSection("overview")}
+          />
+          <DirectorNavButton
+            label="Reports"
+            active={section === "reports"}
+            onPress={() => setSection("reports")}
+          />
+          <DirectorNavButton
+            label="Merchants/Terminals"
+            active={section === "merchants"}
+            onPress={() => setSection("merchants")}
+          />
+          <DirectorNavButton
+            label="Task Assignment"
+            active={section === "assignments"}
+            onPress={() => setSection("assignments")}
+          />
+          <DirectorNavButton
+            label="Meetings"
+            active={section === "meetings"}
+            onPress={() => setSection("meetings")}
+          />
+          <DirectorNavButton
+            label="Profile"
+            active={section === "profile"}
+            onPress={() => setSection("profile")}
+          />
+        </ScrollView>
+
         {error ? (
           <View style={[styles.notice, styles.noticeError]}>
             <Text style={styles.noticeTitle}>Sync needs attention</Text>
@@ -303,18 +349,29 @@ function DirectorHome({
           </View>
         ) : null}
 
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Portal snapshot</Text>
-          <Text style={styles.sectionHint}>Same live backend</Text>
-        </View>
-        <OperationsSnapshot data={operations} />
+        {section === "overview" ? (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Portal snapshot</Text>
+              <Text style={styles.sectionHint}>Same live backend</Text>
+            </View>
+            <DirectorOverviewStatus operations={operations} refreshSignal={refreshing} />
+            <OperationsSnapshot data={operations} />
+          </View>
+        ) : null}
 
-        <View style={styles.sectionHeaderRow}>
+        {section === "reports" ? <DirectorReports onPortalRefresh={onRefresh} /> : null}
+        {section === "merchants" ? <DirectorMerchantsTerminals /> : null}
+        {section === "assignments" ? (
+          <DirectorTaskAssignment directorId={profile.id} refreshSignal={refreshing} />
+        ) : null}
+
+        <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Meetings</Text>
           <Text style={styles.sectionHint}>Acknowledgement synced</Text>
         </View>
 
-        {activeMeeting ? (
+        {section === "meetings" && activeMeeting ? (
           <View style={[styles.card, styles.activeCard]}>
             <View style={styles.cardTopRow}>
               <Pill text="MEETING STARTED" strong />
@@ -334,7 +391,7 @@ function DirectorHome({
               <Text style={styles.ackButtonText}>Yes, I have joined</Text>
             </Pressable>
           </View>
-        ) : nextMeeting ? (
+        ) : section === "meetings" && nextMeeting ? (
           <View style={styles.card}>
             <View style={styles.cardTopRow}>
               <Pill text="NEXT MEETING" />
@@ -356,7 +413,7 @@ function DirectorHome({
               </Text>
             )}
           </View>
-        ) : (
+        ) : section === "meetings" ? (
           <View style={styles.card}>
             <Pill text="CALENDAR" />
             <Text style={styles.heroTitle}>No upcoming meeting is currently materialized.</Text>
@@ -364,13 +421,13 @@ function DirectorHome({
               Pull down to refresh after the Director Meeting Centre is updated.
             </Text>
           </View>
-        )}
+        ) : null}
 
-        <View style={styles.sectionHeaderRow}>
+        <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Notification readiness</Text>
           <Text style={styles.sectionHint}>Local + push</Text>
         </View>
-        <View style={styles.card}>
+        <View style={[styles.card, section !== "meetings" && styles.hidden]}>
           <ReadinessRow
             title="Notification permission"
             ready={notificationReadiness?.permissionGranted ?? false}
@@ -398,11 +455,11 @@ function DirectorHome({
           ) : null}
         </View>
 
-        <View style={styles.sectionHeaderRow}>
+        <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Upcoming meetings</Text>
           <Text style={styles.sectionHint}>Africa/Lagos schedule</Text>
         </View>
-        <View style={styles.cardList}>
+        <View style={[styles.cardList, section !== "meetings" && styles.hidden]}>
           {meetings
             .filter((item) => new Date(item.starts_at).getTime() >= now - 30 * 60_000)
             .slice(0, 8)
@@ -417,7 +474,7 @@ function DirectorHome({
           {!meetings.length ? <Text style={styles.emptyText}>No meetings loaded yet.</Text> : null}
         </View>
 
-        <View style={styles.footerCard}>
+        <View style={[styles.footerCard, section !== "meetings" && styles.hidden]}>
           <Text style={styles.footerTitle}>Reminder pattern</Text>
           <Text style={styles.footerBody}>10 minutes before: short preparation bing.</Text>
           <Text style={styles.footerBody}>2 minutes before: urgent drop-everything reminder.</Text>
@@ -425,6 +482,18 @@ function DirectorHome({
             4 minutes after start: repeated alarms until you acknowledge joining.
           </Text>
         </View>
+
+        {section === "profile" ? (
+          <View style={styles.card}>
+            <Pill text="DIRECTOR" strong />
+            <Text style={styles.heroTitle}>{profile.full_name}</Text>
+            <Text style={styles.heroBody}>
+              This mobile session uses the same active Director account and production Supabase
+              permissions as the web portal.
+            </Text>
+            <PrimaryButton title="Sign out" onPress={onSignOut} />
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -605,6 +674,25 @@ function PrimaryButton({
   );
 }
 
+function DirectorNavButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={[styles.directorNavButton, active && styles.directorNavButtonActive]}
+      onPress={onPress}
+    >
+      <Text style={[styles.directorNavText, active && styles.directorNavTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function ReadinessRow({ title, ready, detail }: { title: string; ready: boolean; detail: string }) {
   return (
     <View style={styles.readinessRow}>
@@ -670,6 +758,20 @@ function messageOf(error: unknown) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
   page: { padding: 20, paddingBottom: 48, gap: 18 },
+  directorNavContent: { gap: 8, paddingVertical: 2 },
+  directorNavButton: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    backgroundColor: "#FFFFFF",
+  },
+  directorNavButtonActive: { borderColor: BLUE, backgroundColor: "#EAF1FF" },
+  directorNavText: { color: MUTED, fontSize: 11, fontWeight: "800" },
+  directorNavTextActive: { color: BLUE },
+  sectionContainer: { gap: 18 },
+  hidden: { display: "none" },
   centeredPage: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 18 },
   loginPage: { flex: 1, justifyContent: "center", padding: 28, gap: 16 },
   headerRow: {
