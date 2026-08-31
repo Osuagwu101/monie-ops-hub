@@ -79,11 +79,12 @@ const ApiAutomationWorkerRoute = ApiAutomationWorkerRouteImport.update({
   path: '/api/automation-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiContactBootstrapWorkerRoute = ApiContactBootstrapWorkerRouteImport.update({
-  id: '/api/contact-bootstrap-worker',
-  path: '/api/contact-bootstrap-worker',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiContactBootstrapWorkerRoute =
+  ApiContactBootstrapWorkerRouteImport.update({
+    id: '/api/contact-bootstrap-worker',
+    path: '/api/contact-bootstrap-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMeetingNotificationsRoute = ApiMeetingNotificationsRouteImport.update({
   id: '/api/meeting-notifications',
   path: '/api/meeting-notifications',

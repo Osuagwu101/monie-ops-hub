@@ -12,7 +12,23 @@ const reportBucket = "moniepoint-reports";
 
 interface WorkerRequest {
   runId?: string;
-  action?: "execute" | "poll";
+  action?: "execute" | "poll" | "cdp_probe";
+}
+
+// Bridge-token-gated, read-only lookup of the live Browser Use session for a run.
+interface BrowserSessionContext {
+  runId: string;
+  browserSessionId: string | null;
+  browserTaskId: string | null;
+  browserUseApiKey: string;
+}
+
+// GET /browsers/{session_id}. cdpUrl is a full-control browser handle: it is consumed in
+// memory only and never logged, persisted, or returned to a caller.
+interface BrowserSessionDetail {
+  id: string;
+  status?: string;
+  cdpUrl?: string | null;
 }
 
 interface ExecuteClaim {
@@ -118,8 +134,17 @@ async function handleWorkerRequest(request: Request) {
     return json({ ok: false, error: "invalid_json" }, 400);
   }
 
-  if (!isUuid(body.runId) || (body.action !== "execute" && body.action !== "poll")) {
+  if (
+    !isUuid(body.runId) ||
+    (body.action !== "execute" && body.action !== "poll" && body.action !== "cdp_probe")
+  ) {
     return json({ ok: false, error: "invalid_request" }, 400);
+  }
+
+  // Read-only CDP transport probe. It never claims, mutates or fails the run, so it is handled
+  // before the claim/fail path below.
+  if (body.action === "cdp_probe") {
+    return probeCdpTransport(bridgeToken, body.runId);
   }
 
   try {
@@ -166,6 +191,54 @@ async function handleWorkerRequest(request: Request) {
     }
 
     return json({ ok: false, error: safe.code, runId: body.runId }, safe.httpStatus);
+  }
+}
+
+// Phase 5 transport primitive: resolve the run's live Browser Use session, fetch its CDP
+// endpoint and prove a server-side WebSocket/CDP connection can read the active page state.
+// Strictly read-only - no typing, clicking, navigation or task resumption.
+async function probeCdpTransport(bridgeToken: string, runId: string) {
+  try {
+    const context = await rpc<BrowserSessionContext>("automation_browser_session_context", {
+      p_token: bridgeToken,
+      p_run_id: runId,
+    });
+    if (!isUuid(context.browserSessionId)) {
+      return json({ ok: false, error: "browser_session_missing", runId }, 409);
+    }
+
+    const browser = await browserFetch<BrowserSessionDetail>(
+      `/browsers/${encodeURIComponent(context.browserSessionId)}`,
+      context.browserUseApiKey,
+      { method: "GET" },
+    );
+    const cdpUrl = typeof browser.cdpUrl === "string" ? browser.cdpUrl.trim() : "";
+    if (browser.id !== context.browserSessionId) {
+      return json({ ok: false, error: "browser_session_mismatch", runId }, 409);
+    }
+    if (!cdpUrl) {
+      return json({ ok: false, error: "cdp_url_unavailable", runId }, 409);
+    }
+
+    const { inspectCdpSession } = await import("@/lib/browser-cdp.server");
+    const inspection = await inspectCdpSession(cdpUrl);
+
+    return json(
+      {
+        ok: true,
+        runId,
+        action: "cdp_probe",
+        sessionId: context.browserSessionId,
+        taskId: context.browserTaskId,
+        sessionStatus: browser.status ?? null,
+        cdp: inspection,
+      },
+      200,
+    );
+  } catch (error) {
+    const safe = sanitizeError(error);
+    console.error("CDP transport probe failed", { runId, code: safe.code, message: safe.message });
+    return json({ ok: false, error: safe.code, message: safe.message, runId }, safe.httpStatus);
   }
 }
 

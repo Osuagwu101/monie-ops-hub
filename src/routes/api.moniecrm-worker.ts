@@ -11,7 +11,7 @@ const monieCrmReportDownloadPath = "/report/api/v1/reports/daily/download";
 
 interface WorkerRequest {
   runId?: string;
-  action?: "execute" | "poll";
+  action?: "execute" | "poll" | "cdp_probe";
 }
 
 interface ExecuteClaim {
@@ -64,14 +64,17 @@ async function handleRequest(request: Request) {
   } catch {
     return json({ ok: false, error: "invalid_json" }, 400);
   }
-  if (!isUuid(body.runId) || (body.action !== "execute" && body.action !== "poll")) {
+  if (
+    !isUuid(body.runId) ||
+    (body.action !== "execute" && body.action !== "poll" && body.action !== "cdp_probe")
+  ) {
     return json({ ok: false, error: "invalid_request" }, 400);
   }
 
   // The established worker owns polling, immutable PDF import and Team Management enrichment.
   // This route owns only the safer profile-first login/dispatch stage.
-  if (body.action === "poll") {
-    return proxyLegacyPoll(request, bridgeToken, body.runId);
+  if (body.action === "poll" || body.action === "cdp_probe") {
+    return proxyLegacyWorker(request, bridgeToken, body.runId, body.action);
   }
 
   try {
@@ -255,7 +258,12 @@ function reportTaskPrompt(triggerKind: string) {
   ].join(" ");
 }
 
-async function proxyLegacyPoll(request: Request, bridgeToken: string, runId: string) {
+async function proxyLegacyWorker(
+  request: Request,
+  bridgeToken: string,
+  runId: string,
+  action: "poll" | "cdp_probe",
+) {
   const url = new URL("/api/automation-worker", request.url);
   const response = await fetch(url, {
     method: "POST",
@@ -263,7 +271,7 @@ async function proxyLegacyPoll(request: Request, bridgeToken: string, runId: str
       "content-type": "application/json",
       "x-monie-automation-token": bridgeToken,
     },
-    body: JSON.stringify({ runId, action: "poll" }),
+    body: JSON.stringify({ runId, action }),
   });
   return new Response(await response.arrayBuffer(), {
     status: response.status,
