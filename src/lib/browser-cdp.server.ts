@@ -161,7 +161,9 @@ class CdpConnection {
 }
 
 function readPageTargets(result: Record<string, unknown>) {
-  const infos = Array.isArray(result["targetInfos"]) ? (result["targetInfos"] as RawTargetInfo[]) : [];
+  const infos = Array.isArray(result["targetInfos"])
+    ? (result["targetInfos"] as RawTargetInfo[])
+    : [];
   const pages = infos
     .filter((info) => info.type === "page")
     .map<CdpPageTarget>((info) => ({

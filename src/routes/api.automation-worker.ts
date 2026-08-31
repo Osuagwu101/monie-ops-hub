@@ -31,7 +31,6 @@ interface BrowserSessionDetail {
   cdpUrl?: string | null;
 }
 
-
 interface ExecuteClaim {
   runId: string;
   action: "execute";
@@ -148,7 +147,6 @@ async function handleWorkerRequest(request: Request) {
     return probeCdpTransport(bridgeToken, body.runId);
   }
 
-
   try {
     const claim = await rpc<AutomationClaim>("automation_claim_run", {
       p_token: bridgeToken,
@@ -243,8 +241,6 @@ async function probeCdpTransport(bridgeToken: string, runId: string) {
     return json({ ok: false, error: safe.code, message: safe.message, runId }, safe.httpStatus);
   }
 }
-
-
 
 async function dispatchBrowserTask(claim: ExecuteClaim, bridgeToken: string) {
   validateLoginScope(claim.loginUrl, claim.allowedDomains);
