@@ -105,7 +105,7 @@ export async function activateInvitedStaffAccount(
         staff_invite_token: inviteToken,
       },
     }),
-  );
+  });
 }
 
 export async function refreshCloudSession(refreshToken: string) {
