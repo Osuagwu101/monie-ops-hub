@@ -196,6 +196,56 @@ async function handleWorkerRequest(request: Request) {
   }
 }
 
+// Phase 5 transport primitive: resolve the run's live Browser Use session, fetch its CDP
+// endpoint and prove a server-side WebSocket/CDP connection can read the active page state.
+// Strictly read-only - no typing, clicking, navigation or task resumption.
+async function probeCdpTransport(bridgeToken: string, runId: string) {
+  try {
+    const context = await rpc<BrowserSessionContext>("automation_browser_session_context", {
+      p_token: bridgeToken,
+      p_run_id: runId,
+    });
+    if (!isUuid(context.browserSessionId)) {
+      return json({ ok: false, error: "browser_session_missing", runId }, 409);
+    }
+
+    const browser = await browserFetch<BrowserSessionDetail>(
+      `/browsers/${encodeURIComponent(context.browserSessionId)}`,
+      context.browserUseApiKey,
+      { method: "GET" },
+    );
+    const cdpUrl = typeof browser.cdpUrl === "string" ? browser.cdpUrl.trim() : "";
+    if (browser.id !== context.browserSessionId) {
+      return json({ ok: false, error: "browser_session_mismatch", runId }, 409);
+    }
+    if (!cdpUrl) {
+      return json({ ok: false, error: "cdp_url_unavailable", runId }, 409);
+    }
+
+    const { inspectCdpSession } = await import("@/lib/browser-cdp.server");
+    const inspection = await inspectCdpSession(cdpUrl);
+
+    return json(
+      {
+        ok: true,
+        runId,
+        action: "cdp_probe",
+        sessionId: context.browserSessionId,
+        taskId: context.browserTaskId,
+        sessionStatus: browser.status ?? null,
+        cdp: inspection,
+      },
+      200,
+    );
+  } catch (error) {
+    const safe = sanitizeError(error);
+    console.error("CDP transport probe failed", { runId, code: safe.code, message: safe.message });
+    return json({ ok: false, error: safe.code, message: safe.message, runId }, safe.httpStatus);
+  }
+}
+
+
+
 async function dispatchBrowserTask(claim: ExecuteClaim, bridgeToken: string) {
   validateLoginScope(claim.loginUrl, claim.allowedDomains);
 
