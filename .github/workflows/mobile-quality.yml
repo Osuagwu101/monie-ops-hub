@@ -32,9 +32,10 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - name: Install dependencies
-        run: cd "$GITHUB_WORKSPACE/mobile" && npm config get package-lock && npm config get package-lock-only && npm ci
+        run: cd "$GITHUB_WORKSPACE/mobile" && npm config get package-lock && npm config get package-lock-only && npm ci --workspaces=false
         env:
           NPM_CONFIG_PACKAGE_LOCK: "true"
+          NPM_CONFIG_WORKSPACES: "false"
       - name: Typecheck
         run: npm run typecheck
       - name: Phase 1 human-agent acceptance
