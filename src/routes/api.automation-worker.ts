@@ -135,9 +135,19 @@ async function handleWorkerRequest(request: Request) {
     return json({ ok: false, error: "invalid_json" }, 400);
   }
 
-  if (!isUuid(body.runId) || (body.action !== "execute" && body.action !== "poll")) {
+  if (
+    !isUuid(body.runId) ||
+    (body.action !== "execute" && body.action !== "poll" && body.action !== "cdp_probe")
+  ) {
     return json({ ok: false, error: "invalid_request" }, 400);
   }
+
+  // Read-only CDP transport probe. It never claims, mutates or fails the run, so it is handled
+  // before the claim/fail path below.
+  if (body.action === "cdp_probe") {
+    return probeCdpTransport(bridgeToken, body.runId);
+  }
+
 
   try {
     const claim = await rpc<AutomationClaim>("automation_claim_run", {
