@@ -12,8 +12,25 @@ const reportBucket = "moniepoint-reports";
 
 interface WorkerRequest {
   runId?: string;
-  action?: "execute" | "poll";
+  action?: "execute" | "poll" | "cdp_probe";
 }
+
+// Bridge-token-gated, read-only lookup of the live Browser Use session for a run.
+interface BrowserSessionContext {
+  runId: string;
+  browserSessionId: string | null;
+  browserTaskId: string | null;
+  browserUseApiKey: string;
+}
+
+// GET /browsers/{session_id}. cdpUrl is a full-control browser handle: it is consumed in
+// memory only and never logged, persisted, or returned to a caller.
+interface BrowserSessionDetail {
+  id: string;
+  status?: string;
+  cdpUrl?: string | null;
+}
+
 
 interface ExecuteClaim {
   runId: string;
