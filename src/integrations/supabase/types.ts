@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -221,6 +221,9 @@ export type Database = {
       automation_config: {
         Row: {
           allowed_domains: string[]
+          auth_state: string
+          auth_state_checked_at: string | null
+          auth_state_message: string | null
           browser_profile_id: string | null
           created_at: string
           enabled: boolean
@@ -240,6 +243,9 @@ export type Database = {
         }
         Insert: {
           allowed_domains?: string[]
+          auth_state?: string
+          auth_state_checked_at?: string | null
+          auth_state_message?: string | null
           browser_profile_id?: string | null
           created_at?: string
           enabled?: boolean
@@ -259,6 +265,9 @@ export type Database = {
         }
         Update: {
           allowed_domains?: string[]
+          auth_state?: string
+          auth_state_checked_at?: string | null
+          auth_state_message?: string | null
           browser_profile_id?: string | null
           created_at?: string
           enabled?: boolean
@@ -366,6 +375,65 @@ export type Database = {
           },
         ]
       }
+      automation_verification_challenges: {
+        Row: {
+          browser_session_id: string | null
+          browser_task_id: string | null
+          challenge_type: string
+          created_at: string
+          expires_at: string
+          id: string
+          message: string | null
+          requested_at: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          run_id: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          browser_session_id?: string | null
+          browser_task_id?: string | null
+          challenge_type?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          run_id: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          browser_session_id?: string | null
+          browser_task_id?: string | null
+          challenge_type?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          run_id?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_verification_challenges_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bo_attention_queue: {
         Row: {
           created_at: string
@@ -430,6 +498,136 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      business_contact_lookup_audit: {
+        Row: {
+          business_contact_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          outcome: string
+          requested_business_name: string
+          source_reference: string | null
+          source_report_date: string | null
+          terminal_id: string
+          terminal_serial: string
+        }
+        Insert: {
+          business_contact_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          outcome: string
+          requested_business_name: string
+          source_reference?: string | null
+          source_report_date?: string | null
+          terminal_id: string
+          terminal_serial: string
+        }
+        Update: {
+          business_contact_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          outcome?: string
+          requested_business_name?: string
+          source_reference?: string | null
+          source_report_date?: string | null
+          terminal_id?: string
+          terminal_serial?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_contact_lookup_audit_business_contact_id_fkey"
+            columns: ["business_contact_id"]
+            isOneToOne: false
+            referencedRelation: "business_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_contact_terminal_links: {
+        Row: {
+          business_contact_id: string
+          created_at: string
+          crm_source_path: string | null
+          id: string
+          last_seen_at: string
+          match_method: string
+          pos_account_number: string
+          source_report_date: string
+          terminal_id: string
+          terminal_serial: string
+          verified_at: string
+        }
+        Insert: {
+          business_contact_id: string
+          created_at?: string
+          crm_source_path?: string | null
+          id?: string
+          last_seen_at?: string
+          match_method: string
+          pos_account_number: string
+          source_report_date: string
+          terminal_id: string
+          terminal_serial: string
+          verified_at?: string
+        }
+        Update: {
+          business_contact_id?: string
+          created_at?: string
+          crm_source_path?: string | null
+          id?: string
+          last_seen_at?: string
+          match_method?: string
+          pos_account_number?: string
+          source_report_date?: string
+          terminal_id?: string
+          terminal_serial?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_contact_terminal_links_business_contact_id_fkey"
+            columns: ["business_contact_id"]
+            isOneToOne: false
+            referencedRelation: "business_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_contacts: {
+        Row: {
+          canonical_name: string
+          created_at: string
+          id: string
+          last_seen_at: string
+          phone_number: string
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+        }
+        Insert: {
+          canonical_name: string
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          phone_number: string
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          canonical_name?: string
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          phone_number?: string
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Relationships: []
       }
       compensation_recommendations: {
         Row: {
@@ -503,6 +701,77 @@ export type Database = {
             columns: ["scorecard_id"]
             isOneToOne: false
             referencedRelation: "performance_scorecards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_bootstrap_runs: {
+        Row: {
+          batch_size: number
+          browser_session_id: string | null
+          browser_task_id: string | null
+          completed_at: string | null
+          created_at: string
+          diagnostics: Json
+          id: string
+          last_error_code: string | null
+          last_error_message: string | null
+          next_offset: number
+          not_found_count: number
+          report_id: string
+          review_count: number
+          started_at: string | null
+          status: string
+          total_items: number
+          updated_at: string
+          verified_count: number
+        }
+        Insert: {
+          batch_size?: number
+          browser_session_id?: string | null
+          browser_task_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          diagnostics?: Json
+          id?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          next_offset?: number
+          not_found_count?: number
+          report_id: string
+          review_count?: number
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_at?: string
+          verified_count?: number
+        }
+        Update: {
+          batch_size?: number
+          browser_session_id?: string | null
+          browser_task_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          diagnostics?: Json
+          id?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          next_offset?: number
+          not_found_count?: number
+          report_id?: string
+          review_count?: number
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_at?: string
+          verified_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_bootstrap_runs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_imports"
             referencedColumns: ["id"]
           },
         ]
@@ -1795,6 +2064,10 @@ export type Database = {
         Args: { p_action: string; p_run_id: string; p_token: string }
         Returns: Json
       }
+      automation_clear_verification_secret: {
+        Args: { p_challenge_id: string }
+        Returns: undefined
+      }
       automation_complete_run: {
         Args: {
           p_metadata: Json
@@ -1805,6 +2078,18 @@ export type Database = {
         }
         Returns: Json
       }
+      automation_consume_verification_challenge: {
+        Args: { p_challenge_id: string; p_token: string }
+        Returns: Json
+      }
+      automation_director_cancel_verification_challenge: {
+        Args: { p_challenge_id: string; p_reason?: string }
+        Returns: Json
+      }
+      automation_expire_verification_challenges: {
+        Args: never
+        Returns: number
+      }
       automation_fail_run: {
         Args: {
           p_diagnostics?: Json
@@ -1812,6 +2097,14 @@ export type Database = {
           p_error_message: string
           p_retryable: boolean
           p_run_id: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      automation_fail_verification_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_error_message?: string
           p_token: string
         }
         Returns: Json
@@ -1838,12 +2131,32 @@ export type Database = {
         Args: { p_diagnostics?: Json; p_run_id: string; p_token: string }
         Returns: Json
       }
+      automation_open_verification_challenge: {
+        Args: {
+          p_browser_session_id?: string
+          p_browser_task_id?: string
+          p_challenge_type?: string
+          p_message?: string
+          p_run_id: string
+          p_token: string
+          p_ttl_minutes?: number
+        }
+        Returns: Json
+      }
+      automation_resolve_verification_auth_state: {
+        Args: { p_message: string; p_state: string }
+        Returns: undefined
+      }
       automation_run_context: {
         Args: { p_run_id: string; p_token: string }
         Returns: Json
       }
       automation_secret_name: { Args: { p_kind: string }; Returns: string }
       automation_secret_status: { Args: never; Returns: Json }
+      automation_set_auth_state: {
+        Args: { p_message?: string; p_state: string; p_token: string }
+        Returns: Json
+      }
       automation_set_browser_profile: {
         Args: { p_profile_id: string; p_token: string }
         Returns: Json
@@ -1858,9 +2171,60 @@ export type Database = {
         }
         Returns: Json
       }
+      automation_submit_verification_code: {
+        Args: { p_challenge_id: string; p_code: string }
+        Returns: Json
+      }
+      automation_take_verification_code: {
+        Args: { p_challenge_id: string; p_token: string }
+        Returns: Json
+      }
+      automation_verification_challenge_status: { Args: never; Returns: Json }
+      automation_verification_secret_name: {
+        Args: { p_challenge_id: string }
+        Returns: string
+      }
       bootstrap_manual_report: {
         Args: { p_assigned_to?: string; p_report_id: string }
         Returns: Json
+      }
+      contact_bootstrap_apply_batch: {
+        Args: { p_results: Json; p_run_id: string; p_token: string }
+        Returns: Json
+      }
+      contact_bootstrap_batch: {
+        Args: { p_limit: number; p_offset: number; p_report_id: string }
+        Returns: Json
+      }
+      contact_bootstrap_claim: {
+        Args: { p_action: string; p_run_id: string; p_token: string }
+        Returns: Json
+      }
+      contact_bootstrap_fail_run: {
+        Args: {
+          p_error_code: string
+          p_error_message: string
+          p_run_id: string
+          p_token: string
+        }
+        Returns: undefined
+      }
+      contact_bootstrap_finalize: {
+        Args: { p_run_id: string; p_token: string }
+        Returns: Json
+      }
+      contact_bootstrap_mark_dispatched: {
+        Args: {
+          p_browser_session_id: string
+          p_browser_task_id: string
+          p_run_id: string
+          p_token: string
+        }
+        Returns: undefined
+      }
+      contact_bootstrap_mark_pending: {
+        Args: { p_diagnostics?: Json; p_run_id: string; p_token: string }
+        Returns: undefined
       }
       create_staff_invite: {
         Args: { p_email: string; p_full_name: string }
@@ -1957,6 +2321,14 @@ export type Database = {
           p_scheduled_for?: string
           p_trigger_kind: string
         }
+        Returns: Json
+      }
+      queue_contact_bootstrap: {
+        Args: { p_batch_size?: number; p_report_id?: string }
+        Returns: Json
+      }
+      queue_contact_bootstrap_internal: {
+        Args: { p_batch_size?: number; p_report_id: string }
         Returns: Json
       }
       reconcile_ta_tasks_for_report: {
@@ -2095,6 +2467,10 @@ export type Database = {
         Args: { p_action: string; p_run_id: string }
         Returns: number
       }
+      send_contact_bootstrap_poll: {
+        Args: { p_run_id: string }
+        Returns: number
+      }
       set_automation_secret: {
         Args: { p_kind: string; p_value: string }
         Returns: Json
@@ -2189,6 +2565,9 @@ export type Database = {
         }
         Returns: {
           allowed_domains: string[]
+          auth_state: string
+          auth_state_checked_at: string | null
+          auth_state_message: string | null
           browser_profile_id: string | null
           created_at: string
           enabled: boolean
@@ -2263,6 +2642,14 @@ export type Database = {
           p_team_percent: number
         }
         Returns: string
+      }
+      upsert_verified_business_contacts: {
+        Args: {
+          p_contacts: Json
+          p_source_reference?: string
+          p_source_report_date: string
+        }
+        Returns: Json
       }
     }
     Enums: {
