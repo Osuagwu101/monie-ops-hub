@@ -30,7 +30,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test:phase1": "node scripts/phase1-human-agent-acceptance.mjs",
-    "test:phase2": "node scripts/phase2-director-operations-acceptance.mjs"
+    "test:phase2": "node scripts/phase2-director-operations-acceptance.mjs",
+    "test:phase3": "node scripts/phase3-director-task-assignment-acceptance.mjs"
   },
   "private": true
 }

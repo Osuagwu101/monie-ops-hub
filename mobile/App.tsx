@@ -25,6 +25,7 @@ import {
   DirectorOverviewStatus,
   DirectorReports,
 } from "./src/components/DirectorOperations";
+import { DirectorTaskAssignment } from "./src/components/DirectorTaskAssignment";
 import { OperationsSnapshot } from "./src/components/OperationsSnapshot";
 import {
   acknowledgeJoined,
@@ -50,7 +51,7 @@ const MUTED = "#667085";
 const BORDER = "#E4E7EC";
 const SURFACE = "#F7F9FC";
 
-type DirectorSection = "overview" | "reports" | "merchants" | "meetings" | "profile";
+type DirectorSection = "overview" | "reports" | "merchants" | "assignments" | "meetings" | "profile";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -325,6 +326,11 @@ function DirectorHome({
             onPress={() => setSection("merchants")}
           />
           <DirectorNavButton
+            label="Task Assignment"
+            active={section === "assignments"}
+            onPress={() => setSection("assignments")}
+          />
+          <DirectorNavButton
             label="Meetings"
             active={section === "meetings"}
             onPress={() => setSection("meetings")}
@@ -356,6 +362,9 @@ function DirectorHome({
 
         {section === "reports" ? <DirectorReports onPortalRefresh={onRefresh} /> : null}
         {section === "merchants" ? <DirectorMerchantsTerminals /> : null}
+        {section === "assignments" ? (
+          <DirectorTaskAssignment directorId={profile.id} refreshSignal={refreshing} />
+        ) : null}
 
         <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Meetings</Text>
