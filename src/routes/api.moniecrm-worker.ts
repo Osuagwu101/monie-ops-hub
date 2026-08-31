@@ -11,8 +11,9 @@ const monieCrmReportDownloadPath = "/report/api/v1/reports/daily/download";
 
 interface WorkerRequest {
   runId?: string;
-  action?: "execute" | "poll";
+  action?: "execute" | "poll" | "cdp_probe";
 }
+
 
 interface ExecuteClaim {
   runId: string;
