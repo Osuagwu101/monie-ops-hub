@@ -2,9 +2,19 @@ name: Mobile APK Release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - mobile/**
+      - .github/workflows/mobile-apk-release.yml
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: android-v1.1.0-full-portal
+  cancel-in-progress: false
 
 jobs:
   android-apk:
@@ -35,25 +45,41 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_EtiaAjDKKyM0jV54jpTuXQ_sdAVic5H" >> "$GITHUB_ENV"
       - name: Typecheck mobile app
         run: npm run typecheck
+      - name: Verify retained and new mobile features
+        run: |
+          npm run test:phase1
+          npm run test:phase2
+          npm run test:phase3
+          npm run test:phase4
       - name: Generate native Android project
         env:
           CI: "1"
         run: npx expo prebuild --platform android --clean
-      - name: Build installable debug-signed APK
+      - name: Build installable internal APK
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon
       - name: Stage release APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/moniepoint-brm-1.0.0-internal.apk
-          sha256sum dist/moniepoint-brm-1.0.0-internal.apk | tee dist/moniepoint-brm-1.0.0-internal.apk.sha256
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/monie-ops-hub-android-v1.1.0-full-portal.apk
+          sha256sum dist/monie-ops-hub-android-v1.1.0-full-portal.apk | tee dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: moniepoint-brm-android-apk
           path: |
-            mobile/dist/moniepoint-brm-1.0.0-internal.apk
-            mobile/dist/moniepoint-brm-1.0.0-internal.apk.sha256
+            mobile/dist/monie-ops-hub-android-v1.1.0-full-portal.apk
+            mobile/dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
+      - name: Publish permanent GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: android-v1.1.0-full-portal
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/monie-ops-hub-android-v1.1.0-full-portal.apk dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256 --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" dist/monie-ops-hub-android-v1.1.0-full-portal.apk dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256 --target "$GITHUB_SHA" --title "Monie Ops Hub Android v1.1.0 — Full Portal" --notes "Installable internal Android build with the mature Director menu, Staff Accounts, Automation, Readiness, Operations Team, and shared BO phone/POS account editing. Source commit: $GITHUB_SHA"
+          fi

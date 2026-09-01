@@ -1,4 +1,4 @@
-import { callRpc, restSelect } from "@/lib/cloud-api";
+import { callRpc, restSelect, restUpdate } from "@/lib/cloud-api";
 import type { TaskStatus, TaskType } from "@/domain/models";
 
 export type TaskOutcomeCode =
@@ -233,6 +233,32 @@ export async function startAssistantTask(taskId: string, accessToken: string) {
     { p_task_id: taskId, p_status: "in_progress" },
     accessToken,
   );
+}
+
+export async function updateMerchantContactDetails(
+  input: { merchantId: string; phoneNumber: string; accountNumber: string },
+  accessToken: string,
+) {
+  const phoneNumber = input.phoneNumber.trim() || null;
+  const accountNumber = input.accountNumber.trim() || null;
+  if (!phoneNumber && !accountNumber) {
+    throw new Error("Enter a BO phone number or POS account number.");
+  }
+
+  const rows = await restUpdate<
+    Array<{ id: string; phone_number: string | null; account_number: string | null }>
+  >(
+    `merchants?id=eq.${encodeURIComponent(input.merchantId)}`,
+    {
+      phone_number: phoneNumber,
+      account_number: accountNumber,
+      contact_source: "director_manual",
+      contact_synced_at: new Date().toISOString(),
+    },
+    accessToken,
+  );
+  if (!rows.length) throw new Error("The business contact details could not be updated.");
+  return rows[0];
 }
 
 export async function submitAssistantOutcome(input: SubmitOutcomeInput, accessToken: string) {

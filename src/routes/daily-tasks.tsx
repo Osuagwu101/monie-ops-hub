@@ -7,6 +7,7 @@ import {
   CircleDashed,
   Clock3,
   Loader2,
+  Pencil,
   Phone,
   Play,
   RotateCcw,
@@ -43,6 +44,7 @@ import {
   localDateKey,
   startAssistantTask,
   submitAssistantOutcome,
+  updateMerchantContactDetails,
   type AssistantTask,
   type TaskOutcomeCode,
 } from "@/lib/assistant-data";
@@ -84,6 +86,7 @@ function DailyTasksPage() {
   const { session, user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedTask, setSelectedTask] = useState<AssistantTask | null>(null);
+  const [contactTask, setContactTask] = useState<AssistantTask | null>(null);
   const date = localDateKey();
   const accessToken = session?.access_token ?? "";
 
@@ -108,6 +111,7 @@ function DailyTasksPage() {
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
   const profile = profileQuery.data;
   const isAssistant = profile?.role === "assistant";
+  const canEditContacts = profile?.role === "director";
 
   const stats = useMemo(() => {
     const completed = tasks.filter((task) => finishedStates.has(task.status)).length;
@@ -217,6 +221,8 @@ function DailyTasksPage() {
               starting={startMutation.isPending}
               onStart={() => startMutation.mutate(nowTask.id)}
               onOutcome={() => setSelectedTask(nowTask)}
+              canEditContact={Boolean(canEditContacts && nowTask.merchant_id)}
+              onEditContact={() => setContactTask(nowTask)}
             />
           ) : (
             <div className="flex items-start gap-3 py-4">
@@ -265,6 +271,8 @@ function DailyTasksPage() {
                   number={task.queue_rank ?? index + 1}
                   canAct={Boolean(isAssistant)}
                   onOutcome={() => setSelectedTask(task)}
+                  canEditContact={Boolean(canEditContacts && task.merchant_id)}
+                  onEditContact={() => setContactTask(task)}
                 />
               ))}
             </div>
@@ -292,6 +300,15 @@ function DailyTasksPage() {
           await queryClient.invalidateQueries({ queryKey: ["assistant-tasks", date] });
         }}
       />
+      <MerchantContactDialog
+        task={contactTask}
+        accessToken={accessToken}
+        onOpenChange={(open) => !open && setContactTask(null)}
+        onSaved={async () => {
+          setContactTask(null);
+          await queryClient.invalidateQueries({ queryKey: ["assistant-tasks", date] });
+        }}
+      />
     </div>
   );
 }
@@ -302,12 +319,16 @@ function NowTask({
   starting,
   onStart,
   onOutcome,
+  canEditContact,
+  onEditContact,
 }: {
   task: AssistantTask;
   canAct: boolean;
   starting: boolean;
   onStart: () => void;
   onOutcome: () => void;
+  canEditContact: boolean;
+  onEditContact: () => void;
 }) {
   const phoneNumber = task.merchant?.phone_number;
   const started = task.status === "in_progress";
@@ -393,6 +414,11 @@ function NowTask({
             <Phone className="mr-2 h-4 w-4" /> No phone number
           </Button>
         )}
+        {canEditContact && (
+          <Button variant="outline" onClick={onEditContact}>
+            <Pencil className="mr-2 h-4 w-4" /> Edit BO details
+          </Button>
+        )}
         {!started && (
           <Button variant="outline" onClick={onStart} disabled={!canAct || starting}>
             {starting ? (
@@ -416,11 +442,15 @@ function QueueRow({
   number,
   canAct,
   onOutcome,
+  canEditContact,
+  onEditContact,
 }: {
   task: AssistantTask;
   number: number;
   canAct: boolean;
   onOutcome: () => void;
+  canEditContact: boolean;
+  onEditContact: () => void;
 }) {
   const final = finishedStates.has(task.status);
   const weekly = task.weeklyPerformance;
@@ -447,6 +477,7 @@ function QueueRow({
           <span>TID: {task.terminal?.terminal_id ?? "—"}</span>
           <span>Serial: {task.terminal?.serial_number ?? "—"}</span>
           <span>Account: {task.merchant?.account_number ?? "Not confirmed"}</span>
+          <span>Phone: {task.merchant?.phone_number ?? "Not confirmed"}</span>
           {weekly && weeklyActual !== null && (
             <span>
               Weekly {formatMoney(weeklyActual)} / {formatMoney(weekly.official_target_value)}
@@ -460,17 +491,114 @@ function QueueRow({
         </div>
       </div>
       <div className="flex justify-end">
-        {final ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-primary" /> Human work recorded
-          </div>
-        ) : (
-          <Button size="sm" variant="outline" onClick={onOutcome} disabled={!canAct}>
-            Update
-          </Button>
-        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          {canEditContact && (
+            <Button size="sm" variant="outline" onClick={onEditContact}>
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> BO details
+            </Button>
+          )}
+          {final ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-primary" /> Human work recorded
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" onClick={onOutcome} disabled={!canAct}>
+              Update
+            </Button>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function MerchantContactDialog({
+  task,
+  accessToken,
+  onOpenChange,
+  onSaved,
+}: {
+  task: AssistantTask | null;
+  accessToken: string;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const mutation = useMutation({
+    mutationFn: (input: { merchantId: string; phoneNumber: string; accountNumber: string }) =>
+      updateMerchantContactDetails(input, accessToken),
+    onSuccess: () => onSaved(),
+    onError: (caught) =>
+      setError(caught instanceof Error ? caught.message : "Unable to save BO details."),
+  });
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!task?.merchant_id) return;
+    setError(null);
+    const form = new FormData(event.currentTarget);
+    mutation.mutate({
+      merchantId: task.merchant_id,
+      phoneNumber: String(form.get("phoneNumber") ?? ""),
+      accountNumber: String(form.get("accountNumber") ?? ""),
+    });
+  }
+
+  return (
+    <Dialog open={Boolean(task)} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>BO contact details</DialogTitle>
+          <DialogDescription>
+            Save these details to the business record. Amina will include them whenever this
+            business is assigned again.
+          </DialogDescription>
+        </DialogHeader>
+        {task && (
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="rounded-lg bg-muted/60 p-3 text-sm font-medium">
+              {task.merchant?.business_name ?? "Assigned merchant"}
+            </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>BO details not saved</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">BO phone number</Label>
+              <Input
+                id="phoneNumber"
+                name="phoneNumber"
+                type="tel"
+                defaultValue={task.merchant?.phone_number ?? ""}
+                placeholder="Enter BO phone number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accountNumber">POS account number</Label>
+              <Input
+                id="accountNumber"
+                name="accountNumber"
+                inputMode="numeric"
+                defaultValue={task.merchant?.account_number ?? ""}
+                placeholder="Enter POS account number"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={mutation.isPending}>
+                {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save BO details
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -3,12 +3,13 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   AppState,
   Image,
+  Modal,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -19,6 +20,19 @@ import {
   View,
 } from "react-native";
 
+import { AgentWorkspace } from "./src/components/AgentWorkspace";
+import {
+  DirectorMerchantsTerminals,
+  DirectorOverviewStatus,
+  DirectorReports,
+} from "./src/components/DirectorOperations";
+import { DirectorTaskAssignment } from "./src/components/DirectorTaskAssignment";
+import {
+  AutomationSection,
+  OperationsTeamSection,
+  ReadinessSection,
+  StaffAccountsSection,
+} from "./src/components/DirectorPortalSections";
 import { OperationsSnapshot } from "./src/components/OperationsSnapshot";
 import {
   acknowledgeJoined,
@@ -44,6 +58,31 @@ const MUTED = "#667085";
 const BORDER = "#E4E7EC";
 const SURFACE = "#F7F9FC";
 
+type DirectorSection =
+  | "overview"
+  | "assignments"
+  | "reports"
+  | "merchants"
+  | "meetings"
+  | "staff"
+  | "automation"
+  | "readiness"
+  | "operations-team"
+  | "profile";
+
+const DIRECTOR_MENU: Array<{ key: DirectorSection; label: string; short: string }> = [
+  { key: "overview", label: "Overview", short: "OV" },
+  { key: "assignments", label: "Daily Tasks", short: "DT" },
+  { key: "reports", label: "Official Reports", short: "RP" },
+  { key: "merchants", label: "Merchants & Terminals", short: "MT" },
+  { key: "meetings", label: "Meetings & Alerts", short: "ME" },
+  { key: "staff", label: "Staff Accounts", short: "ST" },
+  { key: "automation", label: "Automation", short: "AU" },
+  { key: "readiness", label: "Readiness", short: "RD" },
+  { key: "operations-team", label: "Operations Team", short: "OT" },
+  { key: "profile", label: "Profile", short: "PR" },
+];
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<MobileProfile | null>(null);
@@ -55,6 +94,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const hadSessionRef = useRef(false);
+  const manualSignOutRef = useRef(false);
+
+  const signOut = useCallback(async () => {
+    manualSignOutRef.current = true;
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      manualSignOutRef.current = false;
+      Alert.alert("Could not sign out", signOutError.message);
+    }
+  }, []);
 
   const loadData = useCallback(async (currentSession: Session, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -63,9 +114,15 @@ export default function App() {
     try {
       const currentProfile = await loadMyProfile(currentSession.user.id);
       setProfile(currentProfile);
-      if (!currentProfile || currentProfile.role !== "director" || !currentProfile.is_active) {
+      if (!currentProfile || !currentProfile.is_active) {
         setMeetings([]);
         setOperations(null);
+        return;
+      }
+      if (currentProfile.role !== "director") {
+        setMeetings([]);
+        setOperations(null);
+        setNotificationReadiness(null);
         return;
       }
 
@@ -115,11 +172,21 @@ export default function App() {
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      hadSessionRef.current = Boolean(data.session);
       if (!data.session) setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      const hadSession = hadSessionRef.current;
       setSession(nextSession);
+      hadSessionRef.current = Boolean(nextSession);
+      if (nextSession) setAuthNotice(null);
       if (!nextSession) {
+        if (manualSignOutRef.current) {
+          setAuthNotice("Signed out successfully.");
+          manualSignOutRef.current = false;
+        } else if (hadSession && event === "SIGNED_OUT") {
+          setAuthNotice("Your session expired. Sign in again.");
+        }
         setProfile(null);
         setMeetings([]);
         setOperations(null);
@@ -154,28 +221,32 @@ export default function App() {
   }
 
   if (!session) {
-    return <LoginScreen />;
+    return <LoginScreen notice={authNotice} />;
   }
 
   if (loading) {
     return <LoadingScreen label="Synchronising Moniepoint BRM…" />;
   }
 
-  if (!profile || profile.role !== "director" || !profile.is_active) {
+  if (!profile || !profile.is_active) {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar style="dark" />
         <View style={styles.centeredPage}>
           <BrandMark />
-          <Text style={styles.centerTitle}>Director account required</Text>
+          <Text style={styles.centerTitle}>Active account required</Text>
           <Text style={styles.centerBody}>
-            This first Moniepoint BRM mobile release is the Director companion. Your account is not
-            currently an active Director profile.
+            This account is not currently active in Monie Ops Hub. Contact the Admin if access
+            should be restored.
           </Text>
-          <PrimaryButton title="Sign out" onPress={() => void supabase.auth.signOut()} />
+          <PrimaryButton title="Sign out" onPress={() => void signOut()} />
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (profile.role === "assistant") {
+    return <AgentWorkspace profile={profile} onSignOut={() => void signOut()} />;
   }
 
   return (
@@ -188,6 +259,7 @@ export default function App() {
       error={error}
       onRefresh={() => void loadData(session, true)}
       onAcknowledge={(id) => void acknowledge(id)}
+      onSignOut={() => void signOut()}
     />
   );
 }
@@ -201,6 +273,7 @@ function DirectorHome({
   error,
   onRefresh,
   onAcknowledge,
+  onSignOut,
 }: {
   profile: MobileProfile;
   meetings: MeetingOccurrence[];
@@ -210,7 +283,10 @@ function DirectorHome({
   error: string | null;
   onRefresh: () => void;
   onAcknowledge: (id: string) => void;
+  onSignOut: () => void;
 }) {
+  const [section, setSection] = useState<DirectorSection>("overview");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
@@ -232,33 +308,56 @@ function DirectorHome({
       }),
     [meetings, now],
   );
+  const sectionLabel = DIRECTOR_MENU.find((item) => item.key === section)?.label ?? "Overview";
+  const chooseSection = (next: DirectorSection) => {
+    setSection(next);
+    setDrawerOpen(false);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
+      <View style={styles.mobileHeader}>
+        <Pressable
+          style={styles.menuButton}
+          onPress={() => setDrawerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Open navigation menu"
+        >
+          <Text style={styles.menuGlyph}>☰</Text>
+        </Pressable>
+        <View style={styles.headerTitleBlock}>
+          <Text style={styles.mobileHeaderTitle}>{sectionLabel}</Text>
+          <Text style={styles.mobileHeaderSubtitle}>Monie Ops Hub</Text>
+        </View>
+        <Pressable
+          style={styles.refreshButton}
+          onPress={onRefresh}
+          disabled={refreshing}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh portal data"
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color={BLUE} />
+          ) : (
+            <Text style={styles.refreshGlyph}>↻</Text>
+          )}
+        </Pressable>
+      </View>
       <ScrollView
         contentContainerStyle={styles.page}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BLUE} />
         }
       >
-        <View style={styles.headerRow}>
-          <View style={styles.brandRow}>
-            <BrandMark small />
-            <View>
-              <Text style={styles.brandTitle}>Moniepoint BRM</Text>
-              <Text style={styles.brandSubtitle}>Director mobile companion</Text>
-            </View>
+        {section === "overview" ? (
+          <View>
+            <Text style={styles.greeting}>Good day, {firstName(profile.full_name)}</Text>
+            <Text style={styles.overviewSub}>
+              Your full Director workspace stays synchronized with the web portal.
+            </Text>
           </View>
-          <Pressable style={styles.signOutButton} onPress={() => void supabase.auth.signOut()}>
-            <Text style={styles.signOutText}>Sign out</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.greeting}>Good day, {firstName(profile.full_name)}</Text>
-        <Text style={styles.greetingSub}>
-          Your operations and meeting alerts stay synced with the web portal.
-        </Text>
+        ) : null}
 
         {error ? (
           <View style={[styles.notice, styles.noticeError]}>
@@ -267,18 +366,35 @@ function DirectorHome({
           </View>
         ) : null}
 
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Portal snapshot</Text>
-          <Text style={styles.sectionHint}>Same live backend</Text>
-        </View>
-        <OperationsSnapshot data={operations} />
+        {section === "overview" ? (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Portal snapshot</Text>
+              <Text style={styles.sectionHint}>Same live backend</Text>
+            </View>
+            <DirectorOverviewStatus operations={operations} refreshSignal={refreshing} />
+            <OperationsSnapshot data={operations} />
+          </View>
+        ) : null}
 
-        <View style={styles.sectionHeaderRow}>
+        {section === "reports" ? <DirectorReports onPortalRefresh={onRefresh} /> : null}
+        {section === "merchants" ? <DirectorMerchantsTerminals /> : null}
+        {section === "assignments" ? (
+          <DirectorTaskAssignment directorId={profile.id} refreshSignal={refreshing} />
+        ) : null}
+        {section === "staff" ? <StaffAccountsSection refreshSignal={refreshing} /> : null}
+        {section === "automation" ? <AutomationSection refreshSignal={refreshing} /> : null}
+        {section === "readiness" ? <ReadinessSection refreshSignal={refreshing} /> : null}
+        {section === "operations-team" ? (
+          <OperationsTeamSection refreshSignal={refreshing} />
+        ) : null}
+
+        <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Meetings</Text>
           <Text style={styles.sectionHint}>Acknowledgement synced</Text>
         </View>
 
-        {activeMeeting ? (
+        {section === "meetings" && activeMeeting ? (
           <View style={[styles.card, styles.activeCard]}>
             <View style={styles.cardTopRow}>
               <Pill text="MEETING STARTED" strong />
@@ -298,7 +414,7 @@ function DirectorHome({
               <Text style={styles.ackButtonText}>Yes, I have joined</Text>
             </Pressable>
           </View>
-        ) : nextMeeting ? (
+        ) : section === "meetings" && nextMeeting ? (
           <View style={styles.card}>
             <View style={styles.cardTopRow}>
               <Pill text="NEXT MEETING" />
@@ -320,7 +436,7 @@ function DirectorHome({
               </Text>
             )}
           </View>
-        ) : (
+        ) : section === "meetings" ? (
           <View style={styles.card}>
             <Pill text="CALENDAR" />
             <Text style={styles.heroTitle}>No upcoming meeting is currently materialized.</Text>
@@ -328,13 +444,13 @@ function DirectorHome({
               Pull down to refresh after the Director Meeting Centre is updated.
             </Text>
           </View>
-        )}
+        ) : null}
 
-        <View style={styles.sectionHeaderRow}>
+        <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Notification readiness</Text>
           <Text style={styles.sectionHint}>Local + push</Text>
         </View>
-        <View style={styles.card}>
+        <View style={[styles.card, section !== "meetings" && styles.hidden]}>
           <ReadinessRow
             title="Notification permission"
             ready={notificationReadiness?.permissionGranted ?? false}
@@ -362,11 +478,11 @@ function DirectorHome({
           ) : null}
         </View>
 
-        <View style={styles.sectionHeaderRow}>
+        <View style={section === "meetings" ? styles.sectionHeaderRow : styles.hidden}>
           <Text style={styles.sectionTitle}>Upcoming meetings</Text>
           <Text style={styles.sectionHint}>Africa/Lagos schedule</Text>
         </View>
-        <View style={styles.cardList}>
+        <View style={[styles.cardList, section !== "meetings" && styles.hidden]}>
           {meetings
             .filter((item) => new Date(item.starts_at).getTime() >= now - 30 * 60_000)
             .slice(0, 8)
@@ -381,7 +497,7 @@ function DirectorHome({
           {!meetings.length ? <Text style={styles.emptyText}>No meetings loaded yet.</Text> : null}
         </View>
 
-        <View style={styles.footerCard}>
+        <View style={[styles.footerCard, section !== "meetings" && styles.hidden]}>
           <Text style={styles.footerTitle}>Reminder pattern</Text>
           <Text style={styles.footerBody}>10 minutes before: short preparation bing.</Text>
           <Text style={styles.footerBody}>2 minutes before: urgent drop-everything reminder.</Text>
@@ -389,7 +505,67 @@ function DirectorHome({
             4 minutes after start: repeated alarms until you acknowledge joining.
           </Text>
         </View>
+
+        {section === "profile" ? (
+          <View style={styles.card}>
+            <Pill text="DIRECTOR" strong />
+            <Text style={styles.heroTitle}>{profile.full_name}</Text>
+            <Text style={styles.heroBody}>
+              This mobile session uses the same active Director account and production Supabase
+              permissions as the web portal.
+            </Text>
+            <PrimaryButton title="Sign out" onPress={onSignOut} />
+          </View>
+        ) : null}
       </ScrollView>
+
+      <Modal
+        visible={drawerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDrawerOpen(false)}
+      >
+        <View style={styles.drawerBackdrop}>
+          <View style={styles.drawerPanel}>
+            <View style={styles.drawerBrand}>
+              <BrandMark small />
+              <View style={styles.flexOne}>
+                <Text style={styles.drawerTitle}>Monie Ops Hub</Text>
+                <Text style={styles.drawerSubtitle}>Director workspace</Text>
+              </View>
+              <Pressable style={styles.drawerClose} onPress={() => setDrawerOpen(false)}>
+                <Text style={styles.drawerCloseText}>×</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.drawerMenu}>
+              {DIRECTOR_MENU.map((item) => (
+                <Pressable
+                  key={item.key}
+                  style={[styles.drawerItem, section === item.key && styles.drawerItemActive]}
+                  onPress={() => chooseSection(item.key)}
+                >
+                  <View style={[styles.drawerIcon, section === item.key && styles.drawerIconActive]}>
+                    <Text style={[styles.drawerIconText, section === item.key && styles.drawerIconTextActive]}>
+                      {item.short}
+                    </Text>
+                  </View>
+                  <Text style={[styles.drawerItemText, section === item.key && styles.drawerItemTextActive]}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <View style={styles.drawerFooter}>
+              <Text style={styles.drawerProfileName}>{profile.full_name}</Text>
+              <Text style={styles.drawerProfileRole}>Director / Admin</Text>
+              <Pressable style={styles.drawerSignOut} onPress={onSignOut}>
+                <Text style={styles.drawerSignOutText}>Sign out</Text>
+              </Pressable>
+            </View>
+          </View>
+          <Pressable style={styles.drawerScrim} onPress={() => setDrawerOpen(false)} />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -432,7 +608,7 @@ function MeetingRow({
   );
 }
 
-function LoginScreen() {
+function LoginScreen({ notice }: { notice: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -456,7 +632,10 @@ function LoginScreen() {
       <View style={styles.loginPage}>
         <BrandMark />
         <Text style={styles.loginTitle}>Moniepoint BRM</Text>
-        <Text style={styles.loginSubtitle}>Use the same Director account as the web portal.</Text>
+        <Text style={styles.loginSubtitle}>
+          Use the same Director or Staff Support Agent account as the web portal.
+        </Text>
+        {notice ? <Text style={styles.loginNotice}>{notice}</Text> : null}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput
@@ -631,6 +810,105 @@ function messageOf(error: unknown) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
   page: { padding: 20, paddingBottom: 48, gap: 18 },
+  mobileHeader: {
+    minHeight: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BORDER,
+    backgroundColor: "#FFFFFF",
+  },
+  menuButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: SURFACE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuGlyph: { color: INK, fontSize: 22, fontWeight: "700" },
+  headerTitleBlock: { flex: 1 },
+  mobileHeaderTitle: { color: INK, fontSize: 16, fontWeight: "900" },
+  mobileHeaderSubtitle: { color: MUTED, fontSize: 10, marginTop: 1 },
+  refreshButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refreshGlyph: { color: BLUE, fontSize: 25, fontWeight: "600" },
+  overviewSub: { color: MUTED, fontSize: 13, lineHeight: 20, marginTop: 4 },
+  drawerBackdrop: { flex: 1, flexDirection: "row", backgroundColor: "rgba(17,24,39,0.46)" },
+  drawerPanel: { width: "84%", maxWidth: 340, backgroundColor: "#FFFFFF" },
+  drawerScrim: { flex: 1 },
+  drawerBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 18,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BORDER,
+  },
+  flexOne: { flex: 1 },
+  drawerTitle: { color: INK, fontSize: 16, fontWeight: "900" },
+  drawerSubtitle: { color: MUTED, fontSize: 10, marginTop: 2 },
+  drawerClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: SURFACE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  drawerCloseText: { color: INK, fontSize: 17, fontWeight: "700" },
+  drawerMenu: { flex: 1, padding: 12 },
+  drawerItem: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    marginBottom: 3,
+  },
+  drawerItemActive: { backgroundColor: "#EAF1FF" },
+  drawerIcon: {
+    width: 31,
+    height: 31,
+    borderRadius: 9,
+    backgroundColor: SURFACE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  drawerIconActive: { backgroundColor: BLUE },
+  drawerIconText: { color: MUTED, fontSize: 9, fontWeight: "900" },
+  drawerIconTextActive: { color: "#FFFFFF" },
+  drawerItemText: { color: INK, fontSize: 13, fontWeight: "700" },
+  drawerItemTextActive: { color: BLUE, fontWeight: "900" },
+  drawerFooter: {
+    padding: 18,
+    gap: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BORDER,
+  },
+  drawerProfileName: { color: INK, fontSize: 13, fontWeight: "900" },
+  drawerProfileRole: { color: MUTED, fontSize: 10, marginBottom: 9 },
+  drawerSignOut: {
+    minHeight: 42,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  drawerSignOutText: { color: "#B42318", fontSize: 12, fontWeight: "800" },
+  sectionContainer: { gap: 18 },
+  hidden: { display: "none" },
   centeredPage: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 18 },
   loginPage: { flex: 1, justifyContent: "center", padding: 28, gap: 16 },
   headerRow: {
@@ -801,6 +1079,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginError: { color: "#B42318", fontSize: 12, lineHeight: 18 },
+  loginNotice: {
+    color: "#175CD3",
+    backgroundColor: "#EFF8FF",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   centerTitle: { color: INK, fontSize: 24, fontWeight: "900", textAlign: "center" },
   centerBody: { color: MUTED, fontSize: 13, lineHeight: 21, textAlign: "center", maxWidth: 360 },
 });

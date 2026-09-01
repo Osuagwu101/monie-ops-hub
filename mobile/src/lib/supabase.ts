@@ -3,12 +3,12 @@ import { AppState, Platform } from "react-native";
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
+export const mobileSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+export const mobileSupabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-export const mobileCloudConfigured = Boolean(supabaseUrl && supabaseKey);
+export const mobileCloudConfigured = Boolean(mobileSupabaseUrl && mobileSupabaseKey);
 
-export const supabase = createClient(supabaseUrl || "https://example.invalid", supabaseKey || "missing", {
+export const supabase = createClient(mobileSupabaseUrl || "https://example.invalid", mobileSupabaseKey || "missing", {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

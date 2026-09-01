@@ -13,7 +13,11 @@
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.2",
-    "react-native-url-polyfill": "^4.0.0"
+    "react-native-url-polyfill": "^4.0.0",
+    "expo-crypto": "~57.0.2",
+    "expo-document-picker": "~57.0.1",
+    "expo-file-system": "~57.0.6",
+    "expo-pdf-text-extract": "^1.1.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -24,7 +28,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:phase1": "node scripts/phase1-human-agent-acceptance.mjs",
+    "test:phase2": "node scripts/phase2-director-operations-acceptance.mjs",
+    "test:phase3": "node scripts/phase3-director-task-assignment-acceptance.mjs",
+    "test:phase4": "node scripts/phase4-mobile-parity-acceptance.mjs"
   },
   "private": true
 }

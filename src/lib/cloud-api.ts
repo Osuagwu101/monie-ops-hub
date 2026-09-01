@@ -142,6 +142,22 @@ export async function restInsert<T>(resource: string, payload: unknown, accessTo
   );
 }
 
+export async function restUpdate<T>(
+  resourceAndQuery: string,
+  payload: unknown,
+  accessToken: string,
+) {
+  return cloudFetch<T>(
+    `/rest/v1/${resourceAndQuery}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
+}
+
 export async function callRpc<T>(name: string, payload: unknown, accessToken: string) {
   return cloudFetch<T>(
     `/rest/v1/rpc/${name}`,

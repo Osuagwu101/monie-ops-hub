@@ -2,7 +2,7 @@
   "expo": {
     "name": "Moniepoint BRM",
     "slug": "moniepoint-brm",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "moniepointbrm",
     "icon": "./assets/icon.png",
@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.monieopshub.brm",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/adaptive-icon.png"
