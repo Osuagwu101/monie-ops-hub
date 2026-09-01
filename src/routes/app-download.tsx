@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ANDROID_APK_URL =
-  "https://maajpydeugszipsbilgh.supabase.co/storage/v1/object/public/app-downloads/moniepoint-brm-1.0.0-internal.apk";
-const ANDROID_APK_SHA256 = "1c2fe76fcccc1f185d4bba88a93000ecc99a0a988b1c3f334a15070bd786573c";
+  "https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.0.0-phase3-287fb53/monie-ops-hub-android-v1.0.0-phase3.apk";
+const ANDROID_APK_SHA256 = "f38be9723cda5b8b206ebd0f1c828017dfca4073ccee25a579f52fbbbbccdc44";
 
 export const Route = createFileRoute("/app-download")({
   head: () => ({
@@ -56,7 +56,7 @@ function AppDownloadPage() {
           <Button className="w-full gap-2" asChild>
             <a href={ANDROID_APK_URL}>
               <Download className="h-4 w-4" />
-              Download Android APK · 131 MB
+              Download Android APK · 79 MB
             </a>
           </Button>
 
