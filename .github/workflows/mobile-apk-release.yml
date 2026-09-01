@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: android-v1.1.0-full-portal
+  group: android-v1.2.0-grouped-workspace
   cancel-in-progress: false
 
 jobs:
@@ -62,24 +62,24 @@ jobs:
       - name: Stage release APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/monie-ops-hub-android-v1.1.0-full-portal.apk
-          sha256sum dist/monie-ops-hub-android-v1.1.0-full-portal.apk | tee dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk
+          sha256sum dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk | tee dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk.sha256
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: moniepoint-brm-android-apk
           path: |
-            mobile/dist/monie-ops-hub-android-v1.1.0-full-portal.apk
-            mobile/dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256
+            mobile/dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk
+            mobile/dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk.sha256
           if-no-files-found: error
           retention-days: 90
       - name: Publish permanent GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: android-v1.1.0-full-portal
+          RELEASE_TAG: android-v1.2.0-grouped-workspace
         run: |
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" dist/monie-ops-hub-android-v1.1.0-full-portal.apk dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256 --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$RELEASE_TAG" dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk.sha256 --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$RELEASE_TAG" dist/monie-ops-hub-android-v1.1.0-full-portal.apk dist/monie-ops-hub-android-v1.1.0-full-portal.apk.sha256 --target "$GITHUB_SHA" --title "Monie Ops Hub Android v1.1.0 — Full Portal" --notes "Installable internal Android build with the mature Director menu, Staff Accounts, Automation, Readiness, Operations Team, and shared BO phone/POS account editing. Source commit: $GITHUB_SHA"
+            gh release create "$RELEASE_TAG" dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk dist/monie-ops-hub-android-v1.2.0-grouped-workspace.apk.sha256 --target "$GITHUB_SHA" --title "Monie Ops Hub Android v1.2.0 — Grouped Workspace" --notes "Installable internal Android build with the selected Grouped Workspace menu, Director-only Administration, Operations Team, and Director-only BO phone/POS account editing. Source commit: $GITHUB_SHA"
           fi

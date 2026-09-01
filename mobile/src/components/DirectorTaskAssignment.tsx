@@ -36,12 +36,17 @@ const SUCCESS = "#027A48";
 
 interface Props {
   directorId: string;
+  canEditContacts: boolean;
   refreshSignal?: boolean;
 }
 
 type PickerKind = "assistant" | "merchant" | "terminal" | "reassign-assistant" | null;
 
-export function DirectorTaskAssignment({ directorId, refreshSignal = false }: Props) {
+export function DirectorTaskAssignment({
+  directorId,
+  canEditContacts,
+  refreshSignal = false,
+}: Props) {
   const [workspace, setWorkspace] = useState<DirectorAssignmentWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +105,7 @@ export function DirectorTaskAssignment({ directorId, refreshSignal = false }: Pr
   };
 
   const openContactEditor = (merchant: DirectorMerchantOption) => {
+    if (!canEditContacts) return;
     setContactMerchant(merchant);
     setContactPhone(merchant.phoneNumber ?? "");
     setContactAccount(merchant.accountNumber ?? "");
@@ -108,7 +114,7 @@ export function DirectorTaskAssignment({ directorId, refreshSignal = false }: Pr
   };
 
   const saveContact = async () => {
-    if (!contactMerchant || submitting) return;
+    if (!canEditContacts || !contactMerchant || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -358,7 +364,9 @@ export function DirectorTaskAssignment({ directorId, refreshSignal = false }: Pr
             disabled={submitting}
             onReassign={() => openPicker("reassign-assistant", task)}
             onEditContact={
-              task.merchant ? () => openContactEditor(task.merchant!) : undefined
+              canEditContacts && task.merchant
+                ? () => openContactEditor(task.merchant!)
+                : undefined
             }
           />
         ))
@@ -383,7 +391,9 @@ export function DirectorTaskAssignment({ directorId, refreshSignal = false }: Pr
                 ? `${merchant.terminals.length} linked terminal${merchant.terminals.length === 1 ? "" : "s"}`
                 : "No linked terminal available"}
             </Text>
-            <SmallButton title="Edit BO details" onPress={() => openContactEditor(merchant)} />
+            {canEditContacts ? (
+              <SmallButton title="Edit BO details" onPress={() => openContactEditor(merchant)} />
+            ) : null}
           </View>
         ))
       )}

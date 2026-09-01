@@ -23,6 +23,15 @@ for (const label of [
 }
 has(app, "drawerOpen", "Director navigation must use a menu drawer.");
 has(app, "Open navigation menu", "The menu drawer must be accessible.");
+for (const group of ["WORKSPACE", "OPERATIONS", "ADMINISTRATION", "ACCOUNT"]) {
+  has(app, `label: "${group}"`, `Grouped Workspace navigation must include ${group}.`);
+}
+has(app, "DIRECTOR_MENU_GROUPS", "The mobile menu must use the approved Grouped Workspace structure.");
+has(app, "directorOnly: true", "Administration must be explicitly Director-only.");
+has(app, '!group.directorOnly || isDirector', "Director-only groups must be filtered by authenticated role.");
+has(app, 'isDirector && section === "staff"', "Staff Accounts must be mounted only for Directors.");
+has(app, 'isDirector && section === "automation"', "Automation must be mounted only for Directors.");
+has(app, 'isDirector && section === "readiness"', "Readiness must be mounted only for Directors.");
 has(app, "<StaffAccountsSection", "Staff Accounts must be mounted natively.");
 has(app, "<AutomationSection", "Automation must be mounted natively.");
 has(app, "<ReadinessSection", "Readiness must be mounted natively.");
@@ -46,8 +55,12 @@ for (const source of [portalData, webData]) {
   has(source, "account_number", "POS account must persist on the merchant record.");
 }
 has(tasks, "Edit BO details", "Mobile daily tasks must expose BO detail editing.");
+has(tasks, "if (!canEditContacts) return", "Mobile BO editing must be blocked outside Director sessions.");
+has(app, "canEditContacts={isDirector}", "Authenticated Director state must control mobile BO editing.");
 has(tasks, "future Amina assignments", "Mobile must explain future Amina reuse.");
 has(webTasks, "Edit BO details", "Web daily tasks must expose BO detail editing.");
 has(webTasks, "Amina will include them", "Web must explain future Amina reuse.");
+has(webTasks, 'profile?.role === "director"', "Web BO editing must be visible only to Directors.");
+has(webTasks, "canEditContacts && task.merchant_id", "Web queue edit controls must enforce the Director role gate.");
 
 console.log("Phase 4 mobile parity and shared BO-contact acceptance checks passed.");

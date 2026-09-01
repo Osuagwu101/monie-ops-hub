@@ -70,18 +70,45 @@ type DirectorSection =
   | "operations-team"
   | "profile";
 
-const DIRECTOR_MENU: Array<{ key: DirectorSection; label: string; short: string }> = [
-  { key: "overview", label: "Overview", short: "OV" },
-  { key: "assignments", label: "Daily Tasks", short: "DT" },
-  { key: "reports", label: "Official Reports", short: "RP" },
-  { key: "merchants", label: "Merchants & Terminals", short: "MT" },
-  { key: "meetings", label: "Meetings & Alerts", short: "ME" },
-  { key: "staff", label: "Staff Accounts", short: "ST" },
-  { key: "automation", label: "Automation", short: "AU" },
-  { key: "readiness", label: "Readiness", short: "RD" },
-  { key: "operations-team", label: "Operations Team", short: "OT" },
-  { key: "profile", label: "Profile", short: "PR" },
+interface DirectorMenuGroup {
+  label: "WORKSPACE" | "OPERATIONS" | "ADMINISTRATION" | "ACCOUNT";
+  directorOnly?: boolean;
+  items: Array<{ key: DirectorSection; label: string; short: string }>;
+}
+
+const DIRECTOR_MENU_GROUPS: DirectorMenuGroup[] = [
+  {
+    label: "WORKSPACE",
+    items: [
+      { key: "overview", label: "Overview", short: "OV" },
+      { key: "assignments", label: "Daily Tasks", short: "DT" },
+      { key: "reports", label: "Official Reports", short: "RP" },
+    ],
+  },
+  {
+    label: "OPERATIONS",
+    items: [
+      { key: "merchants", label: "Merchants & Terminals", short: "MT" },
+      { key: "meetings", label: "Meetings & Alerts", short: "ME" },
+      { key: "operations-team", label: "Operations Team", short: "OT" },
+    ],
+  },
+  {
+    label: "ADMINISTRATION",
+    directorOnly: true,
+    items: [
+      { key: "staff", label: "Staff Accounts", short: "ST" },
+      { key: "automation", label: "Automation", short: "AU" },
+      { key: "readiness", label: "Readiness", short: "RD" },
+    ],
+  },
+  {
+    label: "ACCOUNT",
+    items: [{ key: "profile", label: "Profile", short: "PR" }],
+  },
 ];
+
+const DIRECTOR_MENU = DIRECTOR_MENU_GROUPS.flatMap((group) => group.items);
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -287,6 +314,7 @@ function DirectorHome({
 }) {
   const [section, setSection] = useState<DirectorSection>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const isDirector = profile.role === "director";
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
@@ -380,11 +408,21 @@ function DirectorHome({
         {section === "reports" ? <DirectorReports onPortalRefresh={onRefresh} /> : null}
         {section === "merchants" ? <DirectorMerchantsTerminals /> : null}
         {section === "assignments" ? (
-          <DirectorTaskAssignment directorId={profile.id} refreshSignal={refreshing} />
+          <DirectorTaskAssignment
+            directorId={profile.id}
+            canEditContacts={isDirector}
+            refreshSignal={refreshing}
+          />
         ) : null}
-        {section === "staff" ? <StaffAccountsSection refreshSignal={refreshing} /> : null}
-        {section === "automation" ? <AutomationSection refreshSignal={refreshing} /> : null}
-        {section === "readiness" ? <ReadinessSection refreshSignal={refreshing} /> : null}
+        {isDirector && section === "staff" ? (
+          <StaffAccountsSection refreshSignal={refreshing} />
+        ) : null}
+        {isDirector && section === "automation" ? (
+          <AutomationSection refreshSignal={refreshing} />
+        ) : null}
+        {isDirector && section === "readiness" ? (
+          <ReadinessSection refreshSignal={refreshing} />
+        ) : null}
         {section === "operations-team" ? (
           <OperationsTeamSection refreshSignal={refreshing} />
         ) : null}
@@ -538,22 +576,47 @@ function DirectorHome({
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={styles.drawerMenu}>
-              {DIRECTOR_MENU.map((item) => (
-                <Pressable
-                  key={item.key}
-                  style={[styles.drawerItem, section === item.key && styles.drawerItemActive]}
-                  onPress={() => chooseSection(item.key)}
-                >
-                  <View style={[styles.drawerIcon, section === item.key && styles.drawerIconActive]}>
-                    <Text style={[styles.drawerIconText, section === item.key && styles.drawerIconTextActive]}>
-                      {item.short}
-                    </Text>
+              {DIRECTOR_MENU_GROUPS.filter((group) => !group.directorOnly || isDirector).map(
+                (group) => (
+                  <View key={group.label} style={styles.drawerGroup}>
+                    <Text style={styles.drawerGroupLabel}>{group.label}</Text>
+                    {group.items.map((item) => (
+                      <Pressable
+                        key={item.key}
+                        style={[
+                          styles.drawerItem,
+                          section === item.key && styles.drawerItemActive,
+                        ]}
+                        onPress={() => chooseSection(item.key)}
+                      >
+                        <View
+                          style={[
+                            styles.drawerIcon,
+                            section === item.key && styles.drawerIconActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.drawerIconText,
+                              section === item.key && styles.drawerIconTextActive,
+                            ]}
+                          >
+                            {item.short}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.drawerItemText,
+                            section === item.key && styles.drawerItemTextActive,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
-                  <Text style={[styles.drawerItemText, section === item.key && styles.drawerItemTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
+                ),
+              )}
             </ScrollView>
             <View style={styles.drawerFooter}>
               <Text style={styles.drawerProfileName}>{profile.full_name}</Text>
@@ -867,6 +930,16 @@ const styles = StyleSheet.create({
   },
   drawerCloseText: { color: INK, fontSize: 17, fontWeight: "700" },
   drawerMenu: { flex: 1, padding: 12 },
+  drawerGroup: { marginBottom: 8 },
+  drawerGroupLabel: {
+    color: MUTED,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginHorizontal: 11,
+    marginTop: 7,
+    marginBottom: 4,
+  },
   drawerItem: {
     minHeight: 50,
     flexDirection: "row",
