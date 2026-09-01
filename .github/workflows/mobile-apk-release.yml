@@ -39,14 +39,19 @@ jobs:
         env:
           CI: "1"
         run: npx expo prebuild --platform android --clean
-      - name: Build installable debug-signed APK
+      - name: Build installable release APK with embedded JS bundle
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
+      - name: Verify release APK contains packaged JavaScript
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          unzip -l "$APK" | grep -qE 'assets/index\.android\.bundle$|assets/[^ ]+\.bundle$'
       - name: Stage release APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/moniepoint-brm-1.0.0-internal.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/moniepoint-brm-1.0.0-internal.apk
           sha256sum dist/moniepoint-brm-1.0.0-internal.apk | tee dist/moniepoint-brm-1.0.0-internal.apk.sha256
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
