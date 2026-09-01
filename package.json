@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test:web-task-improvements": "node scripts/web-task-improvements-acceptance.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

@@ -686,12 +686,19 @@ function priorityBusinessNames(parsed: ParsedMoniepointReport) {
     )
     .map((row) => {
       const actual = (row.paymentValue ?? 0) + (row.transferValue ?? 0);
-      const target = row.officialTargetValue ?? 0;
-      const gapRatio = target > 0 ? Math.max(0, Math.min(1, (target - actual) / target)) : 0;
-      const score = gapRatio * 40 + Math.min(row.daysSinceLastTransaction ?? 0, 5) * 5;
-      return { businessName: row.businessName.trim(), score };
+      return {
+        businessName: row.businessName.trim(),
+        actual: actual,
+        daysSinceLastTransaction: row.daysSinceLastTransaction ?? Number.MAX_SAFE_INTEGER,
+      };
     })
-    .sort((a, b) => b.score - a.score)
+    .sort(
+      (a, b) =>
+        Number(b.actual > 0) - Number(a.actual > 0) ||
+        b.actual - a.actual ||
+        a.daysSinceLastTransaction - b.daysSinceLastTransaction ||
+        a.businessName.localeCompare(b.businessName),
+    )
     .slice(0, 15);
 
   return [...new Set(candidates.map((candidate) => candidate.businessName).filter(Boolean))];

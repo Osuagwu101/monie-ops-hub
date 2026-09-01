@@ -42,6 +42,7 @@ import {
   loadAssistantProfile,
   loadAssistantTasks,
   localDateKey,
+  applyMerchantContactUpdate,
   startAssistantTask,
   submitAssistantOutcome,
   updateMerchantContactDetails,
@@ -304,7 +305,10 @@ function DailyTasksPage() {
         task={contactTask}
         accessToken={accessToken}
         onOpenChange={(open) => !open && setContactTask(null)}
-        onSaved={async () => {
+        onSaved={async (update) => {
+          queryClient.setQueryData<AssistantTask[]>(["assistant-tasks", date, user?.id], (tasks) =>
+            applyMerchantContactUpdate(tasks, update),
+          );
           setContactTask(null);
           await queryClient.invalidateQueries({ queryKey: ["assistant-tasks", date] });
         }}
@@ -521,13 +525,13 @@ function MerchantContactDialog({
   task: AssistantTask | null;
   accessToken: string;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => Promise<void>;
+  onSaved: (update: Awaited<ReturnType<typeof updateMerchantContactDetails>>) => Promise<void>;
 }) {
   const [error, setError] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: (input: { merchantId: string; phoneNumber: string; accountNumber: string }) =>
       updateMerchantContactDetails(input, accessToken),
-    onSuccess: () => onSaved(),
+    onSuccess: (update) => onSaved(update),
     onError: (caught) =>
       setError(caught instanceof Error ? caught.message : "Unable to save BO details."),
   });
@@ -571,7 +575,8 @@ function MerchantContactDialog({
               <Input
                 id="phoneNumber"
                 name="phoneNumber"
-                type="tel"
+                type="text"
+                inputMode="tel"
                 defaultValue={task.merchant?.phone_number ?? ""}
                 placeholder="Enter BO phone number"
               />
@@ -581,6 +586,7 @@ function MerchantContactDialog({
               <Input
                 id="accountNumber"
                 name="accountNumber"
+                type="text"
                 inputMode="numeric"
                 defaultValue={task.merchant?.account_number ?? ""}
                 placeholder="Enter POS account number"

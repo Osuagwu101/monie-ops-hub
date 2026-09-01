@@ -1,4 +1,4 @@
-import { callRpc, restSelect, restUpdate } from "@/lib/cloud-api";
+import { callRpc, restSelect } from "@/lib/cloud-api";
 import type { TaskStatus, TaskType } from "@/domain/models";
 
 export type TaskOutcomeCode =
@@ -96,6 +96,14 @@ export interface SubmitOutcomeInput {
   postponementReason: string | null;
   callbackAt: string | null;
   notes: string | null;
+}
+
+export interface MerchantContactUpdate {
+  id: string;
+  phone_number: string | null;
+  account_number: string | null;
+  contact_source: string | null;
+  contact_synced_at: string | null;
 }
 
 function inFilter(ids: string[]) {
@@ -245,20 +253,27 @@ export async function updateMerchantContactDetails(
     throw new Error("Enter a BO phone number or POS account number.");
   }
 
-  const rows = await restUpdate<
-    Array<{ id: string; phone_number: string | null; account_number: string | null }>
-  >(
-    `merchants?id=eq.${encodeURIComponent(input.merchantId)}`,
+  return callRpc<MerchantContactUpdate>(
+    "update_merchant_contact_details",
     {
-      phone_number: phoneNumber,
-      account_number: accountNumber,
-      contact_source: "director_manual",
-      contact_synced_at: new Date().toISOString(),
+      p_merchant_id: input.merchantId,
+      p_phone_number: phoneNumber,
+      p_account_number: accountNumber,
     },
     accessToken,
   );
-  if (!rows.length) throw new Error("The business contact details could not be updated.");
-  return rows[0];
+}
+
+export function applyMerchantContactUpdate(
+  tasks: AssistantTask[] | undefined,
+  update: MerchantContactUpdate,
+) {
+  if (!tasks) return tasks;
+  return tasks.map((task) =>
+    task.merchant_id === update.id && task.merchant
+      ? { ...task, merchant: { ...task.merchant, ...update } }
+      : task,
+  );
 }
 
 export async function submitAssistantOutcome(input: SubmitOutcomeInput, accessToken: string) {
