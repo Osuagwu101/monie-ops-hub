@@ -10,6 +10,10 @@ const migration = readFileSync(
   resolve(root, "supabase/migrations/202609010001_director_contacts_and_amina_priority.sql"),
   "utf8",
 );
+const assignmentFix = readFileSync(
+  resolve(root, "supabase/migrations/202609010002_nonblocking_contacts_and_numeric_target.sql"),
+  "utf8",
+);
 
 const has = (source, value, message) => assert.ok(source.includes(value), message);
 
@@ -40,20 +44,38 @@ has(
 has(migration, "rollingValue", "Amina priority must use the actual rolling transaction value.");
 has(migration, ") desc", "Amina priority must sort transaction value descending.");
 has(worker, "actual: actual", "Contact enrichment must use actual transaction activity.");
+has(
+  worker,
+  "actual < target",
+  "A BO whose numeric rolling value meets the target must not be enriched for assignment.",
+);
+has(
+  assignmentFix,
+  "Contacts do not gate task creation",
+  "Missing phone and POS details must not block Amina from creating tasks.",
+);
+has(
+  assignmentFix,
+  ">= coalesce((new.evidence ->> 'officialTargetValue')::numeric, 0)",
+  "Numeric target achievement must exclude a BO even when the report flag is contradictory.",
+);
 
 const candidates = [
   { name: "BO C", actual: 15_000, days: 0 },
   { name: "Inactive BO", actual: 0, days: 20 },
   { name: "BO A", actual: 50_000, days: 1 },
   { name: "BO B", actual: 30_000, days: 0 },
+  { name: "Target met", actual: 117_000, target: 100_000, days: 2 },
 ];
-const ordered = candidates.toSorted(
-  (a, b) =>
-    Number(b.actual > 0) - Number(a.actual > 0) ||
-    b.actual - a.actual ||
-    a.days - b.days ||
-    a.name.localeCompare(b.name),
-);
+const ordered = candidates
+  .filter((candidate) => candidate.actual < (candidate.target ?? 100_000))
+  .toSorted(
+    (a, b) =>
+      Number(b.actual > 0) - Number(a.actual > 0) ||
+      b.actual - a.actual ||
+      a.days - b.days ||
+      a.name.localeCompare(b.name),
+  );
 assert.deepEqual(
   ordered.map((candidate) => candidate.name),
   ["BO A", "BO B", "BO C", "Inactive BO"],

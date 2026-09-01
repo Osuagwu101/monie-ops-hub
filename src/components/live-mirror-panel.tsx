@@ -70,8 +70,9 @@ export function LiveMirrorPanel({ accessToken, date }: { accessToken: string; da
             <Database className="h-5 w-5 text-primary" /> BOs needing weekly-target attention
           </CardTitle>
           <CardDescription>
-            Up to 15 terminals ranked from the latest official rolling 7-day report where Target Met
-            is false. The official report target is used for each terminal.
+            Up to 15 terminals ranked from the latest official rolling 7-day report where the
+            numeric rolling value remains below the official target. Active underperformers appear
+            before zero-transaction BOs.
           </CardDescription>
         </CardHeader>
         <CardContent>

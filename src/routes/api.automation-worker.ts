@@ -680,10 +680,11 @@ const enrichmentSchema = {
 
 function priorityBusinessNames(parsed: ParsedMoniepointReport) {
   const candidates = parsed.rollingRows
-    .filter(
-      (row) =>
-        (row.officialTargetValue ?? 0) > 0 && row.officialTargetMet === false && row.businessName,
-    )
+    .filter((row) => {
+      const target = row.officialTargetValue ?? 0;
+      const actual = (row.paymentValue ?? 0) + (row.transferValue ?? 0);
+      return target > 0 && row.officialTargetMet === false && actual < target && row.businessName;
+    })
     .map((row) => {
       const actual = (row.paymentValue ?? 0) + (row.transferValue ?? 0);
       return {
