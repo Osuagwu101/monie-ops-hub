@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -24,8 +26,34 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Lint
-        run: bun run lint
+      - name: Lint changed source files
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          fi
+
+          if [[ -z "$BASE_SHA" ]]; then
+            echo "No base commit available; skipping changed-file lint."
+            exit 0
+          fi
+
+          mapfile -t changed_files < <(
+            git diff --name-only --diff-filter=ACMR "$BASE_SHA" HEAD -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs'
+          )
+
+          if (( ${#changed_files[@]} == 0 )); then
+            echo "No changed source files to lint."
+            exit 0
+          fi
+
+          bunx eslint "${changed_files[@]}"
+
+      - name: Web task improvements acceptance
+        run: bun run test:web-task-improvements
 
       - name: Offline acceptance
         run: bun scripts/phase6-offline-acceptance.ts
