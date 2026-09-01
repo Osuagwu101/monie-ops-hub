@@ -14,6 +14,10 @@ const assignmentFix = readFileSync(
   resolve(root, "supabase/migrations/202609010002_nonblocking_contacts_and_numeric_target.sql"),
   "utf8",
 );
+const queueOrderFix = readFileSync(
+  resolve(root, "supabase/migrations/202609010003_ta_queue_order.sql"),
+  "utf8",
+);
 
 const has = (source, value, message) => assert.ok(source.includes(value), message);
 
@@ -53,6 +57,11 @@ has(
   assignmentFix,
   "Contacts do not gate task creation",
   "Missing phone and POS details must not block Amina from creating tasks.",
+);
+has(
+  queueOrderFix,
+  "when t.task_type=''TA''::public.task_type then 0 else 1 end",
+  "TA recovery work must remain ahead of non-TA work in the daily queue.",
 );
 has(
   assignmentFix,
