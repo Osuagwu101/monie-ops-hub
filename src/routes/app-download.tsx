@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ANDROID_APK_URL =
-  "https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.0-grouped-workspace/monie-ops-hub-android-v1.2.0-grouped-workspace.apk";
-const ANDROID_APK_SHA256 = "983e5fee0e0febaefa4882ae2ea303695b6c64c6ea69c4313c5537b0106f56f2";
+  "https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.1-grouped-workspace/monie-ops-hub-android-v1.2.1-grouped-workspace.apk";
+const ANDROID_APK_SHA256 = "d43e4f232f018236fbba1f9e7a1f748f455d7b7013340d33dbf8b14cc1cbc321";
 
 export const Route = createFileRoute("/app-download")({
   head: () => ({
@@ -56,7 +56,7 @@ function AppDownloadPage() {
           <Button className="w-full gap-2" asChild>
             <a href={ANDROID_APK_URL}>
               <Download className="h-4 w-4" />
-              Download Android APK · 140 MB
+              Download Android APK · 76 MB
             </a>
           </Button>
 
