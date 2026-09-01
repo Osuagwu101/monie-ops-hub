@@ -2,9 +2,19 @@ name: Mobile APK Release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - release/android-phase3-287fb53
+    paths:
+      - .github/workflows/mobile-apk-release.yml
 
 permissions:
-  contents: read
+  contents: write
+
+env:
+  SOURCE_COMMIT: 287fb53496a0b2774b7f6e18c3f249c89a6de788
+  RELEASE_TAG: android-v1.0.0-phase3-287fb53
+  APK_NAME: monie-ops-hub-android-v1.0.0-phase3.apk
 
 jobs:
   android-apk:
@@ -13,7 +23,10 @@ jobs:
       run:
         working-directory: mobile
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout approved Phase 3 source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_COMMIT }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,8 +46,16 @@ jobs:
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=https://maajpydeugszipsbilgh.supabase.co" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_EtiaAjDKKyM0jV54jpTuXQ_sdAVic5H" >> "$GITHUB_ENV"
+      - name: Verify approved source commit
+        run: test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
       - name: Typecheck mobile app
         run: npm run typecheck
+      - name: Verify Phase 1 Human Agent Workspace
+        run: npm run test:phase1
+      - name: Verify Phase 2 Director Operations
+        run: npm run test:phase2
+      - name: Verify Phase 3 Director Task Assignment
+        run: npm run test:phase3
       - name: Generate native Android project
         env:
           CI: "1"
@@ -46,14 +67,22 @@ jobs:
       - name: Stage release APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/moniepoint-brm-1.0.0-internal.apk
-          sha256sum dist/moniepoint-brm-1.0.0-internal.apk | tee dist/moniepoint-brm-1.0.0-internal.apk.sha256
+          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/$APK_NAME"
+          sha256sum "dist/$APK_NAME" | tee "dist/$APK_NAME.sha256"
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: moniepoint-brm-android-apk
+          name: monie-ops-hub-android-phase3-apk
           path: |
-            mobile/dist/moniepoint-brm-1.0.0-internal.apk
-            mobile/dist/moniepoint-brm-1.0.0-internal.apk.sha256
+            mobile/dist/${{ env.APK_NAME }}
+            mobile/dist/${{ env.APK_NAME }}.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
+      - name: Publish durable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG"               --repo "$GITHUB_REPOSITORY"               --target "$SOURCE_COMMIT"               --prerelease               --title "Monie Ops Hub Android v1.0.0 (Phase 3)"               --notes "Installable Android internal-testing build from source commit $SOURCE_COMMIT. Phase 1, Phase 2 and Phase 3 acceptance checks passed during the release build."
+          fi
+          gh release upload "$RELEASE_TAG"             "dist/$APK_NAME#$APK_NAME"             "dist/$APK_NAME.sha256#$APK_NAME.sha256"             --repo "$GITHUB_REPOSITORY"             --clobber
