@@ -2,7 +2,7 @@
   "expo": {
     "name": "Moniepoint BRM",
     "slug": "moniepoint-brm",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "orientation": "portrait",
     "scheme": "moniepointbrm",
     "icon": "./assets/icon.png",
@@ -18,12 +18,16 @@
     },
     "android": {
       "package": "com.monieopshub.brm",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"],
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "plugins": [

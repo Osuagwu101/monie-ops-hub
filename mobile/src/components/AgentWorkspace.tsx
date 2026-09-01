@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import type { MobileProfile } from "../lib/meetings";
+import { friendlyErrorMessage } from "../lib/errors";
 import {
   buildAssignedMerchants,
   DAILY_REQUIRED_CONTACTS,
@@ -108,7 +109,11 @@ export function AgentWorkspace({
       </View>
 
       <View style={styles.tabs}>
-        <TabButton label="Overview" active={tab === "overview"} onPress={() => setTab("overview")} />
+        <TabButton
+          label="Overview"
+          active={tab === "overview"}
+          onPress={() => setTab("overview")}
+        />
         <TabButton label="Daily Tasks" active={tab === "tasks"} onPress={() => setTab("tasks")} />
         <TabButton
           label="Merchants"
@@ -122,7 +127,11 @@ export function AgentWorkspace({
         style={styles.content}
         contentContainerStyle={styles.page}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={BLUE} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void load(true)}
+            tintColor={BLUE}
+          />
         }
       >
         {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
@@ -192,12 +201,18 @@ function Overview({
         </Text>
       </View>
 
-      <ProgressCard completed={completed} total={DAILY_REQUIRED_CONTACTS} available={tasks.length} />
+      <ProgressCard
+        completed={completed}
+        total={DAILY_REQUIRED_CONTACTS}
+        available={tasks.length}
+      />
 
       {nextTask ? (
         <View style={styles.card}>
           <Text style={styles.eyebrow}>WORK ON THIS NOW</Text>
-          <Text style={styles.cardTitle}>{nextTask.merchant?.business_name ?? "Assigned merchant"}</Text>
+          <Text style={styles.cardTitle}>
+            {nextTask.merchant?.business_name ?? "Assigned merchant"}
+          </Text>
           <View style={styles.rowWrap}>
             <Tag text={`Rank ${nextTask.queue_rank ?? "—"}`} />
             <Tag text={`Priority ${nextTask.priority}/5`} />
@@ -243,11 +258,15 @@ function DailyTasks({
       <View>
         <Text style={styles.title}>Daily Tasks</Text>
         <Text style={styles.body}>
-          Work the ranked queue. Starting and recording outcomes update the same tasks visible on the
-          web portal.
+          Work the ranked queue. Starting and recording outcomes update the same tasks visible on
+          the web portal.
         </Text>
       </View>
-      <ProgressCard completed={completed} total={DAILY_REQUIRED_CONTACTS} available={tasks.length} />
+      <ProgressCard
+        completed={completed}
+        total={DAILY_REQUIRED_CONTACTS}
+        available={tasks.length}
+      />
 
       {!tasks.length ? (
         <EmptyState
@@ -306,7 +325,9 @@ function DailyTasks({
                   <PrimaryAction label="Record outcome" onPress={() => onOutcome(task)} />
                 </View>
               ) : (
-                <Text style={styles.successText}>Human work recorded · {humanize(task.status)}</Text>
+                <Text style={styles.successText}>
+                  Human work recorded · {humanize(task.status)}
+                </Text>
               )}
             </View>
           );
@@ -348,10 +369,7 @@ function AssignedMerchants({
           return (
             <View style={styles.card} key={merchant.key}>
               <Text style={styles.cardTitle}>{merchant.businessName}</Text>
-              <Detail
-                label="Phone"
-                value={merchant.phoneNumber ?? "Phone number not available"}
-              />
+              <Detail label="Phone" value={merchant.phoneNumber ?? "Phone number not available"} />
               {dialable ? (
                 <PrimaryAction label="Call" onPress={() => void call(dialable)} />
               ) : (
@@ -368,7 +386,8 @@ function AssignedMerchants({
                 <Text style={styles.eyebrow}>LINKED TASK CONTEXT</Text>
                 {merchant.taskContexts.map((context) => (
                   <Text key={context.taskId} style={styles.smallMuted}>
-                    Rank {context.queueRank ?? "—"} · {context.taskType} · {humanize(context.status)}
+                    Rank {context.queueRank ?? "—"} · {context.taskType} ·{" "}
+                    {humanize(context.status)}
                     {"\n"}
                     {context.reason}
                   </Text>
@@ -382,18 +401,14 @@ function AssignedMerchants({
   );
 }
 
-function ProfileScreen({
-  profile,
-  onSignOut,
-}: {
-  profile: MobileProfile;
-  onSignOut: () => void;
-}) {
+function ProfileScreen({ profile, onSignOut }: { profile: MobileProfile; onSignOut: () => void }) {
   return (
     <View style={styles.sectionGap}>
       <View>
         <Text style={styles.title}>Profile</Text>
-        <Text style={styles.body}>This mobile session uses the same production account as the web portal.</Text>
+        <Text style={styles.body}>
+          This mobile session uses the same production account as the web portal.
+        </Text>
       </View>
       <View style={styles.card}>
         <Detail label="Name" value={profile.full_name} />
@@ -567,7 +582,8 @@ function OutcomeModal({
           />
 
           <Text style={styles.smallMuted}>
-            This records the human outcome only. Verification remains separate in the existing backend.
+            This records the human outcome only. Verification remains separate in the existing
+            backend.
           </Text>
 
           <PrimaryAction
@@ -596,12 +612,16 @@ function ProgressCard({
     <View style={styles.card}>
       <View style={styles.rowBetween}>
         <Text style={styles.cardTitle}>Daily completion</Text>
-        <Text style={styles.progressNumber}>{completed}/{total}</Text>
+        <Text style={styles.progressNumber}>
+          {completed}/{total}
+        </Text>
       </View>
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${percent}%` }]} />
       </View>
-      <Text style={styles.smallMuted}>{available} assigned contact{available === 1 ? "" : "s"} available today.</Text>
+      <Text style={styles.smallMuted}>
+        {available} assigned contact{available === 1 ? "" : "s"} available today.
+      </Text>
     </View>
   );
 }
@@ -784,7 +804,7 @@ function formatDateTime(value: string) {
 }
 
 function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "The secure data request failed.";
+  return friendlyErrorMessage(error, "The secure data request failed. Please try again.");
 }
 
 const styles = StyleSheet.create({
@@ -811,7 +831,13 @@ const styles = StyleSheet.create({
     borderBottomColor: BORDER,
     backgroundColor: "#FFFFFF",
   },
-  tab: { flex: 1, paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10, alignItems: "center" },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    alignItems: "center",
+  },
   tabActive: { backgroundColor: "#EAF1FF" },
   tabText: { color: MUTED, fontSize: 11, fontWeight: "700" },
   tabTextActive: { color: BLUE },
@@ -830,7 +856,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: INK, fontSize: 17, fontWeight: "900" },
   eyebrow: { color: BLUE, fontSize: 10, fontWeight: "900", letterSpacing: 1 },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   rowWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   flex: { flex: 1 },
   tag: { backgroundColor: "#EAF1FF", borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
@@ -878,21 +909,58 @@ const styles = StyleSheet.create({
   },
   rankText: { color: INK, fontSize: 12, fontWeight: "900" },
   loadingBox: { paddingVertical: 50, alignItems: "center", gap: 12 },
-  emptyBox: { borderWidth: 1, borderStyle: "dashed", borderColor: BORDER, borderRadius: 16, padding: 22, gap: 6 },
-  errorBox: { backgroundColor: "#FEF3F2", borderWidth: 1, borderColor: "#FECDCA", borderRadius: 14, padding: 14, gap: 7, marginBottom: 14 },
+  emptyBox: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: BORDER,
+    borderRadius: 16,
+    padding: 22,
+    gap: 6,
+  },
+  errorBox: {
+    backgroundColor: "#FEF3F2",
+    borderWidth: 1,
+    borderColor: "#FECDCA",
+    borderRadius: 14,
+    padding: 14,
+    gap: 7,
+    marginBottom: 14,
+  },
   errorTitle: { color: ERROR, fontSize: 13, fontWeight: "900" },
   errorBody: { color: ERROR, fontSize: 12, lineHeight: 18 },
   modalPage: { padding: 18, paddingBottom: 44, gap: 14 },
-  closeButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: SURFACE },
+  closeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: SURFACE,
+  },
   closeText: { color: MUTED, fontSize: 12, fontWeight: "800" },
   optionList: { gap: 7 },
-  choice: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 11 },
+  choice: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    padding: 11,
+  },
   choiceSelected: { borderColor: BLUE, backgroundColor: "#F4F8FF" },
   radio: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: "#98A2B3" },
   radioSelected: { borderColor: BLUE, backgroundColor: BLUE },
   choiceText: { flex: 1, color: INK, fontSize: 12, fontWeight: "700" },
   inputGroup: { gap: 6 },
   inputLabel: { color: INK, fontSize: 12, fontWeight: "800" },
-  input: { minHeight: 48, borderWidth: 1, borderColor: BORDER, borderRadius: 12, paddingHorizontal: 13, color: INK, backgroundColor: "#FFFFFF" },
+  input: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    color: INK,
+    backgroundColor: "#FFFFFF",
+  },
   textarea: { minHeight: 96, paddingTop: 12, textAlignVertical: "top" },
 });

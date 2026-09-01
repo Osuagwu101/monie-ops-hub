@@ -32,7 +32,8 @@
     "test:phase1": "node scripts/phase1-human-agent-acceptance.mjs",
     "test:phase2": "node scripts/phase2-director-operations-acceptance.mjs",
     "test:phase3": "node scripts/phase3-director-task-assignment-acceptance.mjs",
-    "test:phase4": "node scripts/phase4-mobile-parity-acceptance.mjs"
+    "test:phase4": "node scripts/phase4-mobile-parity-acceptance.mjs",
+    "test:phase5": "node scripts/phase5-mobile-login-resilience-acceptance.mjs"
   },
   "private": true
 }

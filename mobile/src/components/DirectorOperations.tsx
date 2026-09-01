@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   importParsedMobileReport,
@@ -16,10 +10,8 @@ import {
   type MobileReportIngestResult,
   type ParsedMobileReport,
 } from "../lib/director-reports";
-import {
-  loadDirectorTerminals,
-  type DirectorTerminalRecord,
-} from "../lib/director-operations";
+import { loadDirectorTerminals, type DirectorTerminalRecord } from "../lib/director-operations";
+import { friendlyErrorMessage } from "../lib/errors";
 import type { MobileOperationsSnapshot } from "../lib/operations";
 
 const BLUE = "#0357EE";
@@ -29,7 +21,6 @@ const BORDER = "#E4E7EC";
 const SURFACE = "#F7F9FC";
 const ERROR = "#B42318";
 const SUCCESS = "#027A48";
-
 
 export function DirectorOverviewStatus({
   operations,
@@ -66,7 +57,11 @@ export function DirectorOverviewStatus({
           <Text style={styles.detailLabel}>Latest report</Text>
           <Text style={styles.overviewValue}>{latest?.report_date ?? "—"}</Text>
           <Text style={styles.smallMuted}>
-            {latest ? latest.processing_status.replace(/_/g, " ") : loading ? "Loading…" : "No import yet"}
+            {latest
+              ? latest.processing_status.replace(/_/g, " ")
+              : loading
+                ? "Loading…"
+                : "No import yet"}
           </Text>
         </View>
         <View style={styles.overviewMetric}>
@@ -379,10 +374,7 @@ export function DirectorMerchantsTerminals() {
                 <View style={styles.subtleBlock}>
                   <Text style={styles.sectionLabel}>LATEST ROLLING PERFORMANCE</Text>
                   <Detail label="Report date" value={record.performance.report_date} />
-                  <Detail
-                    label="Rolling value"
-                    value={money(rollingValue ?? 0)}
-                  />
+                  <Detail label="Rolling value" value={money(rollingValue ?? 0)} />
                   <Detail
                     label="Official target"
                     value={money(record.performance.official_target_value)}
@@ -450,19 +442,9 @@ function StatusPill({
   warning?: boolean;
 }) {
   return (
-    <View
-      style={[
-        styles.pill,
-        good && styles.pillGood,
-        warning && styles.pillWarning,
-      ]}
-    >
+    <View style={[styles.pill, good && styles.pillGood, warning && styles.pillWarning]}>
       <Text
-        style={[
-          styles.pillText,
-          good && styles.pillTextGood,
-          warning && styles.pillTextWarning,
-        ]}
+        style={[styles.pillText, good && styles.pillTextGood, warning && styles.pillTextWarning]}
       >
         {label}
       </Text>
@@ -519,13 +501,21 @@ function money(value: number) {
 }
 
 function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "The secure request failed.";
+  return friendlyErrorMessage(error, "The secure request failed. Please try again.");
 }
 
 const styles = StyleSheet.create({
   stack: { gap: 14 },
   overviewGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  overviewMetric: { flexGrow: 1, width: "47%", borderWidth: 1, borderColor: BORDER, borderRadius: 16, padding: 14, backgroundColor: "#FFFFFF" },
+  overviewMetric: {
+    flexGrow: 1,
+    width: "47%",
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: "#FFFFFF",
+  },
   overviewValue: { color: INK, fontSize: 20, fontWeight: "900", marginTop: 5 },
   title: { color: INK, fontSize: 26, fontWeight: "900", letterSpacing: -0.5 },
   body: { color: MUTED, fontSize: 13, lineHeight: 20, marginTop: 4 },
@@ -586,7 +576,12 @@ const styles = StyleSheet.create({
   pillText: { color: MUTED, fontSize: 8, fontWeight: "900" },
   pillTextGood: { color: SUCCESS },
   pillTextWarning: { color: "#B54708" },
-  checkRow: { gap: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BORDER, paddingTop: 9 },
+  checkRow: {
+    gap: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BORDER,
+    paddingTop: 9,
+  },
   checkText: { color: MUTED, fontSize: 10, lineHeight: 16 },
   errorBox: {
     backgroundColor: "#FEF3F2",

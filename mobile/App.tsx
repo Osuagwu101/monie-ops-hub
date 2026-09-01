@@ -9,7 +9,10 @@ import {
   Alert,
   AppState,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -50,7 +53,8 @@ import {
   type NotificationReadiness,
 } from "./src/lib/notifications";
 import { loadOperationsSnapshot, type MobileOperationsSnapshot } from "./src/lib/operations";
-import { mobileCloudConfigured, supabase } from "./src/lib/supabase";
+import { friendlyErrorMessage, isConnectivityError, OFFLINE_MESSAGE } from "./src/lib/errors";
+import { canReachMobileBackend, mobileCloudConfigured, supabase } from "./src/lib/supabase";
 
 const BLUE = "#0357EE";
 const INK = "#111827";
@@ -583,10 +587,7 @@ function DirectorHome({
                     {group.items.map((item) => (
                       <Pressable
                         key={item.key}
-                        style={[
-                          styles.drawerItem,
-                          section === item.key && styles.drawerItemActive,
-                        ]}
+                        style={[styles.drawerItem, section === item.key && styles.drawerItemActive]}
                         onPress={() => chooseSection(item.key)}
                       >
                         <View
@@ -676,61 +677,150 @@ function LoginScreen({ notice }: { notice: string | null }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connection, setConnection] = useState<"checking" | "online" | "offline">("checking");
+  const [onlineNotice, setOnlineNotice] = useState<string | null>(null);
+  const wasOfflineRef = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const checkConnection = useCallback(async (announceRecovery: boolean) => {
+    const reachable = await canReachMobileBackend();
+    if (reachable) {
+      setConnection("online");
+      if (announceRecovery && wasOfflineRef.current) {
+        setError(null);
+        setOnlineNotice("Back online. You can sign in now.");
+      }
+      wasOfflineRef.current = false;
+      return true;
+    }
+    wasOfflineRef.current = true;
+    setConnection("offline");
+    setOnlineNotice(null);
+    return false;
+  }, []);
+
+  useEffect(() => {
+    void checkConnection(false);
+    const timer = setInterval(() => void checkConnection(true), 8_000);
+    return () => clearInterval(timer);
+  }, [checkConnection]);
+
+  useEffect(() => {
+    if (!onlineNotice) return;
+    const timer = setTimeout(() => setOnlineNotice(null), 5_000);
+    return () => clearTimeout(timer);
+  }, [onlineNotice]);
 
   const signIn = async () => {
-    if (!email.trim() || !password) return;
+    if (!email.trim() || !password) {
+      setError("Enter your email address and password to continue.");
+      return;
+    }
+    Keyboard.dismiss();
     setBusy(true);
     setError(null);
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    if (authError) setError(authError.message);
-    setBusy(false);
+    setOnlineNotice(null);
+    try {
+      if (connection === "offline" && !(await checkConnection(false))) {
+        setError(OFFLINE_MESSAGE);
+        return;
+      }
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (authError) throw authError;
+      setConnection("online");
+    } catch (caught) {
+      if (isConnectivityError(caught)) {
+        wasOfflineRef.current = true;
+        setConnection("offline");
+      }
+      setError(
+        friendlyErrorMessage(caught, "Unable to sign in right now. Please try again shortly."),
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
-      <View style={styles.loginPage}>
-        <BrandMark />
-        <Text style={styles.loginTitle}>Moniepoint BRM</Text>
-        <Text style={styles.loginSubtitle}>
-          Use the same Director or Staff Support Agent account as the web portal.
-        </Text>
-        {notice ? <Text style={styles.loginNotice}>{notice}</Text> : null}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="director@example.com"
-            placeholderTextColor="#98A2B3"
+      <KeyboardAvoidingView
+        style={styles.flexOne}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.loginPage}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <BrandMark />
+          <Text style={styles.loginTitle}>Moniepoint BRM</Text>
+          <Text style={styles.loginSubtitle}>
+            Use the same Director or Staff Support Agent account as the web portal.
+          </Text>
+          {connection === "offline" ? (
+            <View style={[styles.connectionBanner, styles.connectionOffline]}>
+              <Text style={styles.connectionOfflineTitle}>You are offline</Text>
+              <Text style={styles.connectionOfflineBody}>{OFFLINE_MESSAGE}</Text>
+            </View>
+          ) : null}
+          {onlineNotice ? (
+            <View style={[styles.connectionBanner, styles.connectionOnline]}>
+              <Text style={styles.connectionOnlineText}>{onlineNotice}</Text>
+            </View>
+          ) : null}
+          {notice ? <Text style={styles.loginNotice}>{notice}</Text> : null}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              returnKeyType="next"
+              placeholder="director@example.com"
+              placeholderTextColor="#98A2B3"
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="current-password"
+              returnKeyType="done"
+              placeholder="Password"
+              placeholderTextColor="#98A2B3"
+              onFocus={() =>
+                setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180)
+              }
+              onSubmitEditing={() => void signIn()}
+            />
+          </View>
+          {error ? (
+            <View style={styles.loginErrorBox}>
+              <Text style={styles.loginErrorTitle}>Unable to sign in</Text>
+              <Text style={styles.loginError}>{error}</Text>
+            </View>
+          ) : null}
+          <PrimaryButton
+            title={
+              busy ? "Signing in…" : connection === "offline" ? "Try connection again" : "Sign in"
+            }
+            disabled={busy}
+            onPress={() => void signIn()}
           />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="Password"
-            placeholderTextColor="#98A2B3"
-            onSubmitEditing={() => void signIn()}
-          />
-        </View>
-        {error ? <Text style={styles.loginError}>{error}</Text> : null}
-        <PrimaryButton
-          title={busy ? "Signing in…" : "Sign in"}
-          disabled={busy}
-          onPress={() => void signIn()}
-        />
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -865,9 +955,7 @@ function firstName(value: string) {
   return value.trim().split(/\s+/)[0] || "Director";
 }
 function messageOf(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : "Something went wrong while synchronising the app.";
+  return friendlyErrorMessage(error, "Something went wrong while synchronising the app.");
 }
 
 const styles = StyleSheet.create({
@@ -983,7 +1071,7 @@ const styles = StyleSheet.create({
   sectionContainer: { gap: 18 },
   hidden: { display: "none" },
   centeredPage: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 18 },
-  loginPage: { flex: 1, justifyContent: "center", padding: 28, gap: 16 },
+  loginPage: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 52, paddingBottom: 48, gap: 16 },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1151,7 +1239,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     fontSize: 15,
   },
+  loginErrorBox: {
+    backgroundColor: "#FEF3F2",
+    borderWidth: 1,
+    borderColor: "#FECDCA",
+    borderRadius: 12,
+    padding: 12,
+    gap: 3,
+  },
+  loginErrorTitle: { color: "#B42318", fontSize: 12, fontWeight: "900" },
   loginError: { color: "#B42318", fontSize: 12, lineHeight: 18 },
+  connectionBanner: { borderRadius: 12, borderWidth: 1, padding: 12, gap: 3 },
+  connectionOffline: { backgroundColor: "#FFFAEB", borderColor: "#FEDF89" },
+  connectionOfflineTitle: { color: "#B54708", fontSize: 12, fontWeight: "900" },
+  connectionOfflineBody: { color: "#B54708", fontSize: 11, lineHeight: 17 },
+  connectionOnline: { backgroundColor: "#ECFDF3", borderColor: "#ABEFC6" },
+  connectionOnlineText: { color: "#067647", fontSize: 12, lineHeight: 18, fontWeight: "800" },
   loginNotice: {
     color: "#175CD3",
     backgroundColor: "#EFF8FF",

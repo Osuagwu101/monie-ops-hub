@@ -13,6 +13,7 @@ import {
 
 import type { TaskType } from "../../../src/domain/models";
 import { updateMerchantContact } from "../lib/director-portal";
+import { friendlyErrorMessage } from "../lib/errors";
 import {
   canDirectorReassignTask,
   createDirectorTask,
@@ -191,7 +192,9 @@ export function DirectorTaskAssignment({
           "This active assignment already exists for the same agent, business, task type and terminal. Nothing was submitted twice.",
         );
       } else {
-        setNotice("Task assigned successfully. The same task will appear on web and in the agent's mobile queue after refresh.");
+        setNotice(
+          "Task assigned successfully. The same task will appear on web and in the agent's mobile queue after refresh.",
+        );
         setReason("");
       }
       await refresh();
@@ -208,7 +211,9 @@ export function DirectorTaskAssignment({
     if (!task) return;
 
     if (task.assignedTo === assistant.id) {
-      setDuplicateNotice("That task is already assigned to the selected agent. No duplicate reassignment was submitted.");
+      setDuplicateNotice(
+        "That task is already assigned to the selected agent. No duplicate reassignment was submitted.",
+      );
       setReassignTask(null);
       return;
     }
@@ -275,8 +280,14 @@ export function DirectorTaskAssignment({
       </View>
 
       <View style={styles.rowBetween}>
-        <Text style={styles.smallMuted}>{workspace.date} · {workspace.tasks.length} queued tasks</Text>
-        <SmallButton title={loading ? "Refreshing…" : "Refresh"} disabled={loading || submitting} onPress={() => void refresh()} />
+        <Text style={styles.smallMuted}>
+          {workspace.date} · {workspace.tasks.length} queued tasks
+        </Text>
+        <SmallButton
+          title={loading ? "Refreshing…" : "Refresh"}
+          disabled={loading || submitting}
+          onPress={() => void refresh()}
+        />
       </View>
 
       {error ? <ErrorBox message={error} onRetry={() => void refresh()} /> : null}
@@ -286,7 +297,8 @@ export function DirectorTaskAssignment({
       <View style={styles.card}>
         <Text style={styles.cardTitle}>New assignment</Text>
         <Text style={styles.smallMuted}>
-          Manual Director assignments stay in the shared task table and respect existing Supabase RLS.
+          Manual Director assignments stay in the shared task table and respect existing Supabase
+          RLS.
         </Text>
 
         <FieldButton
@@ -315,14 +327,24 @@ export function DirectorTaskAssignment({
         <Text style={styles.sectionLabel}>TASK TYPE</Text>
         <View style={styles.choiceRow}>
           {(["TA", "LOAN", "FOLLOW_UP"] as TaskType[]).map((type) => (
-            <ChoiceButton key={type} label={type} active={taskType === type} onPress={() => setTaskType(type)} />
+            <ChoiceButton
+              key={type}
+              label={type}
+              active={taskType === type}
+              onPress={() => setTaskType(type)}
+            />
           ))}
         </View>
 
         <Text style={styles.sectionLabel}>PRIORITY</Text>
         <View style={styles.choiceRow}>
           {[1, 2, 3, 4, 5].map((value) => (
-            <ChoiceButton key={value} label={String(value)} active={priority === value} onPress={() => setPriority(value)} />
+            <ChoiceButton
+              key={value}
+              label={String(value)}
+              active={priority === value}
+              onPress={() => setPriority(value)}
+            />
           ))}
         </View>
 
@@ -355,7 +377,10 @@ export function DirectorTaskAssignment({
       </View>
 
       {!workspace.tasks.length ? (
-        <Empty title="No tasks in today's queue" body="Create an assignment above or refresh when web assignments are available." />
+        <Empty
+          title="No tasks in today's queue"
+          body="Create an assignment above or refresh when web assignments are available."
+        />
       ) : (
         workspace.tasks.map((task) => (
           <TaskCard
@@ -364,9 +389,7 @@ export function DirectorTaskAssignment({
             disabled={submitting}
             onReassign={() => openPicker("reassign-assistant", task)}
             onEditContact={
-              canEditContacts && task.merchant
-                ? () => openContactEditor(task.merchant!)
-                : undefined
+              canEditContacts && task.merchant ? () => openContactEditor(task.merchant!) : undefined
             }
           />
         ))
@@ -378,13 +401,17 @@ export function DirectorTaskAssignment({
       </View>
 
       {!workspace.merchants.length ? (
-        <Empty title="No available businesses" body="No active merchant records are currently visible to this Director account." />
+        <Empty
+          title="No available businesses"
+          body="No active merchant records are currently visible to this Director account."
+        />
       ) : (
         workspace.merchants.slice(0, 25).map((merchant) => (
           <View style={styles.card} key={merchant.id}>
             <Text style={styles.itemTitle}>{merchant.businessName}</Text>
             <Text style={styles.smallMuted}>
-              {merchant.phoneNumber ?? "Phone number not available"} · {merchant.accountNumber ?? "POS account not available"}
+              {merchant.phoneNumber ?? "Phone number not available"} ·{" "}
+              {merchant.accountNumber ?? "POS account not available"}
             </Text>
             <Text style={styles.smallMuted}>
               {merchant.terminals.length
@@ -399,7 +426,8 @@ export function DirectorTaskAssignment({
       )}
       {workspace.merchants.length > 25 ? (
         <Text style={styles.smallMuted}>
-          Showing the first 25 businesses here. Use “Choose an available business” to search the complete active list.
+          Showing the first 25 businesses here. Use “Choose an available business” to search the
+          complete active list.
         </Text>
       ) : null}
 
@@ -460,20 +488,39 @@ function TaskCard({
     <View style={styles.card}>
       <View style={styles.rowBetween}>
         <View style={styles.flex}>
-          <Text style={styles.itemTitle}>{task.merchant?.businessName ?? "Business not available"}</Text>
+          <Text style={styles.itemTitle}>
+            {task.merchant?.businessName ?? "Business not available"}
+          </Text>
           <Text style={styles.smallMuted}>
             {task.taskType} · Priority {task.priority} · {humanize(task.status)}
           </Text>
         </View>
         <StatusPill label={humanize(task.status).toUpperCase()} />
       </View>
-      <Detail label="Assigned agent" value={task.assistant?.fullName ?? "Assigned agent not available"} />
+      <Detail
+        label="Assigned agent"
+        value={task.assistant?.fullName ?? "Assigned agent not available"}
+      />
       <Detail label="Reason" value={task.reason} />
-      <Detail label="Terminal ID" value={task.terminal?.terminalId ?? "Terminal ID not available"} />
-      <Detail label="Terminal serial" value={task.terminal?.serialNumber ?? "Terminal serial not available"} />
-      <Detail label="BO phone number" value={task.merchant?.phoneNumber ?? "Phone number not available"} />
-      <Detail label="POS account number" value={task.merchant?.accountNumber ?? "POS account not available"} />
-      {onEditContact ? <SmallButton title="Edit BO details" disabled={disabled} onPress={onEditContact} /> : null}
+      <Detail
+        label="Terminal ID"
+        value={task.terminal?.terminalId ?? "Terminal ID not available"}
+      />
+      <Detail
+        label="Terminal serial"
+        value={task.terminal?.serialNumber ?? "Terminal serial not available"}
+      />
+      <Detail
+        label="BO phone number"
+        value={task.merchant?.phoneNumber ?? "Phone number not available"}
+      />
+      <Detail
+        label="POS account number"
+        value={task.merchant?.accountNumber ?? "POS account not available"}
+      />
+      {onEditContact ? (
+        <SmallButton title="Edit BO details" disabled={disabled} onPress={onEditContact} />
+      ) : null}
       <SmallButton
         title={canDirectorReassignTask(task) ? "Reassign" : "Reassignment locked after work starts"}
         disabled={disabled || !canDirectorReassignTask(task)}
@@ -573,9 +620,13 @@ function PickerModal({
   onTerminal: (terminal: DirectorTerminalOption) => void;
 }) {
   const normalized = search.trim().toLowerCase();
-  const filteredAssistants = assistants.filter((assistant) => assistant.fullName.toLowerCase().includes(normalized));
+  const filteredAssistants = assistants.filter((assistant) =>
+    assistant.fullName.toLowerCase().includes(normalized),
+  );
   const filteredMerchants = merchants.filter((merchant) =>
-    `${merchant.businessName} ${merchant.phoneNumber ?? ""} ${merchant.accountNumber ?? ""}`.toLowerCase().includes(normalized),
+    `${merchant.businessName} ${merchant.phoneNumber ?? ""} ${merchant.accountNumber ?? ""}`
+      .toLowerCase()
+      .includes(normalized),
   );
   const filteredTerminals = terminals.filter((terminal) =>
     `${terminal.terminalId} ${terminal.serialNumber ?? ""}`.toLowerCase().includes(normalized),
@@ -605,10 +656,19 @@ function PickerModal({
             placeholderTextColor="#98A2B3"
             style={styles.input}
           />
-          <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            style={styles.modalList}
+            contentContainerStyle={styles.modalListContent}
+            keyboardShouldPersistTaps="handled"
+          >
             {(kind === "assistant" || kind === "reassign-assistant") &&
               filteredAssistants.map((assistant) => (
-                <PickerRow key={assistant.id} title={assistant.fullName} subtitle="Active human agent" onPress={() => onAssistant(assistant)} />
+                <PickerRow
+                  key={assistant.id}
+                  title={assistant.fullName}
+                  subtitle="Active human agent"
+                  onPress={() => onAssistant(assistant)}
+                />
               ))}
             {kind === "merchant" &&
               filteredMerchants.map((merchant) => (
@@ -635,7 +695,15 @@ function PickerModal({
   );
 }
 
-function PickerRow({ title, subtitle, onPress }: { title: string; subtitle: string; onPress: () => void }) {
+function PickerRow({
+  title,
+  subtitle,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable style={styles.pickerRow} onPress={onPress}>
       <Text style={styles.itemTitle}>{title}</Text>
@@ -656,14 +724,26 @@ function FieldButton({
   disabled?: boolean;
 }) {
   return (
-    <Pressable style={[styles.fieldButton, disabled && styles.disabled]} disabled={disabled} onPress={onPress}>
+    <Pressable
+      style={[styles.fieldButton, disabled && styles.disabled]}
+      disabled={disabled}
+      onPress={onPress}
+    >
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{value}</Text>
     </Pressable>
   );
 }
 
-function ChoiceButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function ChoiceButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable style={[styles.choiceButton, active && styles.choiceButtonActive]} onPress={onPress}>
       <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{label}</Text>
@@ -688,17 +768,45 @@ function StatusPill({ label }: { label: string }) {
   );
 }
 
-function PrimaryButton({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
+function PrimaryButton({
+  title,
+  onPress,
+  disabled = false,
+}: {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <Pressable style={[styles.primaryButton, disabled && styles.disabled]} disabled={disabled} onPress={onPress}>
-      {disabled && title.endsWith("…") ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>{title}</Text>}
+    <Pressable
+      style={[styles.primaryButton, disabled && styles.disabled]}
+      disabled={disabled}
+      onPress={onPress}
+    >
+      {disabled && title.endsWith("…") ? (
+        <ActivityIndicator color="#FFFFFF" />
+      ) : (
+        <Text style={styles.primaryButtonText}>{title}</Text>
+      )}
     </Pressable>
   );
 }
 
-function SmallButton({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
+function SmallButton({
+  title,
+  onPress,
+  disabled = false,
+}: {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <Pressable style={[styles.smallButton, disabled && styles.disabled]} disabled={disabled} onPress={onPress}>
+    <Pressable
+      style={[styles.smallButton, disabled && styles.disabled]}
+      disabled={disabled}
+      onPress={onPress}
+    >
       <Text style={styles.smallButtonText}>{title}</Text>
     </Pressable>
   );
@@ -758,17 +866,29 @@ function humanize(value: string) {
 }
 
 function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "The secure request failed.";
+  return friendlyErrorMessage(error, "The secure request failed. Please try again.");
 }
 
 const styles = StyleSheet.create({
   stack: { gap: 14 },
   title: { color: INK, fontSize: 26, fontWeight: "900", letterSpacing: -0.5 },
   body: { color: MUTED, fontSize: 13, lineHeight: 20, marginTop: 4 },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   flex: { flex: 1 },
   smallMuted: { color: MUTED, fontSize: 11, lineHeight: 17 },
-  card: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: BORDER, borderRadius: 18, padding: 16, gap: 10 },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 18,
+    padding: 16,
+    gap: 10,
+  },
   cardTitle: { color: INK, fontSize: 16, fontWeight: "900" },
   itemTitle: { color: INK, fontSize: 14, fontWeight: "800" },
   sectionTitle: { color: INK, fontSize: 17, fontWeight: "900" },
@@ -776,37 +896,116 @@ const styles = StyleSheet.create({
   fieldButton: { borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12, gap: 4 },
   fieldLabel: { color: MUTED, fontSize: 9, fontWeight: "800", textTransform: "uppercase" },
   fieldValue: { color: INK, fontSize: 13, fontWeight: "700" },
-  input: { minHeight: 44, borderWidth: 1, borderColor: BORDER, borderRadius: 12, paddingHorizontal: 12, color: INK, backgroundColor: "#FFFFFF" },
+  input: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    color: INK,
+    backgroundColor: "#FFFFFF",
+  },
   textarea: { minHeight: 88, paddingTop: 12, textAlignVertical: "top" },
   choiceRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  choiceButton: { borderWidth: 1, borderColor: BORDER, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#FFFFFF" },
+  choiceButton: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#FFFFFF",
+  },
   choiceButtonActive: { borderColor: BLUE, backgroundColor: "#EAF1FF" },
   choiceText: { color: MUTED, fontSize: 10, fontWeight: "800" },
   choiceTextActive: { color: BLUE },
-  primaryButton: { minHeight: 48, backgroundColor: BLUE, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 },
+  primaryButton: {
+    minHeight: 48,
+    backgroundColor: BLUE,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
   primaryButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
-  smallButton: { minHeight: 38, borderWidth: 1, borderColor: BORDER, borderRadius: 10, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" },
+  smallButton: {
+    minHeight: 38,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
   smallButtonText: { color: INK, fontSize: 11, fontWeight: "800" },
   disabled: { opacity: 0.5 },
   detail: { borderWidth: 1, borderColor: BORDER, borderRadius: 11, padding: 10 },
   detailLabel: { color: MUTED, fontSize: 9, fontWeight: "700" },
   detailValue: { color: INK, fontSize: 12, fontWeight: "700", marginTop: 3 },
-  pill: { alignSelf: "flex-start", backgroundColor: SURFACE, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  pill: {
+    alignSelf: "flex-start",
+    backgroundColor: SURFACE,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   pillText: { color: MUTED, fontSize: 8, fontWeight: "900" },
-  errorBox: { backgroundColor: "#FEF3F2", borderWidth: 1, borderColor: "#FECDCA", borderRadius: 14, padding: 14, gap: 8 },
+  errorBox: {
+    backgroundColor: "#FEF3F2",
+    borderWidth: 1,
+    borderColor: "#FECDCA",
+    borderRadius: 14,
+    padding: 14,
+    gap: 8,
+  },
   errorTitle: { color: ERROR, fontSize: 13, fontWeight: "900" },
   errorBody: { color: ERROR, fontSize: 11, lineHeight: 17 },
-  successBox: { backgroundColor: "#ECFDF3", borderWidth: 1, borderColor: "#ABEFC6", borderRadius: 14, padding: 14, gap: 5 },
+  successBox: {
+    backgroundColor: "#ECFDF3",
+    borderWidth: 1,
+    borderColor: "#ABEFC6",
+    borderRadius: 14,
+    padding: 14,
+    gap: 5,
+  },
   successTitle: { color: SUCCESS, fontSize: 13, fontWeight: "900" },
   successBody: { color: SUCCESS, fontSize: 11, lineHeight: 17 },
-  duplicateBox: { backgroundColor: "#FFFAEB", borderWidth: 1, borderColor: "#FEDF89", borderRadius: 14, padding: 14, gap: 5 },
+  duplicateBox: {
+    backgroundColor: "#FFFAEB",
+    borderWidth: 1,
+    borderColor: "#FEDF89",
+    borderRadius: 14,
+    padding: 14,
+    gap: 5,
+  },
   duplicateTitle: { color: "#B54708", fontSize: 13, fontWeight: "900" },
   duplicateBody: { color: "#B54708", fontSize: 11, lineHeight: 17 },
-  emptyBox: { borderWidth: 1, borderColor: BORDER, borderStyle: "dashed", borderRadius: 16, padding: 20, gap: 5 },
+  emptyBox: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderStyle: "dashed",
+    borderRadius: 16,
+    padding: 20,
+    gap: 5,
+  },
   loading: { paddingVertical: 28, alignItems: "center", gap: 9 },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(17,24,39,0.35)" },
-  modalCard: { maxHeight: "82%", backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, gap: 12 },
-  contactModalCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: 30, gap: 14 },
+  modalCard: {
+    maxHeight: "82%",
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 18,
+    gap: 12,
+  },
+  contactModalCard: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 18,
+    paddingBottom: 30,
+    gap: 14,
+  },
   modalList: { maxHeight: 480 },
   modalListContent: { gap: 8, paddingBottom: 28 },
   pickerRow: { borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12, gap: 3 },
