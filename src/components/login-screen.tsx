@@ -202,7 +202,7 @@ export function LoginScreen() {
           </Tabs>
 
           <Button variant="outline" className="mt-6 w-full gap-2" asChild>
-            <a href="https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.1.0-full-portal/monie-ops-hub-android-v1.1.0-full-portal.apk">
+            <a href="https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.0-grouped-workspace/monie-ops-hub-android-v1.2.0-grouped-workspace.apk">
               <Download className="h-4 w-4" />
               Download Moniepoint BRM App
             </a>
