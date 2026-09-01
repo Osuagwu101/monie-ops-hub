@@ -60,14 +60,14 @@ jobs:
         env:
           CI: "1"
         run: npx expo prebuild --platform android --clean
-      - name: Build installable debug-signed APK
+      - name: Build standalone release APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
       - name: Stage release APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/$APK_NAME"
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/$APK_NAME"
           sha256sum "dist/$APK_NAME" | tee "dist/$APK_NAME.sha256"
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
