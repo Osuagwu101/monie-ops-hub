@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 
+import { AgentWorkspace } from "./src/components/AgentWorkspace";
 import { OperationsSnapshot } from "./src/components/OperationsSnapshot";
 import {
   acknowledgeJoined,
@@ -55,6 +56,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const hadSessionRef = useRef(false);
+  const manualSignOutRef = useRef(false);
+
+  const signOut = useCallback(async () => {
+    manualSignOutRef.current = true;
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      manualSignOutRef.current = false;
+      Alert.alert("Could not sign out", signOutError.message);
+    }
+  }, []);
 
   const loadData = useCallback(async (currentSession: Session, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -63,9 +76,15 @@ export default function App() {
     try {
       const currentProfile = await loadMyProfile(currentSession.user.id);
       setProfile(currentProfile);
-      if (!currentProfile || currentProfile.role !== "director" || !currentProfile.is_active) {
+      if (!currentProfile || !currentProfile.is_active) {
         setMeetings([]);
         setOperations(null);
+        return;
+      }
+      if (currentProfile.role !== "director") {
+        setMeetings([]);
+        setOperations(null);
+        setNotificationReadiness(null);
         return;
       }
 
@@ -115,11 +134,21 @@ export default function App() {
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      hadSessionRef.current = Boolean(data.session);
       if (!data.session) setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      const hadSession = hadSessionRef.current;
       setSession(nextSession);
+      hadSessionRef.current = Boolean(nextSession);
+      if (nextSession) setAuthNotice(null);
       if (!nextSession) {
+        if (manualSignOutRef.current) {
+          setAuthNotice("Signed out successfully.");
+          manualSignOutRef.current = false;
+        } else if (hadSession && event === "SIGNED_OUT") {
+          setAuthNotice("Your session expired. Sign in again.");
+        }
         setProfile(null);
         setMeetings([]);
         setOperations(null);
@@ -154,28 +183,32 @@ export default function App() {
   }
 
   if (!session) {
-    return <LoginScreen />;
+    return <LoginScreen notice={authNotice} />;
   }
 
   if (loading) {
     return <LoadingScreen label="Synchronising Moniepoint BRM…" />;
   }
 
-  if (!profile || profile.role !== "director" || !profile.is_active) {
+  if (!profile || !profile.is_active) {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar style="dark" />
         <View style={styles.centeredPage}>
           <BrandMark />
-          <Text style={styles.centerTitle}>Director account required</Text>
+          <Text style={styles.centerTitle}>Active account required</Text>
           <Text style={styles.centerBody}>
-            This first Moniepoint BRM mobile release is the Director companion. Your account is not
-            currently an active Director profile.
+            This account is not currently active in Monie Ops Hub. Contact the Admin if access
+            should be restored.
           </Text>
-          <PrimaryButton title="Sign out" onPress={() => void supabase.auth.signOut()} />
+          <PrimaryButton title="Sign out" onPress={() => void signOut()} />
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (profile.role === "assistant") {
+    return <AgentWorkspace profile={profile} onSignOut={() => void signOut()} />;
   }
 
   return (
@@ -188,6 +221,7 @@ export default function App() {
       error={error}
       onRefresh={() => void loadData(session, true)}
       onAcknowledge={(id) => void acknowledge(id)}
+      onSignOut={() => void signOut()}
     />
   );
 }
@@ -201,6 +235,7 @@ function DirectorHome({
   error,
   onRefresh,
   onAcknowledge,
+  onSignOut,
 }: {
   profile: MobileProfile;
   meetings: MeetingOccurrence[];
@@ -210,6 +245,7 @@ function DirectorHome({
   error: string | null;
   onRefresh: () => void;
   onAcknowledge: (id: string) => void;
+  onSignOut: () => void;
 }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -250,7 +286,7 @@ function DirectorHome({
               <Text style={styles.brandSubtitle}>Director mobile companion</Text>
             </View>
           </View>
-          <Pressable style={styles.signOutButton} onPress={() => void supabase.auth.signOut()}>
+          <Pressable style={styles.signOutButton} onPress={onSignOut}>
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>
         </View>
@@ -432,7 +468,7 @@ function MeetingRow({
   );
 }
 
-function LoginScreen() {
+function LoginScreen({ notice }: { notice: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -456,7 +492,10 @@ function LoginScreen() {
       <View style={styles.loginPage}>
         <BrandMark />
         <Text style={styles.loginTitle}>Moniepoint BRM</Text>
-        <Text style={styles.loginSubtitle}>Use the same Director account as the web portal.</Text>
+        <Text style={styles.loginSubtitle}>
+          Use the same Director or Staff Support Agent account as the web portal.
+        </Text>
+        {notice ? <Text style={styles.loginNotice}>{notice}</Text> : null}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput
@@ -801,6 +840,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginError: { color: "#B42318", fontSize: 12, lineHeight: 18 },
+  loginNotice: {
+    color: "#175CD3",
+    backgroundColor: "#EFF8FF",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   centerTitle: { color: INK, fontSize: 24, fontWeight: "900", textAlign: "center" },
   centerBody: { color: MUTED, fontSize: 13, lineHeight: 21, textAlign: "center", maxWidth: 360 },
 });
