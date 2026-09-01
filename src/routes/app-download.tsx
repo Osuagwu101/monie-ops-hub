@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ANDROID_APK_URL =
-  "https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.1-grouped-workspace/monie-ops-hub-android-v1.2.1-grouped-workspace.apk";
-const ANDROID_APK_SHA256 = "d43e4f232f018236fbba1f9e7a1f748f455d7b7013340d33dbf8b14cc1cbc321";
+  "https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.2-login-resilience/monie-ops-hub-android-v1.2.2-login-resilience.apk";
+const ANDROID_APK_SHA256 = "f9e1895eca3dac776c12be4730f9dd09da2d19b90f630a1024a5e4f0b0f7d947";
 
 export const Route = createFileRoute("/app-download")({
   head: () => ({

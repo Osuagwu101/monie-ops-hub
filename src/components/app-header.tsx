@@ -36,7 +36,7 @@ export function AppHeader() {
         </div>
         <Button variant="outline" size="sm" className="gap-2 px-2 sm:px-3" asChild>
           <a
-            href="https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.1-grouped-workspace/monie-ops-hub-android-v1.2.1-grouped-workspace.apk"
+            href="https://github.com/Osuagwu101/monie-ops-hub/releases/download/android-v1.2.2-login-resilience/monie-ops-hub-android-v1.2.2-login-resilience.apk"
             aria-label="Download Moniepoint BRM app"
           >
             <Download className="h-4 w-4" />
