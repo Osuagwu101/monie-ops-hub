@@ -46,7 +46,11 @@ jobs:
       - name: Typecheck mobile app
         run: npm run typecheck
       - name: Verify production authentication service
-        run: curl --fail --silent --show-error --max-time 15 "$EXPO_PUBLIC_SUPABASE_URL/auth/v1/health" >/dev/null
+        run: |
+          curl --fail --silent --show-error --max-time 15 \
+            -H "apikey: $EXPO_PUBLIC_SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $EXPO_PUBLIC_SUPABASE_ANON_KEY" \
+            "$EXPO_PUBLIC_SUPABASE_URL/auth/v1/health" >/dev/null
       - name: Verify retained and new mobile features
         run: |
           npm run test:phase1
