@@ -243,6 +243,24 @@ export async function startAssistantTask(taskId: string, accessToken: string) {
   );
 }
 
+// Count of genuinely successful tasks (TA verified, LOAN disbursed, or a
+// FOLLOW_UP completed with a reached-commitment outcome) for one assistant on
+// one day -- the "7 daily task successes" target. This is intentionally NOT
+// the same as counting "finished" tasks: a deferred/discrepancy/unverifiable
+// TA task, or a completed-but-declined FOLLOW_UP, is finished but not a
+// success.
+export async function loadDailyTaskSuccessCount(
+  assistantId: string,
+  date: string,
+  accessToken: string,
+) {
+  return callRpc<number>(
+    "count_daily_task_successes",
+    { p_assistant_id: assistantId, p_task_date: date },
+    accessToken,
+  );
+}
+
 export async function updateMerchantContactDetails(
   input: { merchantId: string; phoneNumber: string; accountNumber: string },
   accessToken: string,

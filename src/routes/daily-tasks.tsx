@@ -41,6 +41,7 @@ import {
 import {
   loadAssistantProfile,
   loadAssistantTasks,
+  loadDailyTaskSuccessCount,
   localDateKey,
   applyMerchantContactUpdate,
   startAssistantTask,
@@ -104,25 +105,45 @@ function DailyTasksPage() {
     refetchInterval: 60_000,
   });
 
+  const profile = profileQuery.data;
+  const isAssistant = profile?.role === "assistant";
+  const canEditContacts = profile?.role === "director";
+
+  // The "7 daily task successes" target counts genuinely successful outcomes
+  // (TA verified, LOAN disbursed, FOLLOW_UP completed with commitment) -- not
+  // merely "finished" tasks -- so this is server-computed via the same rule
+  // Amina's assignment logic uses, rather than approximated client-side. It
+  // is a personal target for the assistant working the queue, so it is only
+  // fetched (and only replaces the "finished" approximation below) for the
+  // signed-in assistant's own view; a Director inspecting the shared queue
+  // sees the pre-existing "finished" count instead, since Director views can
+  // span more than one assistant's tasks and a single self-scoped success
+  // count would not describe them.
+  const successCountQuery = useQuery({
+    queryKey: ["daily-task-successes", date, user?.id],
+    queryFn: () => loadDailyTaskSuccessCount(user!.id, date, accessToken),
+    enabled: Boolean(isAssistant && user?.id && accessToken),
+    refetchInterval: 60_000,
+  });
+
   const startMutation = useMutation({
     mutationFn: (taskId: string) => startAssistantTask(taskId, accessToken),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assistant-tasks", date] }),
   });
 
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
-  const profile = profileQuery.data;
-  const isAssistant = profile?.role === "assistant";
-  const canEditContacts = profile?.role === "director";
 
   const stats = useMemo(() => {
     const completed = tasks.filter((task) => finishedStates.has(task.status)).length;
+    const successesKnown = isAssistant && successCountQuery.data !== undefined;
+    const successes = successesKnown ? successCountQuery.data! : completed;
     const taTasks = tasks.filter((task) => task.task_type === "TA").length;
     const taShare = tasks.length ? taTasks / tasks.length : 0;
     const progress = DAILY_REQUIRED_CONTACTS
-      ? Math.min((completed / DAILY_REQUIRED_CONTACTS) * 100, 100)
+      ? Math.min((successes / DAILY_REQUIRED_CONTACTS) * 100, 100)
       : 0;
-    return { completed, taTasks, taShare, progress };
-  }, [tasks]);
+    return { completed, successes, successesKnown, taTasks, taShare, progress };
+  }, [tasks, isAssistant, successCountQuery.data]);
 
   const nowTask = tasks.find((task) => !finishedStates.has(task.status)) ?? null;
   const taMixHealthy =
@@ -170,11 +191,13 @@ function DailyTasksPage() {
         <MetricCard
           icon={<Target className="h-4 w-4 text-primary" />}
           label="Daily progress"
-          value={`${stats.completed}/${DAILY_REQUIRED_CONTACTS}`}
+          value={`${stats.successes}/${DAILY_REQUIRED_CONTACTS}`}
           detail={
-            stats.completed >= DAILY_REQUIRED_CONTACTS
-              ? `Required target met · ${tasks.length}/${DAILY_CONTACT_CAPACITY} contacts available`
-              : `7 required · up to ${DAILY_CONTACT_CAPACITY} ranked contacts available`
+            stats.successesKnown
+              ? stats.successes >= DAILY_REQUIRED_CONTACTS
+                ? `Required success target met · ${tasks.length}/${DAILY_CONTACT_CAPACITY} contacts available`
+                : `7 successes required (TA, Loan, or approved non-TA) · up to ${DAILY_CONTACT_CAPACITY} ranked contacts available`
+              : `${tasks.length}/${DAILY_CONTACT_CAPACITY} contacts available`
           }
         />
         <MetricCard
@@ -299,6 +322,7 @@ function DailyTasksPage() {
         onSaved={async () => {
           setSelectedTask(null);
           await queryClient.invalidateQueries({ queryKey: ["assistant-tasks", date] });
+          await queryClient.invalidateQueries({ queryKey: ["daily-task-successes", date] });
         }}
       />
       <MerchantContactDialog
