@@ -1,0 +1,17 @@
+{
+  "name": "brm-report-enricher-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-browser BRM PDF report enricher for POS account numbers and business owner phone numbers.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "check": "node --check src/core.js && node --check src/background.js && node --check src/content.js && node --check src/workspace.js"
+  },
+  "dependencies": {
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.2.108"
+  },
+  "devDependencies": {}
+}

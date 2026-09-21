@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>BRM Report Enricher</title>
+  <link rel="stylesheet" href="workspace.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">BRM REPORT ENRICHER</p>
+        <h1>Add POS account numbers and phone numbers to your daily report.</h1>
+        <p class="sub">Exact name order is enforced. Wallet-only duplicates are ignored. Your PDF is processed locally in the browser.</p>
+      </div>
+      <div class="status-pill" id="platformPill">WebExtension</div>
+    </header>
+
+    <section class="steps">
+      <article class="card">
+        <div class="step-num">1</div>
+        <div class="grow">
+          <h2>Upload report</h2>
+          <p>Select the original BRM Daily Report PDF.</p>
+          <label class="file-button">
+            <input id="fileInput" type="file" accept="application/pdf,.pdf" />
+            Choose PDF
+          </label>
+          <div id="fileMeta" class="meta">No report loaded.</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="step-num">2</div>
+        <div class="grow">
+          <h2>MonieCRM session</h2>
+          <p>Use your normal logged-in MonieCRM session. The extension does not store your password.</p>
+          <button id="openCrmBtn" class="secondary">Open MonieCRM</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="step-num">3</div>
+        <div class="grow">
+          <h2>Enrich entire report</h2>
+          <p>The extension searches every business-level row and appends POS Account No. and Phone No.</p>
+          <div class="button-row">
+            <button id="startBtn" class="primary" disabled>Start enrichment</button>
+            <button id="pauseBtn" class="secondary" disabled>Pause</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="progress-card">
+      <div class="progress-head">
+        <div>
+          <h2>Progress</h2>
+          <p id="progressText">Waiting for a report.</p>
+        </div>
+        <strong id="progressPct">0%</strong>
+      </div>
+      <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+      <div class="stats">
+        <div><span id="statMatched">0</span><small>Matched</small></div>
+        <div><span id="statNotFound">0</span><small>Not found</small></div>
+        <div><span id="statReview">0</span><small>Review</small></div>
+        <div><span id="statErrors">0</span><small>Errors</small></div>
+      </div>
+      <div id="alertBox" class="alert hidden"></div>
+    </section>
+
+    <section class="results-card">
+      <div>
+        <h2>Completed report</h2>
+        <p>The original layout is retained and the two new columns are added to business tables.</p>
+      </div>
+      <div class="button-row">
+        <button id="downloadPdfBtn" class="primary" disabled>Download enriched PDF</button>
+        <button id="downloadCsvBtn" class="secondary" disabled>Download audit CSV</button>
+      </div>
+    </section>
+
+    <section class="rules-card">
+      <h2>Matching rules in this build</h2>
+      <ul>
+        <li>Name order must match exactly; only capitalization and extra whitespace are normalized.</li>
+        <li>If identical names appear more than once, wallet-only records are ignored.</li>
+        <li>The record with a POS account is preferred; terminal ID/serial is used to resolve multiple POS-bearing exact matches.</li>
+        <li>If more than one POS-bearing exact match still remains, the row is marked REVIEW instead of guessing.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="vendor/pdf-lib.min.js"></script>
+  <script src="core.js"></script>
+  <script type="module" src="workspace.js"></script>
+</body>
+</html>
