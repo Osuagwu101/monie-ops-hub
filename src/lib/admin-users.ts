@@ -2,6 +2,7 @@ import {
   activateInvitedStaffAccount,
   callRpc,
   restSelect,
+  type CloudSignUpResult,
   type CloudSession,
   type CloudUser,
 } from "@/lib/cloud-api";
@@ -59,8 +60,16 @@ export async function createStaffAccount(input: CreateStaffInput, accessToken: s
     invite.inviteToken,
   );
 
-  const session = isCloudSession(result) ? result : result.session;
-  const user = isCloudSession(result) ? result.user : result.user;
+  const session = isCloudSession(result)
+    ? result
+    : isWrappedSignUpResult(result)
+      ? result.session
+      : null;
+  const user = isCloudSession(result)
+    ? result.user
+    : isWrappedSignUpResult(result)
+      ? result.user
+      : result;
 
   return {
     userId: user.id,
@@ -69,8 +78,12 @@ export async function createStaffAccount(input: CreateStaffInput, accessToken: s
   };
 }
 
-function isCloudSession(
-  value: CloudSession | { user: CloudUser; session: CloudSession | null },
-): value is CloudSession {
+function isCloudSession(value: CloudSignUpResult): value is CloudSession {
   return "access_token" in value;
+}
+
+function isWrappedSignUpResult(
+  value: CloudSignUpResult,
+): value is { user: CloudUser; session: CloudSession | null } {
+  return "user" in value && !isCloudSession(value);
 }

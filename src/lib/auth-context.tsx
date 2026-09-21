@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           commitSession(result);
           return "signed_in";
         }
-        if (result.session) {
+        if ("session" in result && result.session) {
           commitSession(result.session);
           return "signed_in";
         }

@@ -17,6 +17,9 @@ export interface CloudSession {
   user: CloudUser;
 }
 
+export type CloudSignUpResult =
+  CloudSession | { user: CloudUser; session: CloudSession | null } | CloudUser;
+
 interface CloudErrorBody {
   error?: string;
   error_description?: string;
@@ -80,13 +83,10 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 export async function signUpWithPassword(email: string, password: string, fullName: string) {
-  return cloudFetch<CloudSession | { user: CloudUser; session: CloudSession | null }>(
-    "/auth/v1/signup",
-    {
-      method: "POST",
-      body: JSON.stringify({ email, password, data: { full_name: fullName } }),
-    },
-  );
+  return cloudFetch<CloudSignUpResult>("/auth/v1/signup", {
+    method: "POST",
+    body: JSON.stringify({ email, password, data: { full_name: fullName } }),
+  });
 }
 
 export async function activateInvitedStaffAccount(
@@ -95,20 +95,17 @@ export async function activateInvitedStaffAccount(
   fullName: string,
   inviteToken: string,
 ) {
-  return cloudFetch<CloudSession | { user: CloudUser; session: CloudSession | null }>(
-    "/auth/v1/signup",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        password,
-        data: {
-          full_name: fullName,
-          staff_invite_token: inviteToken,
-        },
-      }),
-    },
-  );
+  return cloudFetch<CloudSignUpResult>("/auth/v1/signup", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      password,
+      data: {
+        full_name: fullName,
+        staff_invite_token: inviteToken,
+      },
+    }),
+  });
 }
 
 export async function refreshCloudSession(refreshToken: string) {
