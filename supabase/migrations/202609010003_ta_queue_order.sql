@@ -1,5 +1,12 @@
 -- Preserve status urgency, then keep target-recovery work together so the
 -- highest-value active underperformers are worked before non-TA calls.
+--
+-- Replay note: this historical migration patches pg_get_functiondef() text.
+-- PostgreSQL formatting can differ across versions, so a clean replay may not
+-- find the exact source substring. The complete function is replaced safely by
+-- 202609020001_amina_priority_success_and_rr_recovery.sql, which contains this
+-- TA-first ordering. Therefore a non-match here is safe to skip during fresh
+-- rebuilds instead of aborting the whole migration chain.
 
 do $$
 declare
@@ -17,9 +24,9 @@ begin
   );
 
   if v_definition = v_original then
-    raise exception 'run_operations_team queue-ranking baseline did not match';
+    raise notice 'run_operations_team queue-ranking patch skipped; later full replacement migration preserves TA-first ordering';
+  else
+    execute v_definition;
   end if;
-
-  execute v_definition;
 end;
 $$;

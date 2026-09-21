@@ -93,6 +93,18 @@ export interface RunOperationsTeamResult {
   mixCompliant: boolean;
   replacedUntouchedAutoTasks: number;
   briefRecommendationId: string;
+  dailyContactCapacity?: number;
+  dailySuccessTarget?: number;
+  queueExtension?: {
+    capacity: number;
+    requiredTarget: number;
+    existing: number;
+    added: number;
+    total: number;
+    ranked: number;
+    contactsRequiredForCreation: boolean;
+    reason?: string;
+  };
 }
 
 function inFilter(ids: string[]) {
@@ -171,7 +183,7 @@ export async function runOperationsTeam(
   reportId: string | null = null,
 ) {
   return callRpc<RunOperationsTeamResult>(
-    "run_operations_team",
+    "run_operations_team_with_capacity",
     {
       p_assistant_id: assistantId,
       p_plan_date: planDate,

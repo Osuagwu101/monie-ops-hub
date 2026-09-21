@@ -55,6 +55,9 @@ jobs:
       - name: Web task improvements acceptance
         run: bun run test:web-task-improvements
 
+      - name: Queue capacity regression
+        run: bun run test:queue-capacity
+
       - name: Offline acceptance
         run: bun scripts/phase6-offline-acceptance.ts
 
