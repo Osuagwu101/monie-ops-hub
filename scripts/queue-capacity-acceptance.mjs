@@ -12,10 +12,7 @@ const dbTest = readFileSync(
   resolve(root, "supabase/tests/amina_queue_capacity_regression_test.sql"),
   "utf8",
 );
-const dbWorkflow = readFileSync(
-  resolve(root, ".github/workflows/database-tests.yml"),
-  "utf8",
-);
+const dbWorkflow = readFileSync(resolve(root, ".github/workflows/database-tests.yml"), "utf8");
 
 const has = (source, value, message) => assert.ok(source.includes(value), message);
 
@@ -34,11 +31,7 @@ has(
   "ranked.position <= v_capacity",
   "The database fix must rank the full configured queue, not only seven items.",
 );
-has(
-  migration,
-  "'requiredTarget', 7",
-  "The success target must remain seven.",
-);
+has(migration, "'requiredTarget', 7", "The success target must remain seven.");
 has(
   migration,
   "public.extend_human_support_queue",
